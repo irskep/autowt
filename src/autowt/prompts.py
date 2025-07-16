@@ -6,18 +6,18 @@ from autowt.global_config import options
 def confirm(message: str, default: bool = False) -> bool:
     """
     Ask for user confirmation, respecting the global auto_confirm option.
-    
+
     Args:
         message: The prompt message to display
         default: The default value if user just presses enter
-        
+
     Returns:
         bool: True if confirmed, False otherwise
     """
     if options.auto_confirm:
         print(f"{message} [auto-confirmed]")
         return True
-    
+
     # Format the prompt based on default
     if default:
         prompt = f"{message} (Y/n) "
@@ -25,7 +25,7 @@ def confirm(message: str, default: bool = False) -> bool:
     else:
         prompt = f"{message} (y/N) "
         valid_yes = ["y", "yes"]
-    
+
     response = input(prompt)
     return response.lower() in valid_yes
 

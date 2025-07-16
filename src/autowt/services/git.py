@@ -199,7 +199,6 @@ class GitService:
                         "-b",
                         branch,
                     ]
-
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0
@@ -251,9 +250,8 @@ class GitService:
             # Check if branch has remote
             has_remote = self._branch_has_remote(repo_path, branch)
 
-            # Check if branch has unique commits
-            has_unique_commits = self._branch_has_unique_commits(repo_path, branch)
-            is_identical = not has_unique_commits
+            # Check if branch is identical to main/master
+            is_identical = self._branches_are_identical(repo_path, branch)
 
             # Check if branch is merged (only if it had unique commits)
             is_merged = self._branch_is_merged(repo_path, branch)
@@ -284,39 +282,40 @@ class GitService:
         except Exception:
             return False
 
-    def _branch_has_unique_commits(self, repo_path: Path, branch: str) -> bool:
-        """Check if branch has any commits not in main/master."""
+    def _branches_are_identical(self, repo_path: Path, branch: str) -> bool:
+        """Check if branch points to the same commit as main/master."""
         try:
             # Try main first, then master
             for base_branch in ["main", "master"]:
-                result = run_command(
-                    [
-                        "git",
-                        "rev-list",
-                        "--cherry-pick",
-                        "--left-only",
-                        f"{branch}...{base_branch}",
-                    ],
+                # Get commit hashes for both branches
+                branch_result = run_command(
+                    ["git", "rev-parse", branch],
                     cwd=repo_path,
                     timeout=10,
-                    description=f"Check for unique commits in {branch} vs {base_branch}",
+                    description=f"Get commit hash for {branch}",
                 )
-                if result.returncode == 0:
-                    # If there's any output, branch has unique commits
-                    return bool(result.stdout.strip())
-                    
+                base_result = run_command(
+                    ["git", "rev-parse", base_branch],
+                    cwd=repo_path,
+                    timeout=10,
+                    description=f"Get commit hash for {base_branch}",
+                )
+
+                if branch_result.returncode == 0 and base_result.returncode == 0:
+                    # Branches are identical if they point to the same commit
+                    return branch_result.stdout.strip() == base_result.stdout.strip()
+
             return False
         except Exception:
             return False
 
     def _branch_is_merged(self, repo_path: Path, branch: str) -> bool:
-        """Check if branch is merged into main/master (but has unique commits)."""
+        """Check if branch is merged into main/master (but not identical)."""
         try:
-            # Only consider it "merged" if it was an ancestor AND had unique commits
-            # This excludes branches that are identical to main
-            if not self._branch_has_unique_commits(repo_path, branch):
+            # Don't consider identical branches as "merged"
+            if self._branches_are_identical(repo_path, branch):
                 return False
-                
+
             # Try main first, then master
             for base_branch in ["main", "master"]:
                 # Check if branch is ancestor (was merged)

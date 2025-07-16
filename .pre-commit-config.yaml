@@ -1,0 +1,17 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: Format with ruff
+        entry: mise run format
+        language: system
+        files: \.py$
+        stages: [pre-commit]
+      
+      - id: auto-commit-format
+        name: Auto-commit formatting changes
+        entry: bash -c 'if [ -n "$(git diff --name-only)" ]; then git add -A && git commit --amend --no-edit; fi'
+        language: system
+        always_run: true
+        stages: [pre-commit]
+        verbose: true

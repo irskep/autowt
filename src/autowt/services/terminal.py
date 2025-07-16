@@ -203,7 +203,7 @@ class TerminalService:
         """Escape a path for use inside AppleScript command strings."""
         # For use inside "write text" commands - don't add extra quotes
         return str(path).replace("\\", "\\\\").replace('"', '\\"')
-    
+
     def _escape_path(self, path: Path) -> str:
         """Escape a path for use in AppleScript (with quotes)."""
         # AppleScript string escaping: double quotes and backslashes

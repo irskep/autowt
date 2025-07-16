@@ -54,7 +54,7 @@ class AutowtGroup(click.Group):
             # Set global options for dynamic branch commands
             options.auto_confirm = kwargs.get("auto_confirm", False)
             options.debug = kwargs.get("debug", False)
-            
+
             setup_logging(kwargs.get("debug", False))
             terminal_mode = (
                 TerminalMode(kwargs["terminal"]) if kwargs.get("terminal") else None
@@ -81,7 +81,12 @@ class AutowtGroup(click.Group):
                     type=click.Choice(["same", "tab", "window", "inplace"]),
                     help="How to open the worktree terminal",
                 ),
-                click.Option(["-y", "--yes"], "auto_confirm", is_flag=True, help="Automatically confirm all prompts"),
+                click.Option(
+                    ["-y", "--yes"],
+                    "auto_confirm",
+                    is_flag=True,
+                    help="Automatically confirm all prompts",
+                ),
                 click.Option(["--debug"], is_flag=True, help="Enable debug logging"),
             ],
             help=f"Switch to or create a worktree for branch '{cmd_name}'",
@@ -94,7 +99,13 @@ class AutowtGroup(click.Group):
     invoke_without_command=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.option("-y", "--yes", "auto_confirm", is_flag=True, help="Automatically confirm all prompts")
+@click.option(
+    "-y",
+    "--yes",
+    "auto_confirm",
+    is_flag=True,
+    help="Automatically confirm all prompts",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.pass_context
 def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
@@ -106,7 +117,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # Set global options
     options.auto_confirm = auto_confirm
     options.debug = debug
-    
+
     setup_logging(debug)
 
     # If no subcommand was invoked, show list
@@ -142,14 +153,23 @@ def ls(debug: bool) -> None:
     default="all",
     help="Cleanup mode",
 )
-@click.option("--dry-run", is_flag=True, help="Show what would be removed without actually removing")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be removed without actually removing",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def cleanup(mode: str, dry_run: bool, debug: bool) -> None:
     """Clean up merged or remoteless worktrees."""
     setup_logging(debug)
     state_service, git_service, terminal_service, process_service = create_services()
     cleanup_worktrees(
-        CleanupMode(mode), state_service, git_service, terminal_service, process_service, dry_run
+        CleanupMode(mode),
+        state_service,
+        git_service,
+        terminal_service,
+        process_service,
+        dry_run,
     )
 
 
