@@ -1,6 +1,7 @@
 """Process management service for autowt."""
 
 import logging
+import platform
 import time
 from pathlib import Path
 
@@ -21,6 +22,10 @@ class ProcessService:
     def find_processes_in_directory(self, directory: Path) -> list[ProcessInfo]:
         """Find all processes running in the specified directory."""
         logger.debug(f"Finding processes in directory: {directory}")
+
+        if platform.system() == "Windows":
+            logger.info("Windows process discovery not yet supported - skipping")
+            return []
 
         processes = []
 
@@ -108,6 +113,10 @@ class ProcessService:
         """Terminate the given processes with SIGINT then SIGKILL if needed."""
         if not processes:
             logger.debug("No processes to terminate")
+            return True
+
+        if platform.system() == "Windows":
+            logger.info("Windows process termination not yet supported - skipping")
             return True
 
         logger.info(f"Terminating {len(processes)} processes")
@@ -201,6 +210,10 @@ class ProcessService:
 
     def _is_process_running(self, pid: int) -> bool:
         """Check if a process is still running."""
+        if platform.system() == "Windows":
+            # On Windows, we skip process discovery so we won't have PIDs to check
+            return False
+
         try:
             result = run_command(
                 ["ps", "-p", str(pid)],

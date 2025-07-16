@@ -309,6 +309,10 @@ class GenericTerminal(Terminal):
                     timeout=10,
                     description=f"Open Terminal app at {worktree_path}",
                 )
+            elif platform.system() == "Windows":
+                # Windows terminal operations not yet supported
+                logger.info("Windows terminal operations not yet supported - skipping")
+                return False
             else:
                 # Try common Linux terminal emulators
                 terminals = ["gnome-terminal", "konsole", "xterm"]
