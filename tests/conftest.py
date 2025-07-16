@@ -1,6 +1,5 @@
 """Pytest configuration and shared fixtures."""
 
-
 import pytest
 
 from autowt.models import (

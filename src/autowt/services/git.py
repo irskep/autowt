@@ -178,9 +178,7 @@ class GitService:
                     f"origin/{branch}",
                 ]
 
-            result = run_command_visible(
-                cmd, cwd=repo_path, timeout=30
-            )
+            result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0
             if success:
@@ -294,4 +292,3 @@ class GitService:
             return False
         except Exception:
             return False
-
