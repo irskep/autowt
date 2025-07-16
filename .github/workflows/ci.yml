@@ -7,11 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11', '3.12']
     
     steps:
     - uses: actions/checkout@v4
@@ -24,33 +21,9 @@ jobs:
       
     - name: Run tests
       run: mise run test
-
-  lint:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      
-    - name: Install dependencies
-      run: mise run install
       
     - name: Run linter
       run: mise run lint
-
-  fmt-check:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      
-    - name: Install dependencies
-      run: mise run install
       
     - name: Check formatting
       run: mise run format-check
