@@ -16,7 +16,7 @@ class TestCLIRouting:
 
         # Mock all the command functions to avoid actual execution
         with (
-            patch("autowt.commands.init.init_hooks") as mock_init,
+            patch("autowt.commands.init.init_autowt") as mock_init,
             patch("autowt.commands.ls.list_worktrees") as mock_ls,
             patch("autowt.commands.cleanup.cleanup_worktrees") as mock_cleanup,
             patch("autowt.commands.config.configure_settings") as mock_config,
