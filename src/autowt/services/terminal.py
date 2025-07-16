@@ -177,14 +177,107 @@ class TerminalAppTerminal(Terminal):
     """Terminal.app implementation."""
 
     def get_current_session_id(self) -> str | None:
-        """Terminal.app doesn't have session IDs."""
-        return None
+        """Get Terminal.app working directory as session identifier."""
+        try:
+            applescript = """
+            tell application "Terminal"
+                set tabTTY to tty of selected tab of front window
+                return tabTTY
+            end tell
+            """
+
+            result = run_command(
+                ["osascript", "-e", applescript],
+                timeout=5,
+                description="Get Terminal.app current tab TTY",
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                tty = result.stdout.strip()
+                # Get working directory from shell process
+                working_dir = self._get_working_directory_from_tty(tty)
+                return working_dir
+
+            return None
+
+        except Exception:
+            return None
+
+    def supports_session_management(self) -> bool:
+        """Terminal.app supports session management via working directory detection."""
+        return True
+
+    def _get_working_directory_from_tty(self, tty: str) -> str | None:
+        """Get working directory of shell process using the given TTY."""
+        try:
+            # Find shell process for this TTY
+            shell_cmd = f"lsof {shlex.quote(tty)} | grep -E '(zsh|bash|sh)' | head -1 | awk '{{print $2}}'"
+            shell_result = run_command(
+                ["bash", "-c", shell_cmd],
+                timeout=5,
+                description=f"Find shell process for TTY {tty}",
+            )
+
+            if shell_result.returncode != 0 or not shell_result.stdout.strip():
+                return None
+
+            pid = shell_result.stdout.strip()
+
+            # Get working directory of that process
+            cwd_cmd = f"lsof -p {shlex.quote(pid)} | grep cwd | awk '{{print $9}}'"
+            cwd_result = run_command(
+                ["bash", "-c", cwd_cmd],
+                timeout=5,
+                description=f"Get working directory for PID {pid}",
+            )
+
+            if cwd_result.returncode == 0 and cwd_result.stdout.strip():
+                return cwd_result.stdout.strip()
+
+            return None
+
+        except Exception as e:
+            logger.debug(f"Failed to get working directory from TTY {tty}: {e}")
+            return None
 
     def switch_to_session(
         self, session_id: str, init_script: str | None = None
     ) -> bool:
-        """Terminal.app doesn't support session switching."""
-        return False
+        """Switch to existing Terminal.app session by working directory."""
+        logger.debug(f"Searching for Terminal.app tab in directory: {session_id}")
+
+        applescript = f'''
+        tell application "Terminal"
+            repeat with theWindow in windows
+                repeat with theTab in tabs of theWindow
+                    try
+                        set tabTTY to tty of theTab
+                        set applescriptShellCmd to "lsof " & tabTTY & " | grep -E '(zsh|bash|sh)' | head -1 | awk '{{print $2}}'"
+                        set shellPid to do shell script applescriptShellCmd
+                        if shellPid is not "" then
+                            set cwdCmd to "lsof -p " & shellPid & " | grep cwd | awk '{{print $9}}'"
+                            set workingDir to do shell script cwdCmd
+                            if workingDir is "{self._escape_for_applescript(session_id)}" then
+                                select theTab
+                                set frontmost of theWindow to true
+                                set index of theWindow to 1'''
+
+        if init_script:
+            applescript += f'''
+                                do script "{self._escape_for_applescript(init_script)}" in theTab'''
+
+        applescript += """
+                                return true
+                            end if
+                        end if
+                    end try
+                end repeat
+            end repeat
+            return false
+        end tell
+        """
+
+        return self._run_applescript(applescript)
 
     def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
         """Open a new Terminal.app tab.
@@ -276,6 +369,146 @@ class TerminalAppTerminal(Terminal):
         """
 
         return self._run_applescript(applescript)
+
+
+class TmuxTerminal(Terminal):
+    """tmux terminal implementation for users already using tmux."""
+
+    def __init__(self):
+        """Initialize tmux terminal implementation."""
+        super().__init__()
+        self.is_in_tmux = bool(os.getenv("TMUX"))
+
+    def get_current_session_id(self) -> str | None:
+        """Get current tmux session name."""
+        if not self.is_in_tmux:
+            return None
+
+        try:
+            result = run_command(
+                ["tmux", "display-message", "-p", "#S"],
+                timeout=5,
+                description="Get current tmux session name",
+            )
+            return result.stdout.strip() if result.returncode == 0 else None
+        except Exception:
+            return None
+
+    def supports_session_management(self) -> bool:
+        """tmux supports excellent session management."""
+        return True
+
+    def switch_to_session(
+        self, session_id: str, init_script: str | None = None
+    ) -> bool:
+        """Switch to existing tmux session."""
+        logger.debug(f"Switching to tmux session: {session_id}")
+
+        try:
+            # Check if session exists
+            result = run_command(
+                ["tmux", "has-session", "-t", session_id],
+                timeout=5,
+                description=f"Check if tmux session {session_id} exists",
+            )
+
+            if result.returncode != 0:
+                return False
+
+            # Switch to session
+            if self.is_in_tmux:
+                # If inside tmux, switch within tmux
+                switch_result = run_command(
+                    ["tmux", "switch-client", "-t", session_id],
+                    timeout=5,
+                    description=f"Switch to tmux session {session_id}",
+                )
+            else:
+                # Not in tmux, attach to session
+                switch_result = run_command(
+                    ["tmux", "attach-session", "-t", session_id],
+                    timeout=5,
+                    description=f"Attach to tmux session {session_id}",
+                )
+
+            success = switch_result.returncode == 0
+
+            # Run init script if provided and switch succeeded
+            if success and init_script:
+                run_command(
+                    ["tmux", "send-keys", "-t", session_id, init_script, "Enter"],
+                    timeout=5,
+                    description=f"Send init script to tmux session {session_id}",
+                )
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to switch to tmux session: {e}")
+            return False
+
+    def _create_session_name(self, worktree_path: Path) -> str:
+        """Create a tmux session name for the worktree."""
+        # Use sanitized worktree directory name
+        from autowt.utils import sanitize_branch_name
+
+        return f"autowt-{sanitize_branch_name(worktree_path.name)}"
+
+    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+        """Create new tmux window (tmux equivalent of tab)."""
+        return self.open_new_window(worktree_path, init_script)
+
+    def open_new_window(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
+        """Create new tmux session for the worktree."""
+        logger.debug(f"Creating tmux session for {worktree_path}")
+
+        session_name = self._create_session_name(worktree_path)
+
+        try:
+            # Create or attach to session
+            cmd = [
+                "tmux",
+                "new-session",
+                "-A",
+                "-s",
+                session_name,
+                "-c",
+                str(worktree_path),
+            ]
+
+            if self.is_in_tmux:
+                # If inside tmux, create detached and switch
+                cmd.insert(-1, "-d")
+                create_result = run_command(
+                    cmd,
+                    timeout=10,
+                    description=f"Create tmux session {session_name}",
+                )
+                if create_result.returncode == 0:
+                    return self.switch_to_session(session_name, init_script)
+                return False
+            else:
+                # Not in tmux, can attach directly
+                result = run_command(
+                    cmd,
+                    timeout=10,
+                    description=f"Create/attach tmux session {session_name}",
+                )
+
+                if result.returncode == 0 and init_script:
+                    run_command(
+                        ["tmux", "send-keys", init_script, "Enter"],
+                        timeout=5,
+                        description="Send init script to new tmux session",
+                    )
+
+                return result.returncode == 0
+
+        except Exception as e:
+            logger.error(f"Failed to create tmux session: {e}")
+            return False
 
 
 class GnomeTerminalTerminal(Terminal):
@@ -958,6 +1191,10 @@ class GenericTerminal(Terminal):
                     timeout=10,
                     description=f"Open Terminal app at {worktree_path}",
                 )
+            elif platform.system() == "Windows":
+                # Windows terminal operations not yet supported
+                logger.info("Windows terminal operations not yet supported - skipping")
+                return False
             else:
                 # Try common Linux terminal emulators
                 terminals = ["gnome-terminal", "konsole", "xterm"]
@@ -1017,6 +1254,11 @@ class TerminalService:
 
     def _create_terminal_implementation(self) -> Terminal:
         """Create the appropriate terminal implementation."""
+        # Check for tmux first (works on all platforms)
+        if os.getenv("TMUX"):
+            logger.debug("Detected tmux environment")
+            return TmuxTerminal()
+
         term_program = os.getenv("TERM_PROGRAM", "")
         logger.debug(f"TERM_PROGRAM: {term_program}")
 
@@ -1152,13 +1394,24 @@ class TerminalService:
         auto_confirm: bool = False,
     ) -> bool:
         """Switch to existing session or create new tab."""
-        # If we have a session ID and terminal supports it, ask user if they want to switch to existing
-        if session_id and self.terminal.supports_session_management():
-            if auto_confirm or self._should_switch_to_existing(branch_name):
-                # Try to switch to existing session
-                if self.terminal.switch_to_session(session_id, init_script):
-                    print(f"Switched to existing {branch_name or 'worktree'} session")
-                    return True
+        # For Terminal.app, use worktree path as session identifier
+        # For other terminals (iTerm2, tmux), use provided session_id
+        if self.terminal.supports_session_management():
+            if isinstance(self.terminal, TerminalAppTerminal):
+                effective_session_id = str(worktree_path)
+            else:
+                effective_session_id = session_id
+
+            if effective_session_id:
+                if auto_confirm or self._should_switch_to_existing(branch_name):
+                    # Try to switch to existing session
+                    if self.terminal.switch_to_session(
+                        effective_session_id, init_script
+                    ):
+                        print(
+                            f"Switched to existing {branch_name or 'worktree'} session"
+                        )
+                        return True
 
         # Fall back to creating new tab
         return self.terminal.open_new_tab(worktree_path, init_script)
@@ -1172,13 +1425,24 @@ class TerminalService:
         auto_confirm: bool = False,
     ) -> bool:
         """Switch to existing session or create new window."""
-        # If we have a session ID and terminal supports it, ask user if they want to switch to existing
-        if session_id and self.terminal.supports_session_management():
-            if auto_confirm or self._should_switch_to_existing(branch_name):
-                # Try to switch to existing session
-                if self.terminal.switch_to_session(session_id, init_script):
-                    print(f"Switched to existing {branch_name or 'worktree'} session")
-                    return True
+        # For Terminal.app, use worktree path as session identifier
+        # For other terminals (iTerm2, tmux), use provided session_id
+        if self.terminal.supports_session_management():
+            if isinstance(self.terminal, TerminalAppTerminal):
+                effective_session_id = str(worktree_path)
+            else:
+                effective_session_id = session_id
+
+            if effective_session_id:
+                if auto_confirm or self._should_switch_to_existing(branch_name):
+                    # Try to switch to existing session
+                    if self.terminal.switch_to_session(
+                        effective_session_id, init_script
+                    ):
+                        print(
+                            f"Switched to existing {branch_name or 'worktree'} session"
+                        )
+                        return True
 
         # Fall back to creating new window
         return self.terminal.open_new_window(worktree_path, init_script)
