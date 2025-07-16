@@ -35,14 +35,18 @@ autowt ls
 Shows your primary clone, current location, and all worktrees:
 
 ```
-Primary clone: ~/dev/myproject
-You are in: feature-branch
+  Primary clone: ~/dev/myproject
+  You are in: feature-branch
 
-Branches:
-feature-auth      ~/dev/myproject-worktrees/feature-auth
-steve/bugfix      ~/dev/myproject-worktrees/steve-bugfix
-refactor-core     ~/dev/myproject-worktrees/refactor-core
+  Branches:
+  feature-auth      ~/dev/myproject-worktrees/feature-auth 💻
+  steve/bugfix      ~/dev/myproject-worktrees/steve-bugfix
+  refactor-core     ~/dev/myproject-worktrees/refactor-core 💻
+
+Use 'autowt <branch>' to switch to a worktree or create a new one.
 ```
+
+The 💻 icon indicates branches with active terminal sessions.
 
 ## Cleanup
 
@@ -53,14 +57,22 @@ autowt cleanup
 Analyzes your worktrees and categorizes them:
 
 - **Without remotes:** Branches that don't track a remote branch
-- **With merge commits:** Branches that have been merged into main/master (including squash merges)
+- **Identical to main:** Branches pointing to the same commit as main/master
+- **Merged:** Branches that have been merged into main/master
 
-By default, cleanup removes both categories. Use `--mode` to be selective:
+By default, cleanup removes all categories. Use `--mode` to be selective:
 
 ```bash
-autowt cleanup --mode merged      # Only merged branches
+autowt cleanup --mode all         # All categories (default)
+autowt cleanup --mode merged      # Only merged and identical branches
 autowt cleanup --mode remoteless  # Only branches without remotes
-autowt cleanup --mode interactive # Choose individually
+autowt cleanup --mode interactive # Choose individually with TUI
+```
+
+Use `--dry-run` to see what would be removed without actually removing:
+
+```bash
+autowt cleanup --dry-run
 ```
 
 Before removing worktrees, autowt finds running processes in those directories and terminates them with SIGINT, followed by SIGKILL after 10 seconds if needed.
@@ -70,10 +82,16 @@ Before removing worktrees, autowt finds running processes in those directories a
 Control how autowt opens terminals:
 
 ```bash
-autowt branch-name --terminal=tab     # New tab (default)
+autowt branch-name --terminal=same    # Switch to existing session (default)
+autowt branch-name --terminal=tab     # New tab
 autowt branch-name --terminal=window  # New window
-autowt branch-name --terminal=same    # Switch to existing session
 autowt branch-name --terminal=inplace # Change directory in current terminal
+```
+
+With `--terminal=inplace`, autowt outputs shell commands that can be evaluated:
+
+```bash
+eval "$(autowt branch-name --terminal=inplace)"
 ```
 
 Configure the default behavior:
@@ -82,7 +100,17 @@ Configure the default behavior:
 autowt config
 ```
 
-This opens an interactive interface to set your preferred terminal mode and whether to always create new terminals instead of switching to existing ones.
+This opens an interactive TUI to set your preferred terminal mode and whether to always create new terminals instead of switching to existing ones.
+
+## Init Scripts
+
+Run custom commands when switching to a worktree:
+
+```bash
+autowt branch-name --init "npm install && npm run dev"
+```
+
+The init script runs after changing to the worktree directory.
 
 ## State Management
 
@@ -96,20 +124,22 @@ The state includes worktree locations, current branch tracking, and terminal ses
 
 ## Command Reference
 
+- `autowt` - List all worktrees (same as `autowt ls`)
 - `autowt init` - Initialize state management
-- `autowt [branch]` - Create or switch to worktree
+- `autowt [branch]` - Create or switch to worktree for any branch name
 - `autowt switch [branch]` - Explicitly switch to a branch (useful when branch name conflicts with commands)
 - `autowt ls` - List all worktrees and current location  
-- `autowt cleanup` - Remove merged or remoteless worktrees
-- `autowt config` - Configure terminal behavior
+- `autowt cleanup` - Remove merged, identical, or remoteless worktrees
+- `autowt config` - Configure terminal behavior using interactive TUI
 
-All commands support `-h` for help and show the important git operations they perform, so you can see exactly what's happening under the hood.
+All commands support `-h` for help, `-y/--yes` for auto-confirmation, and `--debug` for verbose logging.
 
 ## Requirements
 
 - Python 3.10+
 - git with worktree support
 - iTerm2 on macOS for best terminal integration (falls back to generic methods on other platforms)
+- Optional: Textual for interactive TUIs (cleanup and config)
 
 Install with:
 
