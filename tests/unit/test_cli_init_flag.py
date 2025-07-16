@@ -1,8 +1,5 @@
 """Tests for CLI --init flag functionality."""
 
-from unittest.mock import Mock, patch
-
-import pytest
 from click.testing import CliRunner
 
 from autowt.cli import main
