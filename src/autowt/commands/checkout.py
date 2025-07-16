@@ -21,6 +21,7 @@ def checkout_branch(
     git_service: GitService,
     terminal_service: TerminalService,
     process_service: ProcessService,
+    init_script: str | None = None,
 ) -> None:
     """Switch to or create a worktree for the specified branch."""
     logger.debug(f"Checking out branch: {branch}")
@@ -59,6 +60,7 @@ def checkout_branch(
             session_ids,
             terminal_service,
             state_service,
+            init_script,
         )
         return
 
@@ -72,6 +74,7 @@ def checkout_branch(
         git_service,
         terminal_service,
         state_service,
+        init_script,
     )
 
 
@@ -83,6 +86,7 @@ def _handle_existing_worktree(
     session_ids: dict,
     terminal_service: TerminalService,
     state_service: StateService,
+    init_script: str | None = None,
 ) -> None:
     """Handle switching to an existing worktree."""
     # Ask to switch unless always creating new terminals
@@ -93,7 +97,7 @@ def _handle_existing_worktree(
     # Switch to existing worktree
     session_id = session_ids.get(branch)
     success = terminal_service.switch_to_worktree(
-        existing_worktree.path, terminal_mode, session_id
+        existing_worktree.path, terminal_mode, session_id, init_script
     )
 
     if not success:
@@ -118,6 +122,7 @@ def _create_new_worktree(
     git_service: GitService,
     terminal_service: TerminalService,
     state_service: StateService,
+    init_script: str | None = None,
 ) -> None:
     """Create a new worktree for the branch."""
     print("Fetching branches...")
@@ -137,7 +142,9 @@ def _create_new_worktree(
     print(f"✓ Worktree created at {worktree_path}")
 
     # Switch to the new worktree
-    success = terminal_service.switch_to_worktree(worktree_path, terminal_mode)
+    success = terminal_service.switch_to_worktree(
+        worktree_path, terminal_mode, None, init_script
+    )
 
     if not success:
         print("Worktree created but failed to switch terminals")

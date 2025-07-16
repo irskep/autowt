@@ -69,6 +69,7 @@ class AutowtGroup(click.Group):
                 git_service,
                 terminal_service,
                 process_service,
+                init_script=kwargs.get("init"),
             )
 
         # Create a new command with the same options as switch
@@ -88,6 +89,10 @@ class AutowtGroup(click.Group):
                     help="Automatically confirm all prompts",
                 ),
                 click.Option(["--debug"], is_flag=True, help="Enable debug logging"),
+                click.Option(
+                    ["--init"],
+                    help="Init script to run in the new terminal",
+                ),
             ],
             help=f"Switch to or create a worktree for branch '{cmd_name}'",
         )
@@ -189,8 +194,12 @@ def config(debug: bool) -> None:
     type=click.Choice(["same", "tab", "window", "inplace"]),
     help="How to open the worktree terminal",
 )
+@click.option(
+    "--init",
+    help="Init script to run in the new terminal",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
-def switch(branch: str, terminal: str | None, debug: bool) -> None:
+def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> None:
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
     terminal_mode = TerminalMode(terminal) if terminal else None
@@ -202,6 +211,7 @@ def switch(branch: str, terminal: str | None, debug: bool) -> None:
         git_service,
         terminal_service,
         process_service,
+        init_script=init,
     )
 
 
