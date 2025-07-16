@@ -4,12 +4,13 @@ import logging
 import os
 import platform
 import shlex
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
-from autowt.utils import run_command
+from autowt.utils import run_command, sanitize_branch_name
 
 logger = logging.getLogger(__name__)
 
@@ -199,14 +200,9 @@ class ITerm2Terminal(Terminal):
         logger.debug(f"Opening new iTerm2 tab for {worktree_path}")
 
         # Get the path to the current autowt executable
-        import shlex
-        import sys
-
         autowt_path = sys.argv[0]
         if not autowt_path.startswith("/"):
             # If relative path, make it absolute
-            import os
-
             autowt_path = os.path.abspath(autowt_path)
 
         # Escape the autowt_path for shell execution
@@ -614,8 +610,6 @@ class TmuxTerminal(Terminal):
     def _create_session_name(self, worktree_path: Path) -> str:
         """Create a tmux session name for the worktree."""
         # Use sanitized worktree directory name
-        from autowt.utils import sanitize_branch_name
-
         return f"autowt-{sanitize_branch_name(worktree_path.name)}"
 
     def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:

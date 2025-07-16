@@ -154,8 +154,6 @@ def _create_new_worktree(
 
 def _generate_worktree_path(repo_path: Path, branch: str) -> Path:
     """Generate a path for the new worktree."""
-    from autowt.services.git import GitService
-
     # Find the main repository path (not a worktree)
     git_service = GitService()
     worktrees = git_service.list_worktrees(repo_path)

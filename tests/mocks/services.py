@@ -1,6 +1,7 @@
 """Mock services for testing business logic."""
 
 from pathlib import Path
+from unittest.mock import Mock
 
 from autowt.models import (
     ApplicationState,
@@ -133,8 +134,6 @@ class MockTerminalService:
         self.switch_calls = []
 
         # Mock the terminal implementation
-        from unittest.mock import Mock
-
         self.terminal = Mock()
         self.terminal.get_current_session_id.return_value = self.current_session_id
         self.terminal.supports_session_management.return_value = True
