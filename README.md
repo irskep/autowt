@@ -138,30 +138,29 @@ The state includes worktree locations, current branch tracking, and terminal ses
 - `autowt` - List all worktrees (same as `autowt ls`)
 - `autowt init` - Initialize state management
 - `autowt [branch]` - Create or switch to worktree for any branch name
-- `autowt switch [branch]` - Explicitly switch to a branch (useful when branch name conflicts with commands)
+- `autowt switch <branch>` - Explicitly switch to a branch (useful when branch name conflicts with commands)
 - `autowt ls` - List all worktrees and current location  
 - `autowt cleanup` - Remove merged, identical, or remoteless worktrees
 - `autowt config` - Configure terminal behavior using interactive TUI
 
 All commands support `-h` for help, `-y/--yes` for auto-confirmation, and `--debug` for verbose logging.
 
-## Requirements
-
-- Python 3.10+
-- git with worktree support
-- iTerm2 on macOS for best terminal integration (falls back to generic methods on other platforms)
-- Optional: Textual for interactive TUIs (cleanup and config)
-
-Install with:
+## Installation
 
 ```bash
 pip install autowt
 ```
 
-Or for development:
+For development:
 
 ```bash
-git clone <repo>
+git clone https://github.com/your-username/autowt
 cd autowt
 uv sync
 ```
+
+## Requirements
+
+- Python 3.10+
+- git with worktree support
+- iTerm2 on macOS for best terminal integration (falls back to generic methods on other platforms)
