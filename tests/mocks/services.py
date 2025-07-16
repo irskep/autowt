@@ -150,9 +150,18 @@ class MockTerminalService:
         init_script: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
+        ignore_same_session: bool = False,
     ) -> bool:
         self.switch_calls.append(
-            (worktree_path, mode, session_id, init_script, branch_name, auto_confirm)
+            (
+                worktree_path,
+                mode,
+                session_id,
+                init_script,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
+            )
         )
         return self.switch_success
 

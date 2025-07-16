@@ -206,13 +206,16 @@ class TestCheckoutCommand:
                 init_script="setup.sh",
             )
 
-        # Verify terminal switching was called with init script
+        # Verify terminal switching was called WITHOUT init script (existing worktree)
         assert len(terminal_service.switch_calls) == 1
         call = terminal_service.switch_calls[0]
         assert call[0] == sample_worktrees[0].path  # worktree path
         assert call[1] == TerminalMode.TAB  # terminal mode
         assert call[2] == "session1"  # session ID
-        assert call[3] == "setup.sh"  # init script
+        assert call[3] is None  # no init script for existing worktrees
+        assert call[4] == "feature1"  # branch name
+        assert call[5] is False  # auto_confirm
+        assert call[6] is False  # ignore_same_session
 
     def test_checkout_new_worktree_with_init_script(self, temp_repo_path):
         """Test creating new worktree with init script."""
