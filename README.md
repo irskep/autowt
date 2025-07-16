@@ -20,7 +20,7 @@ If the branch exists as a worktree, autowt switches to it. Otherwise, it creates
 
 ## Core Workflow
 
-**Creating worktrees:** When you run `autowt branch-name`, it fetches the latest branches, creates a worktree at `../reponame-worktrees/branch-name`, and switches to it. Branch names with slashes like `steve/bugfix` become `steve-bugfix` in the filesystem.
+**Creating worktrees:** When you run `autowt branch-name`, it fetches the latest branches, creates a worktree at `../reponame-worktrees/branch-name`, and switches to it. New branches are created from the latest main branch. Branch names with slashes like `steve/bugfix` become `steve-bugfix` in the filesystem.
 
 **Terminal integration:** On macOS with iTerm2, autowt uses AppleScript to switch between existing terminal sessions or create new ones. It tracks session IDs to find the right tab when switching back to a worktree.
 
@@ -82,11 +82,12 @@ Before removing worktrees, autowt finds running processes in those directories a
 Control how autowt opens terminals:
 
 ```bash
-autowt branch-name --terminal=same    # Switch to existing session (default)
-autowt branch-name --terminal=tab     # New tab
-autowt branch-name --terminal=window  # New window
+autowt branch-name --terminal=tab     # Switch to existing session or new tab (default)
+autowt branch-name --terminal=window  # Switch to existing session or new window
 autowt branch-name --terminal=inplace # Change directory in current terminal
 ```
+
+**Smart terminal switching:** When using `tab` or `window` modes, autowt first checks if the worktree already has a terminal session. If it does, it prompts whether to switch to the existing session or create a new one. Use `--yes` to automatically switch to existing sessions without prompting.
 
 With `--terminal=inplace`, autowt outputs shell commands that can be evaluated:
 
@@ -100,7 +101,7 @@ Configure the default behavior:
 autowt config
 ```
 
-This opens an interactive TUI to set your preferred terminal mode and whether to always create new terminals instead of switching to existing ones.
+This opens an interactive TUI to set your preferred terminal mode.
 
 ## Init Scripts
 
