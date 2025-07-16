@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 
+from autowt.console import print_error, print_plain, print_section
 from autowt.services.git import GitService
 from autowt.services.process import ProcessService
 from autowt.services.state import StateService
@@ -23,7 +24,7 @@ def list_worktrees(
     # Find git repository
     repo_path = git_service.find_repo_root()
     if not repo_path:
-        print("Error: Not in a git repository")
+        print_error("Error: Not in a git repository")
         return
 
     # Get current directory to determine which worktree we're in
@@ -36,15 +37,22 @@ def list_worktrees(
     # Load session IDs
     session_ids = state_service.load_session_ids()
 
-    print(f"  Primary clone: {repo_path}")
+    # Find the primary clone path
+    primary_clone_path = repo_path
+    for worktree in git_worktrees:
+        if worktree.is_primary:
+            primary_clone_path = worktree.path
+            break
+
+    print_plain(f"  Primary clone: {primary_clone_path}")
 
     # Determine current location
     current_location = "main clone"
     for worktree in git_worktrees:
         try:
             if current_path.is_relative_to(worktree.path):
-                # If we're in the main repo path, keep it as "main clone"
-                if worktree.path == repo_path:
+                # If we're in the primary worktree, it's the main clone
+                if worktree.is_primary:
                     current_location = "main clone"
                 else:
                     current_location = worktree.branch
@@ -53,14 +61,14 @@ def list_worktrees(
             # is_relative_to raises ValueError if not relative
             continue
 
-    print(f"  You are in: {current_location}")
-    print()
+    print_plain(f"  You are in: {current_location}")
+    print_plain("")
 
     if not git_worktrees:
-        print("  No worktrees found.")
+        print_plain("  No worktrees found.")
         return
 
-    print("  Branches:")
+    print_section("  Branches:")
 
     # Sort worktrees by branch name for consistent output
     sorted_worktrees = sorted(git_worktrees, key=lambda w: w.branch)
@@ -86,7 +94,7 @@ def list_worktrees(
         if branch in session_ids:
             session_indicator = " 💻"  # Laptop icon to indicate active session
 
-        print(f"  {branch:<20} {display_path}{session_indicator}")
+        print_plain(f"  {branch:<20} {display_path}{session_indicator}")
 
-    print()
-    print("Use 'autowt <branch>' to switch to a worktree or create a new one.")
+    print_plain("")
+    print_plain("Use 'autowt <branch>' to switch to a worktree or create a new one.")

@@ -29,6 +29,7 @@ dependencies = [
     "click>=8.0.0",
     "textual>=0.50.0",
     "toml>=0.10.0",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]

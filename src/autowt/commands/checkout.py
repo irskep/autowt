@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 
+from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
 from autowt.models import TerminalMode, WorktreeInfo
 from autowt.services.git import GitService
@@ -29,7 +30,7 @@ def checkout_branch(
     # Find git repository
     repo_path = git_service.find_repo_root()
     if not repo_path:
-        print("Error: Not in a git repository")
+        print_error("Error: Not in a git repository")
         return
 
     # Load configuration and state
@@ -69,7 +70,7 @@ def checkout_branch(
         )
 
         if not success:
-            print(f"Failed to switch to {branch} worktree")
+            print_error(f"Failed to switch to {branch} worktree")
             return
 
         # Update session ID if we're in a terminal that supports it
@@ -106,21 +107,21 @@ def _create_new_worktree(
     init_script: str | None = None,
 ) -> None:
     """Create a new worktree for the branch."""
-    print("Fetching branches...")
+    print_info("Fetching branches...")
     if not git_service.fetch_branches(repo_path):
-        print("Warning: Failed to fetch latest branches")
+        print_error("Warning: Failed to fetch latest branches")
 
     # Generate worktree path with sanitized branch name
     worktree_path = _generate_worktree_path(repo_path, branch)
 
-    print(f"Creating worktree for {branch}...")
+    print_info(f"Creating worktree for {branch}...")
 
     # Create the worktree
     if not git_service.create_worktree(repo_path, branch, worktree_path):
-        print(f"✗ Failed to create worktree for {branch}")
+        print_error(f"✗ Failed to create worktree for {branch}")
         return
 
-    print(f"✓ Worktree created at {worktree_path}")
+    print_success(f"✓ Worktree created at {worktree_path}")
 
     # Switch to the new worktree
     success = terminal_service.switch_to_worktree(
@@ -128,7 +129,7 @@ def _create_new_worktree(
     )
 
     if not success:
-        print("Worktree created but failed to switch terminals")
+        print_error("Worktree created but failed to switch terminals")
         return
 
     # Save session ID if available
@@ -147,7 +148,7 @@ def _create_new_worktree(
     state.current_worktree = branch
     state_service.save_state(state)
 
-    print(f"Switched to new {branch} worktree")
+    print_success(f"Switched to new {branch} worktree")
 
 
 def _generate_worktree_path(repo_path: Path, branch: str) -> Path:

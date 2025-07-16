@@ -4,6 +4,7 @@ import logging
 import time
 from pathlib import Path
 
+from autowt.console import print_output, print_plain, print_success
 from autowt.models import ProcessInfo
 from autowt.utils import run_command, run_command_visible
 
@@ -117,7 +118,7 @@ class ProcessService:
             command = process.command
             if len(command) > 60:
                 command = command[:57] + "..."
-            print(f"  Sending SIGINT to {command} (PID {process.pid})")
+            print_output(f"  Sending SIGINT to {command} (PID {process.pid})")
             logger.debug(f"Sending SIGINT to PID {process.pid} ({process.command})")
             try:
                 run_command_visible(
@@ -145,7 +146,7 @@ class ProcessService:
 
             # If all processes have exited, we're done
             if not still_running:
-                print(f"  All processes exited after {elapsed:.1f} seconds")
+                print_success(f"  All processes exited after {elapsed:.1f} seconds")
                 logger.info("All processes terminated successfully")
                 return True
 
@@ -156,7 +157,9 @@ class ProcessService:
                 still_running.append(process)
 
         if still_running:
-            print(f"  {len(still_running)} processes still running, sending SIGKILL...")
+            print_output(
+                f"  {len(still_running)} processes still running, sending SIGKILL..."
+            )
             logger.info(
                 f"{len(still_running)} processes still running, sending SIGKILL"
             )
@@ -166,7 +169,7 @@ class ProcessService:
                 command = process.command
                 if len(command) > 60:
                     command = command[:57] + "..."
-                print(f"  Sending SIGKILL to {command} (PID {process.pid})")
+                print_output(f"  Sending SIGKILL to {command} (PID {process.pid})")
                 logger.debug(
                     f"Sending SIGKILL to PID {process.pid} ({process.command})"
                 )
@@ -211,15 +214,15 @@ class ProcessService:
     def print_process_summary(self, processes: list[ProcessInfo]) -> None:
         """Print a summary of processes that will be terminated."""
         if not processes:
-            print("No processes found running in worktrees to be deleted.")
+            print_plain("No processes found running in worktrees to be deleted.")
             return
 
-        print("Shutting down processes operating in worktrees to be deleted...")
+        print_output("Shutting down processes operating in worktrees to be deleted...")
         for process in processes:
             # Truncate long command lines for display
             command = process.command
             if len(command) > 60:
                 command = command[:57] + "..."
 
-            print(f"  {command} {process.pid}")
-        print("  ...done")
+            print_output(f"  {command} {process.pid}")
+        print_output("  ...done")
