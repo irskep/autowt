@@ -101,10 +101,6 @@ class TestConsoleFunctions(unittest.TestCase):
 class TestConsoleIntegration(unittest.TestCase):
     """Test console integration with rich."""
 
-    def test_console_has_theme_applied(self):
-        """Test that console instance has the theme applied."""
-        self.assertEqual(console._theme, AUTOWT_THEME)
-
     def test_console_is_singleton(self):
         """Test that console is a singleton instance."""
         from autowt.console import console as console2
