@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv:*)",
+      "Bash(mise:*)"
+    ],
+    "deny": [
+      "Bash(python:*)"
+    ]
+  }
+}
