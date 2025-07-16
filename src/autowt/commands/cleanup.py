@@ -63,8 +63,8 @@ def cleanup_worktrees(
         print("No worktrees found.")
         return
 
-    # Filter out primary clone
-    worktrees = [wt for wt in worktrees if wt.path != repo_path]
+    # Filter out primary clone and any primary worktrees
+    worktrees = [wt for wt in worktrees if wt.path != repo_path and not wt.is_primary]
     if not worktrees:
         print("No secondary worktrees found.")
         return

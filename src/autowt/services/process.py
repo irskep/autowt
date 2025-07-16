@@ -104,7 +104,7 @@ class ProcessService:
             )
 
     def terminate_processes(self, processes: list[ProcessInfo]) -> bool:
-        """Terminate the given processes with SIGINT then SIGKILL after 10 seconds."""
+        """Terminate the given processes with SIGINT then SIGKILL if needed."""
         if not processes:
             logger.debug("No processes to terminate")
             return True
@@ -113,6 +113,11 @@ class ProcessService:
 
         # Send SIGINT to all processes
         for process in processes:
+            # Truncate long command lines for display
+            command = process.command
+            if len(command) > 60:
+                command = command[:57] + "..."
+            print(f"  Sending SIGINT to {command} (PID {process.pid})")
             logger.debug(f"Sending SIGINT to PID {process.pid} ({process.command})")
             try:
                 run_command_visible(
@@ -122,9 +127,27 @@ class ProcessService:
             except Exception as e:
                 logger.warning(f"Failed to send SIGINT to PID {process.pid}: {e}")
 
-        # Wait 10 seconds
-        logger.debug("Waiting 10 seconds before SIGKILL")
-        time.sleep(10)
+        # Poll for up to 10 seconds to see if processes exit
+        logger.debug("Polling for processes to exit (max 10 seconds)")
+        max_wait_time = 10
+        poll_interval = 0.5
+        elapsed = 0
+
+        while elapsed < max_wait_time:
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
+            # Check which processes are still running
+            still_running = []
+            for process in processes:
+                if self._is_process_running(process.pid):
+                    still_running.append(process)
+
+            # If all processes have exited, we're done
+            if not still_running:
+                print(f"  All processes exited after {elapsed:.1f} seconds")
+                logger.info("All processes terminated successfully")
+                return True
 
         # Check which processes are still running and SIGKILL them
         still_running = []
@@ -133,11 +156,17 @@ class ProcessService:
                 still_running.append(process)
 
         if still_running:
+            print(f"  {len(still_running)} processes still running, sending SIGKILL...")
             logger.info(
                 f"{len(still_running)} processes still running, sending SIGKILL"
             )
 
             for process in still_running:
+                # Truncate long command lines for display
+                command = process.command
+                if len(command) > 60:
+                    command = command[:57] + "..."
+                print(f"  Sending SIGKILL to {command} (PID {process.pid})")
                 logger.debug(
                     f"Sending SIGKILL to PID {process.pid} ({process.command})"
                 )

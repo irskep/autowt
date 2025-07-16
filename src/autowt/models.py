@@ -29,6 +29,7 @@ class WorktreeInfo:
     branch: str
     path: Path
     is_current: bool = False
+    is_primary: bool = False
     session_id: str | None = None
 
 

@@ -83,6 +83,7 @@ class GitService:
             current_worktree = None
             current_path = None
             current_branch = None
+            is_first_worktree = True
 
             for line in result.stdout.strip().split("\n"):
                 if not line:
@@ -93,11 +94,13 @@ class GitService:
                                 branch=current_branch,
                                 path=Path(current_path),
                                 is_current=current_worktree is not None,
+                                is_primary=is_first_worktree,
                             )
                         )
                     current_worktree = None
                     current_path = None
                     current_branch = None
+                    is_first_worktree = False
                 elif line.startswith("worktree "):
                     current_path = line[9:]  # Remove 'worktree ' prefix
                 elif line.startswith("branch refs/heads/"):
@@ -119,6 +122,7 @@ class GitService:
                         branch=current_branch,
                         path=Path(current_path),
                         is_current=current_worktree is not None,
+                        is_primary=is_first_worktree,
                     )
                 )
 
