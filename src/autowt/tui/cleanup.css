@@ -1,0 +1,43 @@
+/* Styling for cleanup TUI */
+
+#main {
+    padding: 1;
+}
+
+#instructions {
+    padding: 1 0;
+    text-style: bold;
+}
+
+#empty {
+    padding: 2;
+    text-align: center;
+    text-style: italic;
+}
+
+#worktree-list {
+    height: auto;
+    padding: 1 0;
+    border: solid $primary;
+    margin: 1 0;
+}
+
+#button-row {
+    height: 3;
+    padding: 1 0;
+    align: center middle;
+}
+
+#button-row Button {
+    margin: 0 1;
+    min-width: 12;
+}
+
+Checkbox {
+    padding: 0 1;
+    margin: 0 1;
+}
+
+Checkbox:focus {
+    background: $primary 20%;
+}

@@ -1,0 +1,61 @@
+/* Styling for config TUI */
+
+#main {
+    padding: 2;
+}
+
+#title {
+    text-align: center;
+    text-style: bold;
+    padding: 1 0 2 0;
+}
+
+#config-form {
+    padding: 1;
+    border: solid $primary;
+    margin: 1 0;
+}
+
+.section-label {
+    text-style: bold;
+    padding: 1 0 0 0;
+}
+
+.help-text {
+    text-style: italic;
+    color: $text-muted;
+    padding: 0 0 1 0;
+}
+
+.spacer {
+    height: 1;
+}
+
+.switch-row {
+    height: 3;
+    align: left middle;
+    padding: 0 1;
+}
+
+.switch-label {
+    padding: 0 0 0 2;
+}
+
+#terminal-mode {
+    padding: 0 2;
+}
+
+RadioButton {
+    padding: 0 1;
+}
+
+#button-row {
+    height: 3;
+    padding: 1 0;
+    align: center middle;
+}
+
+#button-row Button {
+    margin: 0 1;
+    min-width: 10;
+}
