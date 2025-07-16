@@ -190,7 +190,8 @@ class GitService:
                         f"origin/{branch}",
                     ]
                 else:
-                    # Neither local nor remote exists, create new branch from current HEAD
+                    # Neither local nor remote exists, create new branch from main branch
+                    default_branch = self._get_default_branch(repo_path)
                     cmd = [
                         "git",
                         "worktree",
@@ -198,6 +199,7 @@ class GitService:
                         str(worktree_path),
                         "-b",
                         branch,
+                        f"origin/{default_branch}",
                     ]
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
