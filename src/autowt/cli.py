@@ -54,8 +54,17 @@ class AutowtGroup(click.Group):
             terminal_mode = (
                 TerminalMode(kwargs["terminal"]) if kwargs.get("terminal") else None
             )
-            state_service, git_service, terminal_service, process_service = create_services()
-            checkout_branch(cmd_name, terminal_mode, state_service, git_service, terminal_service, process_service)
+            state_service, git_service, terminal_service, process_service = (
+                create_services()
+            )
+            checkout_branch(
+                cmd_name,
+                terminal_mode,
+                state_service,
+                git_service,
+                terminal_service,
+                process_service,
+            )
 
         # Create a new command with the same options as switch
         branch_cmd = click.Command(
@@ -74,7 +83,11 @@ class AutowtGroup(click.Group):
         return branch_cmd
 
 
-@click.group(cls=AutowtGroup, invoke_without_command=True, context_settings={"help_option_names": ["-h", "--help"]})
+@click.group(
+    cls=AutowtGroup,
+    invoke_without_command=True,
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.pass_context
 def main(ctx: click.Context, debug: bool) -> None:
@@ -87,7 +100,9 @@ def main(ctx: click.Context, debug: bool) -> None:
 
     # If no subcommand was invoked, show list
     if ctx.invoked_subcommand is None:
-        state_service, git_service, terminal_service, process_service = create_services()
+        state_service, git_service, terminal_service, process_service = (
+            create_services()
+        )
         list_worktrees(state_service, git_service, terminal_service, process_service)
 
 
@@ -121,7 +136,9 @@ def cleanup(mode: str, debug: bool) -> None:
     """Clean up merged or remoteless worktrees."""
     setup_logging(debug)
     state_service, git_service, terminal_service, process_service = create_services()
-    cleanup_worktrees(CleanupMode(mode), state_service, git_service, terminal_service, process_service)
+    cleanup_worktrees(
+        CleanupMode(mode), state_service, git_service, terminal_service, process_service
+    )
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -146,7 +163,14 @@ def switch(branch: str, terminal: str | None, debug: bool) -> None:
     setup_logging(debug)
     terminal_mode = TerminalMode(terminal) if terminal else None
     state_service, git_service, terminal_service, process_service = create_services()
-    checkout_branch(branch, terminal_mode, state_service, git_service, terminal_service, process_service)
+    checkout_branch(
+        branch,
+        terminal_mode,
+        state_service,
+        git_service,
+        terminal_service,
+        process_service,
+    )
 
 
 if __name__ == "__main__":

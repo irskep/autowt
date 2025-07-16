@@ -5,6 +5,7 @@ from pathlib import Path
 
 try:
     from autowt.tui.cleanup import run_cleanup_tui
+
     HAS_CLEANUP_TUI = True
 except ImportError:
     HAS_CLEANUP_TUI = False

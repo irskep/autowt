@@ -100,8 +100,11 @@ class GitService:
                     current_branch = None
                 elif line.startswith("worktree "):
                     current_path = line[9:]  # Remove 'worktree ' prefix
+                elif line.startswith("branch refs/heads/"):
+                    current_branch = line[18:]  # Remove 'branch refs/heads/' prefix
                 elif line.startswith("HEAD "):
-                    current_branch = line[5:]  # Remove 'HEAD ' prefix
+                    # This is just the commit hash, ignore for branch name
+                    continue
                 elif line == "bare":
                     # Skip bare repositories
                     continue
@@ -167,20 +170,37 @@ class GitService:
                 # Branch exists locally
                 cmd = ["git", "worktree", "add", str(worktree_path), branch]
             else:
-                # Try to create from remote
-                cmd = [
-                    "git",
-                    "worktree",
-                    "add",
-                    str(worktree_path),
-                    "-b",
-                    branch,
-                    f"origin/{branch}",
-                ]
+                # Check if remote branch exists
+                result = run_command(
+                    ["git", "show-ref", "--verify", f"refs/remotes/origin/{branch}"],
+                    cwd=repo_path,
+                    timeout=10,
+                    description=f"Check if remote branch origin/{branch} exists",
+                )
 
-            result = run_command_visible(
-                cmd, cwd=repo_path, timeout=30
-            )
+                if result.returncode == 0:
+                    # Remote branch exists, create from it
+                    cmd = [
+                        "git",
+                        "worktree",
+                        "add",
+                        str(worktree_path),
+                        "-b",
+                        branch,
+                        f"origin/{branch}",
+                    ]
+                else:
+                    # Neither local nor remote exists, create new branch from current HEAD
+                    cmd = [
+                        "git",
+                        "worktree",
+                        "add",
+                        str(worktree_path),
+                        "-b",
+                        branch,
+                    ]
+
+            result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0
             if success:
@@ -294,4 +314,3 @@ class GitService:
             return False
         except Exception:
             return False
-

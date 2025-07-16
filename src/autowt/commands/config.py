@@ -4,6 +4,7 @@ import logging
 
 try:
     from autowt.tui.config import run_config_tui
+
     HAS_TUI = True
 except ImportError:
     HAS_TUI = False
