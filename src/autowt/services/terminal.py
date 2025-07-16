@@ -4,6 +4,7 @@ import logging
 import os
 import platform
 import shlex
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 from autowt.models import TerminalMode
@@ -13,140 +14,93 @@ from autowt.utils import run_command
 logger = logging.getLogger(__name__)
 
 
-class TerminalService:
-    """Handles terminal switching and session management."""
+class Terminal(ABC):
+    """Base class for terminal implementations."""
 
     def __init__(self):
-        """Initialize terminal service."""
+        """Initialize terminal implementation."""
         self.is_macos = platform.system() == "Darwin"
-        self.is_iterm = self._detect_iterm()
-        logger.debug(
-            f"Terminal service initialized (macOS: {self.is_macos}, iTerm: {self.is_iterm})"
-        )
 
-    def _detect_iterm(self) -> bool:
-        """Detect if we're running in iTerm2."""
-        if not self.is_macos:
-            return False
-
-        term_program = os.getenv("TERM_PROGRAM", "")
-        is_iterm = term_program == "iTerm.app"
-        logger.debug(f"TERM_PROGRAM: {term_program}, is_iterm: {is_iterm}")
-        return is_iterm
-
+    @abstractmethod
     def get_current_session_id(self) -> str | None:
-        """Get the current terminal session ID."""
-        if self.is_iterm:
-            session_id = os.getenv("ITERM_SESSION_ID")
-            logger.debug(f"Current session ID: {session_id}")
-            return session_id
+        """Get current session ID if supported."""
+        pass
 
-        # For other terminals, we might use other methods
-        logger.debug("Session ID not available for this terminal")
-        return None
-
-    def switch_to_worktree(
-        self,
-        worktree_path: Path,
-        mode: TerminalMode,
-        session_id: str | None = None,
-        init_script: str | None = None,
-        branch_name: str | None = None,
-        auto_confirm: bool = False,
-    ) -> bool:
-        """Switch to a worktree using the specified terminal mode."""
-        logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
-
-        if mode == TerminalMode.INPLACE:
-            return self._change_directory_inplace(worktree_path, init_script)
-        elif mode == TerminalMode.TAB:
-            return self._switch_to_existing_or_new_tab(
-                worktree_path, session_id, init_script, branch_name, auto_confirm
-            )
-        elif mode == TerminalMode.WINDOW:
-            return self._switch_to_existing_or_new_window(
-                worktree_path, session_id, init_script, branch_name, auto_confirm
-            )
-        else:
-            logger.error(f"Unknown terminal mode: {mode}")
-            return False
-
-    def _change_directory_inplace(
-        self, worktree_path: Path, init_script: str | None = None
-    ) -> bool:
-        """Output shell command to change directory in the current shell."""
-        logger.debug(f"Outputting cd command for {worktree_path}")
-
-        try:
-            # Output the cd command that the user can evaluate
-            # Usage: eval "$(autowt ci --terminal=inplace)"
-            commands = [f"cd {shlex.quote(str(worktree_path))}"]
-            if init_script:
-                commands.append(init_script)
-            print("; ".join(commands))
-            return True
-        except Exception as e:
-            logger.error(f"Failed to output cd command: {e}")
-            return False
-
-    def _switch_to_existing_or_new_tab(
-        self,
-        worktree_path: Path,
-        session_id: str | None = None,
-        init_script: str | None = None,
-        branch_name: str | None = None,
-        auto_confirm: bool = False,
-    ) -> bool:
-        """Switch to existing session or create new tab."""
-        # If we have a session ID, ask user if they want to switch to existing
-        if session_id and self.is_iterm:
-            if auto_confirm or self._should_switch_to_existing(branch_name):
-                # Try to switch to existing session
-                if self._switch_to_iterm_session(session_id, init_script):
-                    print(f"Switched to existing {branch_name or 'worktree'} session")
-                    return True
-
-        # Fall back to creating new tab
-        return self._open_new_tab(worktree_path, init_script)
-
-    def _switch_to_existing_or_new_window(
-        self,
-        worktree_path: Path,
-        session_id: str | None = None,
-        init_script: str | None = None,
-        branch_name: str | None = None,
-        auto_confirm: bool = False,
-    ) -> bool:
-        """Switch to existing session or create new window."""
-        # If we have a session ID, ask user if they want to switch to existing
-        if session_id and self.is_iterm:
-            if auto_confirm or self._should_switch_to_existing(branch_name):
-                # Try to switch to existing session
-                if self._switch_to_iterm_session(session_id, init_script):
-                    print(f"Switched to existing {branch_name or 'worktree'} session")
-                    return True
-
-        # Fall back to creating new window
-        return self._open_new_window(worktree_path, init_script)
-
-    def _should_switch_to_existing(self, branch_name: str | None) -> bool:
-        """Ask user if they want to switch to existing session."""
-        if branch_name:
-            return confirm_default_yes(
-                f"{branch_name} already has a session. Switch to it?"
-            )
-        else:
-            return confirm_default_yes("Worktree already has a session. Switch to it?")
-
-    def _switch_to_iterm_session(
+    @abstractmethod
+    def switch_to_session(
         self, session_id: str, init_script: str | None = None
     ) -> bool:
-        """Switch to an existing iTerm session."""
-        logger.debug(f"Switching to iTerm session: {session_id}")
+        """Switch to existing session if supported."""
+        pass
 
-        if not self.is_iterm:
-            logger.warning("Not in iTerm, cannot switch sessions")
+    @abstractmethod
+    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+        """Open new tab in current window."""
+        pass
+
+    @abstractmethod
+    def open_new_window(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
+        """Open new window."""
+        pass
+
+    def supports_session_management(self) -> bool:
+        """Whether this terminal supports session management."""
+        return False
+
+    def _escape_for_applescript(self, text: str) -> str:
+        """Escape text for use in AppleScript strings."""
+        return text.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _escape_path_for_command(self, path: Path) -> str:
+        """Escape a path for use inside AppleScript command strings."""
+        return str(path).replace("\\", "\\\\").replace('"', '\\"')
+
+    def _run_applescript(self, script: str) -> bool:
+        """Execute AppleScript and return success status."""
+        if not self.is_macos:
+            logger.warning("AppleScript not available on this platform")
             return False
+
+        try:
+            result = run_command(
+                ["osascript", "-e", script],
+                timeout=30,
+                description="Execute AppleScript for terminal switching",
+            )
+
+            success = result.returncode == 0
+            if success:
+                logger.debug("AppleScript executed successfully")
+            else:
+                logger.error(f"AppleScript failed: {result.stderr}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to run AppleScript: {e}")
+            return False
+
+
+class ITerm2Terminal(Terminal):
+    """iTerm2 terminal implementation."""
+
+    def get_current_session_id(self) -> str | None:
+        """Get current iTerm2 session ID."""
+        session_id = os.getenv("ITERM_SESSION_ID")
+        logger.debug(f"Current iTerm2 session ID: {session_id}")
+        return session_id
+
+    def supports_session_management(self) -> bool:
+        """iTerm2 supports session management."""
+        return True
+
+    def switch_to_session(
+        self, session_id: str, init_script: str | None = None
+    ) -> bool:
+        """Switch to an existing iTerm2 session."""
+        logger.debug(f"Switching to iTerm2 session: {session_id}")
 
         # Extract UUID part from session ID (format: w0t0p2:UUID)
         session_uuid = session_id.split(":")[-1] if ":" in session_id else session_id
@@ -176,33 +130,10 @@ class TerminalService:
 
         return self._run_applescript(applescript)
 
-    def _open_new_tab(
-        self, worktree_path: Path, init_script: str | None = None
-    ) -> bool:
-        """Open a new terminal tab in the worktree directory."""
-        logger.debug(f"Opening new tab for {worktree_path}")
+    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+        """Open a new iTerm2 tab."""
+        logger.debug(f"Opening new iTerm2 tab for {worktree_path}")
 
-        if self.is_iterm:
-            return self._open_iterm_tab(worktree_path, init_script)
-        else:
-            # Generic terminal fallback
-            return self._open_generic_terminal(worktree_path, init_script)
-
-    def _open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
-    ) -> bool:
-        """Open a new terminal window in the worktree directory."""
-        logger.debug(f"Opening new window for {worktree_path}")
-
-        if self.is_iterm:
-            return self._open_iterm_window(worktree_path, init_script)
-        else:
-            return self._open_generic_terminal(worktree_path, init_script)
-
-    def _open_iterm_tab(
-        self, worktree_path: Path, init_script: str | None = None
-    ) -> bool:
-        """Open a new iTerm tab."""
         commands = [f"cd {self._escape_path_for_command(worktree_path)}"]
         if init_script:
             commands.append(init_script)
@@ -220,10 +151,12 @@ class TerminalService:
 
         return self._run_applescript(applescript)
 
-    def _open_iterm_window(
+    def open_new_window(
         self, worktree_path: Path, init_script: str | None = None
     ) -> bool:
-        """Open a new iTerm window."""
+        """Open a new iTerm2 window."""
+        logger.debug(f"Opening new iTerm2 window for {worktree_path}")
+
         commands = [f"cd {self._escape_path_for_command(worktree_path)}"]
         if init_script:
             commands.append(init_script)
@@ -239,7 +172,130 @@ class TerminalService:
 
         return self._run_applescript(applescript)
 
-    def _open_generic_terminal(
+
+class TerminalAppTerminal(Terminal):
+    """Terminal.app implementation."""
+
+    def get_current_session_id(self) -> str | None:
+        """Terminal.app doesn't have session IDs."""
+        return None
+
+    def switch_to_session(
+        self, session_id: str, init_script: str | None = None
+    ) -> bool:
+        """Terminal.app doesn't support session switching."""
+        return False
+
+    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+        """Open a new Terminal.app tab.
+
+        Terminal.app requires System Events (accessibility permissions) to create
+        actual tabs via Cmd+T keyboard simulation.
+        """
+        logger.debug(f"Opening new Terminal.app tab for {worktree_path}")
+
+        commands = [f"cd {shlex.quote(str(worktree_path))}"]
+        if init_script:
+            commands.append(init_script)
+
+        command_string = self._escape_for_applescript("; ".join(commands))
+
+        # First check if we have any Terminal windows open
+        check_windows_script = """
+        tell application "Terminal"
+            return count of windows
+        end tell
+        """
+
+        try:
+            result = run_command(
+                ["osascript", "-e", check_windows_script],
+                timeout=5,
+                description="Check Terminal windows",
+            )
+            window_count = int(result.stdout.strip()) if result.returncode == 0 else 0
+        except Exception:
+            window_count = 0
+
+        if window_count == 0:
+            # No windows open, create first window
+            applescript = f"""
+            tell application "Terminal"
+                do script "{command_string}"
+            end tell
+            """
+        else:
+            # Windows exist, try to create a tab using System Events
+            applescript = f"""
+            tell application "Terminal"
+                activate
+                tell application "System Events"
+                    tell process "Terminal"
+                        keystroke "t" using command down
+                    end tell
+                end tell
+                delay 0.3
+                do script "{command_string}" in selected tab of front window
+            end tell
+            """
+
+        success = self._run_applescript(applescript)
+
+        if not success and window_count > 0:
+            # System Events failed, fall back to window creation
+            logger.warning(
+                "Failed to create tab (missing accessibility permissions). "
+                "Creating new window instead. To fix: Enable Terminal in "
+                "System Settings -> Privacy & Security -> Accessibility"
+            )
+            fallback_script = f"""
+            tell application "Terminal"
+                do script "{command_string}"
+            end tell
+            """
+            return self._run_applescript(fallback_script)
+
+        return success
+
+    def open_new_window(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
+        """Open a new Terminal.app window."""
+        logger.debug(f"Opening new Terminal.app window for {worktree_path}")
+
+        commands = [f"cd {shlex.quote(str(worktree_path))}"]
+        if init_script:
+            commands.append(init_script)
+
+        command_string = self._escape_for_applescript("; ".join(commands))
+
+        applescript = f"""
+        tell application "Terminal"
+            do script "{command_string}"
+        end tell
+        """
+
+        return self._run_applescript(applescript)
+
+
+class GenericTerminal(Terminal):
+    """Generic terminal implementation for fallback."""
+
+    def get_current_session_id(self) -> str | None:
+        """Generic terminals don't have session IDs."""
+        return None
+
+    def switch_to_session(
+        self, session_id: str, init_script: str | None = None
+    ) -> bool:
+        """Generic terminals don't support session switching."""
+        return False
+
+    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+        """Open terminal using generic methods (same as new window)."""
+        return self.open_new_window(worktree_path, init_script)
+
+    def open_new_window(
         self, worktree_path: Path, init_script: str | None = None
     ) -> bool:
         """Open terminal using generic methods."""
@@ -298,42 +354,127 @@ class TerminalService:
             logger.error(f"Failed to open generic terminal: {e}")
             return False
 
-    def _escape_path_for_command(self, path: Path) -> str:
-        """Escape a path for use inside AppleScript command strings."""
-        # For use inside "write text" commands - don't add extra quotes
-        return str(path).replace("\\", "\\\\").replace('"', '\\"')
 
-    def _escape_path(self, path: Path) -> str:
-        """Escape a path for use in AppleScript (with quotes)."""
-        # AppleScript string escaping: double quotes and backslashes
-        escaped = str(path).replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
+class TerminalService:
+    """Handles terminal switching and session management."""
 
-    def _escape_for_applescript(self, text: str) -> str:
-        """Escape text for use in AppleScript strings."""
-        return text.replace("\\", "\\\\").replace('"', '\\"')
+    def __init__(self):
+        """Initialize terminal service."""
+        self.is_macos = platform.system() == "Darwin"
+        self.terminal = self._create_terminal_implementation()
+        logger.debug(
+            f"Terminal service initialized with {type(self.terminal).__name__}"
+        )
 
-    def _run_applescript(self, script: str) -> bool:
-        """Execute AppleScript and return success status."""
+    def _create_terminal_implementation(self) -> Terminal:
+        """Create the appropriate terminal implementation."""
         if not self.is_macos:
-            logger.warning("AppleScript not available on this platform")
+            return GenericTerminal()
+
+        term_program = os.getenv("TERM_PROGRAM", "")
+        logger.debug(f"TERM_PROGRAM: {term_program}")
+
+        if term_program == "iTerm.app":
+            return ITerm2Terminal()
+        elif term_program == "Apple_Terminal":
+            return TerminalAppTerminal()
+        else:
+            # Fallback to generic terminal
+            return GenericTerminal()
+
+    def get_current_session_id(self) -> str | None:
+        """Get the current terminal session ID."""
+        return self.terminal.get_current_session_id()
+
+    def switch_to_worktree(
+        self,
+        worktree_path: Path,
+        mode: TerminalMode,
+        session_id: str | None = None,
+        init_script: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+    ) -> bool:
+        """Switch to a worktree using the specified terminal mode."""
+        logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
+
+        if mode == TerminalMode.INPLACE:
+            return self._change_directory_inplace(worktree_path, init_script)
+        elif mode == TerminalMode.TAB:
+            return self._switch_to_existing_or_new_tab(
+                worktree_path, session_id, init_script, branch_name, auto_confirm
+            )
+        elif mode == TerminalMode.WINDOW:
+            return self._switch_to_existing_or_new_window(
+                worktree_path, session_id, init_script, branch_name, auto_confirm
+            )
+        else:
+            logger.error(f"Unknown terminal mode: {mode}")
             return False
+
+    def _change_directory_inplace(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
+        """Output shell command to change directory in the current shell."""
+        logger.debug(f"Outputting cd command for {worktree_path}")
 
         try:
-            result = run_command(
-                ["osascript", "-e", script],
-                timeout=30,
-                description="Execute AppleScript for terminal switching",
-            )
-
-            success = result.returncode == 0
-            if success:
-                logger.debug("AppleScript executed successfully")
-            else:
-                logger.error(f"AppleScript failed: {result.stderr}")
-
-            return success
-
+            # Output the cd command that the user can evaluate
+            # Usage: eval "$(autowt ci --terminal=inplace)"
+            commands = [f"cd {shlex.quote(str(worktree_path))}"]
+            if init_script:
+                commands.append(init_script)
+            print("; ".join(commands))
+            return True
         except Exception as e:
-            logger.error(f"Failed to run AppleScript: {e}")
+            logger.error(f"Failed to output cd command: {e}")
             return False
+
+    def _switch_to_existing_or_new_tab(
+        self,
+        worktree_path: Path,
+        session_id: str | None = None,
+        init_script: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+    ) -> bool:
+        """Switch to existing session or create new tab."""
+        # If we have a session ID and terminal supports it, ask user if they want to switch to existing
+        if session_id and self.terminal.supports_session_management():
+            if auto_confirm or self._should_switch_to_existing(branch_name):
+                # Try to switch to existing session
+                if self.terminal.switch_to_session(session_id, init_script):
+                    print(f"Switched to existing {branch_name or 'worktree'} session")
+                    return True
+
+        # Fall back to creating new tab
+        return self.terminal.open_new_tab(worktree_path, init_script)
+
+    def _switch_to_existing_or_new_window(
+        self,
+        worktree_path: Path,
+        session_id: str | None = None,
+        init_script: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+    ) -> bool:
+        """Switch to existing session or create new window."""
+        # If we have a session ID and terminal supports it, ask user if they want to switch to existing
+        if session_id and self.terminal.supports_session_management():
+            if auto_confirm or self._should_switch_to_existing(branch_name):
+                # Try to switch to existing session
+                if self.terminal.switch_to_session(session_id, init_script):
+                    print(f"Switched to existing {branch_name or 'worktree'} session")
+                    return True
+
+        # Fall back to creating new window
+        return self.terminal.open_new_window(worktree_path, init_script)
+
+    def _should_switch_to_existing(self, branch_name: str | None) -> bool:
+        """Ask user if they want to switch to existing session."""
+        if branch_name:
+            return confirm_default_yes(
+                f"{branch_name} already has a session. Switch to it?"
+            )
+        else:
+            return confirm_default_yes("Worktree already has a session. Switch to it?")

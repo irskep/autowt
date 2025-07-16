@@ -109,7 +109,7 @@ def mock_terminal_operations():
     """Automatically mock potentially harmful terminal operations in all tests."""
     with (
         patch(
-            "autowt.services.terminal.TerminalService._run_applescript",
+            "autowt.services.terminal.Terminal._run_applescript",
             return_value=True,
         ) as mock_applescript,
         patch(
