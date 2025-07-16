@@ -20,6 +20,24 @@ from autowt.services.terminal import TerminalService
 logger = logging.getLogger(__name__)
 
 
+def _format_path_for_display(path: Path) -> str:
+    """Format a path for display, making it relative to current directory if possible."""
+    try:
+        # Try to make it relative to current working directory
+        current_dir = Path.cwd()
+        relative_path = path.relative_to(current_dir)
+        return str(relative_path)
+    except ValueError:
+        # If not relative to cwd, try to make it relative to home directory
+        try:
+            home_dir = Path.home()
+            relative_path = path.relative_to(home_dir)
+            return f"~/{relative_path}"
+        except ValueError:
+            # Fall back to absolute path
+            return str(path)
+
+
 def cleanup_worktrees(
     mode: CleanupMode,
     state_service: StateService,
@@ -158,7 +176,8 @@ def _confirm_cleanup(to_cleanup: list[BranchStatus], mode: CleanupMode) -> bool:
     """Show what will be cleaned up and get user confirmation."""
     print("\nWorktrees to be removed:")
     for branch_status in to_cleanup:
-        print(f"- {branch_status.branch} ({branch_status.path})")
+        display_path = _format_path_for_display(branch_status.path)
+        print(f"- {branch_status.branch} ({display_path})")
 
     # Interactive mode already confirmed during selection
     if mode == CleanupMode.INTERACTIVE:
@@ -173,7 +192,8 @@ def _show_dry_run_results(
     """Show what would be removed in dry-run mode."""
     print("\n[DRY RUN] Worktrees that would be removed:")
     for branch_status in to_cleanup:
-        print(f"- {branch_status.branch} ({branch_status.path})")
+        display_path = _format_path_for_display(branch_status.path)
+        print(f"- {branch_status.branch} ({display_path})")
 
     print("\n[DRY RUN] Processes that would be terminated:")
     all_processes = []

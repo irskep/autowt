@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from autowt.models import BranchStatus, WorktreeInfo
-from autowt.utils import run_command, run_command_visible
+from autowt.utils import run_command, run_command_quiet_on_failure, run_command_visible
 
 logger = logging.getLogger(__name__)
 
@@ -242,6 +242,13 @@ class GitService:
         """Analyze branches to determine cleanup candidates."""
         logger.debug("Analyzing branches for cleanup")
 
+        # Get default branch once and cache it
+        default_branch = self._get_default_branch(repo_path)
+        if not default_branch:
+            logger.warning(
+                "Could not determine default branch, skipping merge analysis"
+            )
+
         branch_statuses = []
 
         for worktree in worktrees:
@@ -250,11 +257,13 @@ class GitService:
             # Check if branch has remote
             has_remote = self._branch_has_remote(repo_path, branch)
 
-            # Check if branch is identical to main/master
-            is_identical = self._branches_are_identical(repo_path, branch)
+            # Check if branch is identical to default branch
+            is_identical = self._branches_are_identical_cached(
+                repo_path, branch, default_branch
+            )
 
             # Check if branch is merged (only if it had unique commits)
-            is_merged = self._branch_is_merged(repo_path, branch)
+            is_merged = self._branch_is_merged_cached(repo_path, branch, default_branch)
 
             branch_statuses.append(
                 BranchStatus(
@@ -269,6 +278,47 @@ class GitService:
         logger.debug(f"Analyzed {len(branch_statuses)} branches")
         return branch_statuses
 
+    def _get_default_branch(self, repo_path: Path) -> str | None:
+        """Get the default branch name (main, master, etc.)."""
+        try:
+            # Try to get the default branch from origin (this often fails, that's expected)
+            result = run_command_quiet_on_failure(
+                ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+                cwd=repo_path,
+                timeout=10,
+                description="Get default branch from origin",
+            )
+            if result.returncode == 0:
+                # Extract branch name from refs/remotes/origin/main
+                branch_ref = result.stdout.strip()
+                if branch_ref.startswith("refs/remotes/origin/"):
+                    return branch_ref[len("refs/remotes/origin/") :]
+
+            # Fall back to checking common default branches
+            for branch in ["main", "master"]:
+                result = run_command(
+                    ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
+                    cwd=repo_path,
+                    timeout=10,
+                    description=f"Check if {branch} exists",
+                )
+                if result.returncode == 0:
+                    return branch
+
+            # If neither main nor master exist, try to get current branch as fallback
+            result = run_command(
+                ["git", "branch", "--show-current"],
+                cwd=repo_path,
+                timeout=10,
+                description="Get current branch as fallback",
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+
+            return None
+        except Exception:
+            return None
+
     def _branch_has_remote(self, repo_path: Path, branch: str) -> bool:
         """Check if branch has a remote tracking branch."""
         try:
@@ -282,52 +332,56 @@ class GitService:
         except Exception:
             return False
 
-    def _branches_are_identical(self, repo_path: Path, branch: str) -> bool:
-        """Check if branch points to the same commit as main/master."""
+    def _branches_are_identical_cached(
+        self, repo_path: Path, branch: str, default_branch: str | None
+    ) -> bool:
+        """Check if branch points to the same commit as default branch (with cached default branch)."""
         try:
-            # Try main first, then master
-            for base_branch in ["main", "master"]:
-                # Get commit hashes for both branches
-                branch_result = run_command(
-                    ["git", "rev-parse", branch],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Get commit hash for {branch}",
-                )
-                base_result = run_command(
-                    ["git", "rev-parse", base_branch],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Get commit hash for {base_branch}",
-                )
+            if not default_branch:
+                return False
 
-                if branch_result.returncode == 0 and base_result.returncode == 0:
-                    # Branches are identical if they point to the same commit
-                    return branch_result.stdout.strip() == base_result.stdout.strip()
+            # Get commit hashes for both branches
+            branch_result = run_command(
+                ["git", "rev-parse", branch],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Get commit hash for {branch}",
+            )
+            base_result = run_command(
+                ["git", "rev-parse", default_branch],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Get commit hash for {default_branch}",
+            )
+
+            if branch_result.returncode == 0 and base_result.returncode == 0:
+                # Branches are identical if they point to the same commit
+                return branch_result.stdout.strip() == base_result.stdout.strip()
 
             return False
         except Exception:
             return False
 
-    def _branch_is_merged(self, repo_path: Path, branch: str) -> bool:
-        """Check if branch is merged into main/master (but not identical)."""
+    def _branch_is_merged_cached(
+        self, repo_path: Path, branch: str, default_branch: str | None
+    ) -> bool:
+        """Check if branch is merged into default branch (but not identical) with cached default branch."""
         try:
-            # Don't consider identical branches as "merged"
-            if self._branches_are_identical(repo_path, branch):
+            if not default_branch:
                 return False
 
-            # Try main first, then master
-            for base_branch in ["main", "master"]:
-                # Check if branch is ancestor (was merged)
-                result = run_command(
-                    ["git", "merge-base", "--is-ancestor", branch, base_branch],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Check if {branch} is merged into {base_branch}",
-                )
-                if result.returncode == 0:
-                    return True
+            # Don't consider identical branches as "merged"
+            if self._branches_are_identical_cached(repo_path, branch, default_branch):
+                return False
 
-            return False
+            # Check if branch is ancestor (was merged)
+            result = run_command(
+                ["git", "merge-base", "--is-ancestor", branch, default_branch],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Check if {branch} is merged into {default_branch}",
+            )
+            return result.returncode == 0
+
         except Exception:
             return False
