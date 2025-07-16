@@ -11,7 +11,7 @@ except ImportError:
     HAS_CLEANUP_TUI = False
 
 from autowt.models import BranchStatus, CleanupMode
-from autowt.prompts import confirm_default_yes, confirm_default_no
+from autowt.prompts import confirm_default_no, confirm_default_yes
 from autowt.services.git import GitService
 from autowt.services.process import ProcessService
 from autowt.services.state import StateService
@@ -74,7 +74,7 @@ def cleanup_worktrees(
     if dry_run:
         _show_dry_run_results(to_cleanup, process_service)
         return
-    
+
     # Show what will be cleaned up and confirm
     if not _confirm_cleanup(to_cleanup, mode):
         print("Cleanup cancelled.")
@@ -92,9 +92,9 @@ def cleanup_worktrees(
 
 
 def _display_branch_status(
-    remoteless_branches: list[BranchStatus], 
+    remoteless_branches: list[BranchStatus],
     identical_branches: list[BranchStatus],
-    merged_branches: list[BranchStatus]
+    merged_branches: list[BranchStatus],
 ) -> None:
     """Display the status of branches for cleanup."""
     if remoteless_branches:
@@ -167,25 +167,29 @@ def _confirm_cleanup(to_cleanup: list[BranchStatus], mode: CleanupMode) -> bool:
     return confirm_default_yes("Proceed with cleanup?")
 
 
-def _show_dry_run_results(to_cleanup: list[BranchStatus], process_service: ProcessService) -> None:
+def _show_dry_run_results(
+    to_cleanup: list[BranchStatus], process_service: ProcessService
+) -> None:
     """Show what would be removed in dry-run mode."""
     print("\n[DRY RUN] Worktrees that would be removed:")
     for branch_status in to_cleanup:
         print(f"- {branch_status.branch} ({branch_status.path})")
-    
+
     print("\n[DRY RUN] Processes that would be terminated:")
     all_processes = []
     for branch_status in to_cleanup:
         processes = process_service.find_processes_in_directory(branch_status.path)
         all_processes.extend(processes)
-    
+
     if all_processes:
         for process in all_processes:
             print(f"- PID {process.pid}: {process.command} (in {process.working_dir})")
     else:
         print("- No running processes found")
-    
-    print(f"\n[DRY RUN] Would remove {len(to_cleanup)} worktrees and terminate {len(all_processes)} processes")
+
+    print(
+        f"\n[DRY RUN] Would remove {len(to_cleanup)} worktrees and terminate {len(all_processes)} processes"
+    )
 
 
 def _handle_running_processes(

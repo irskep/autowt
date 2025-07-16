@@ -199,7 +199,6 @@ class GitService:
                         "-b",
                         branch,
                     ]
-
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0
@@ -304,7 +303,7 @@ class GitService:
                 if result.returncode == 0:
                     # If there's any output, branch has unique commits
                     return bool(result.stdout.strip())
-                    
+
             return False
         except Exception:
             return False
@@ -316,7 +315,7 @@ class GitService:
             # This excludes branches that are identical to main
             if not self._branch_has_unique_commits(repo_path, branch):
                 return False
-                
+
             # Try main first, then master
             for base_branch in ["main", "master"]:
                 # Check if branch is ancestor (was merged)

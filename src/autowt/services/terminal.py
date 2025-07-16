@@ -45,49 +45,65 @@ class TerminalService:
         return None
 
     def switch_to_worktree(
-        self, worktree_path: Path, mode: TerminalMode, session_id: str | None = None
+        self,
+        worktree_path: Path,
+        mode: TerminalMode,
+        session_id: str | None = None,
+        init_script: str | None = None,
     ) -> bool:
         """Switch to a worktree using the specified terminal mode."""
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
 
         if mode == TerminalMode.INPLACE:
-            return self._change_directory_inplace(worktree_path)
+            return self._change_directory_inplace(worktree_path, init_script)
         elif mode == TerminalMode.SAME:
-            return self._switch_to_existing_or_new(worktree_path, session_id)
+            return self._switch_to_existing_or_new(
+                worktree_path, session_id, init_script
+            )
         elif mode == TerminalMode.TAB:
-            return self._open_new_tab(worktree_path)
+            return self._open_new_tab(worktree_path, init_script)
         elif mode == TerminalMode.WINDOW:
-            return self._open_new_window(worktree_path)
+            return self._open_new_window(worktree_path, init_script)
         else:
             logger.error(f"Unknown terminal mode: {mode}")
             return False
 
-    def _change_directory_inplace(self, worktree_path: Path) -> bool:
+    def _change_directory_inplace(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
         """Output shell command to change directory in the current shell."""
         logger.debug(f"Outputting cd command for {worktree_path}")
 
         try:
             # Output the cd command that the user can evaluate
             # Usage: eval "$(autowt ci --terminal=inplace)"
-            print(f"cd {shlex.quote(str(worktree_path))}")
+            commands = [f"cd {shlex.quote(str(worktree_path))}"]
+            if init_script:
+                commands.append(init_script)
+            print("; ".join(commands))
             return True
         except Exception as e:
             logger.error(f"Failed to output cd command: {e}")
             return False
 
     def _switch_to_existing_or_new(
-        self, worktree_path: Path, session_id: str | None = None
+        self,
+        worktree_path: Path,
+        session_id: str | None = None,
+        init_script: str | None = None,
     ) -> bool:
         """Switch to existing session or create new tab."""
         if session_id and self.is_iterm:
             # Try to switch to existing session
-            if self._switch_to_iterm_session(session_id):
+            if self._switch_to_iterm_session(session_id, init_script):
                 return True
 
         # Fall back to creating new tab
-        return self._open_new_tab(worktree_path)
+        return self._open_new_tab(worktree_path, init_script)
 
-    def _switch_to_iterm_session(self, session_id: str) -> bool:
+    def _switch_to_iterm_session(
+        self, session_id: str, init_script: str | None = None
+    ) -> bool:
         """Switch to an existing iTerm session."""
         logger.debug(f"Switching to iTerm session: {session_id}")
 
@@ -106,44 +122,60 @@ class TerminalService:
                     repeat with theSession in sessions of theTab
                         if id of theSession is "{session_uuid}" then
                             select theTab
-                            select theWindow
+                            select theWindow'''
+
+        if init_script:
+            applescript += f'''
+                            write text "{self._escape_for_applescript(init_script)}" to theSession'''
+
+        applescript += """
                             return
                         end if
                     end repeat
                 end repeat
             end repeat
         end tell
-        '''
+        """
 
         return self._run_applescript(applescript)
 
-    def _open_new_tab(self, worktree_path: Path) -> bool:
+    def _open_new_tab(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
         """Open a new terminal tab in the worktree directory."""
         logger.debug(f"Opening new tab for {worktree_path}")
 
         if self.is_iterm:
-            return self._open_iterm_tab(worktree_path)
+            return self._open_iterm_tab(worktree_path, init_script)
         else:
             # Generic terminal fallback
-            return self._open_generic_terminal(worktree_path)
+            return self._open_generic_terminal(worktree_path, init_script)
 
-    def _open_new_window(self, worktree_path: Path) -> bool:
+    def _open_new_window(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
         """Open a new terminal window in the worktree directory."""
         logger.debug(f"Opening new window for {worktree_path}")
 
         if self.is_iterm:
-            return self._open_iterm_window(worktree_path)
+            return self._open_iterm_window(worktree_path, init_script)
         else:
-            return self._open_generic_terminal(worktree_path)
+            return self._open_generic_terminal(worktree_path, init_script)
 
-    def _open_iterm_tab(self, worktree_path: Path) -> bool:
+    def _open_iterm_tab(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
         """Open a new iTerm tab."""
+        commands = [f"cd {self._escape_path_for_command(worktree_path)}"]
+        if init_script:
+            commands.append(init_script)
+
         applescript = f"""
         tell application "iTerm2"
             tell current window
                 create tab with default profile
                 tell current session of current tab
-                    write text "cd {self._escape_path_for_command(worktree_path)}"
+                    write text "{"; ".join(commands)}"
                 end tell
             end tell
         end tell
@@ -151,20 +183,28 @@ class TerminalService:
 
         return self._run_applescript(applescript)
 
-    def _open_iterm_window(self, worktree_path: Path) -> bool:
+    def _open_iterm_window(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
         """Open a new iTerm window."""
+        commands = [f"cd {self._escape_path_for_command(worktree_path)}"]
+        if init_script:
+            commands.append(init_script)
+
         applescript = f"""
         tell application "iTerm2"
             create window with default profile
             tell current session of current window
-                write text "cd {self._escape_path_for_command(worktree_path)}"
+                write text "{"; ".join(commands)}"
             end tell
         end tell
         """
 
         return self._run_applescript(applescript)
 
-    def _open_generic_terminal(self, worktree_path: Path) -> bool:
+    def _open_generic_terminal(
+        self, worktree_path: Path, init_script: str | None = None
+    ) -> bool:
         """Open terminal using generic methods."""
         logger.debug("Using generic terminal opening method")
 
@@ -181,8 +221,30 @@ class TerminalService:
                 terminals = ["gnome-terminal", "konsole", "xterm"]
                 for terminal in terminals:
                     try:
+                        cmd = [terminal, "--working-directory", str(worktree_path)]
+                        if init_script:
+                            # For terminals that support it, try to run the init script
+                            if terminal == "gnome-terminal":
+                                cmd.extend(
+                                    [
+                                        "--",
+                                        "bash",
+                                        "-c",
+                                        f"cd {shlex.quote(str(worktree_path))}; {init_script}; exec bash",
+                                    ]
+                                )
+                            elif terminal == "konsole":
+                                cmd.extend(
+                                    [
+                                        "-e",
+                                        "bash",
+                                        "-c",
+                                        f"cd {shlex.quote(str(worktree_path))}; {init_script}; exec bash",
+                                    ]
+                                )
+
                         run_command(
-                            [terminal, "--working-directory", str(worktree_path)],
+                            cmd,
                             timeout=10,
                             description=f"Open {terminal} at {worktree_path}",
                         )
@@ -203,12 +265,16 @@ class TerminalService:
         """Escape a path for use inside AppleScript command strings."""
         # For use inside "write text" commands - don't add extra quotes
         return str(path).replace("\\", "\\\\").replace('"', '\\"')
-    
+
     def _escape_path(self, path: Path) -> str:
         """Escape a path for use in AppleScript (with quotes)."""
         # AppleScript string escaping: double quotes and backslashes
         escaped = str(path).replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
+
+    def _escape_for_applescript(self, text: str) -> str:
+        """Escape text for use in AppleScript strings."""
+        return text.replace("\\", "\\\\").replace('"', '\\"')
 
     def _run_applescript(self, script: str) -> bool:
         """Execute AppleScript and return success status."""

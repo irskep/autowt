@@ -125,9 +125,13 @@ class MockTerminalService:
         return self.current_session_id
 
     def switch_to_worktree(
-        self, worktree_path: Path, mode: TerminalMode, session_id: str | None = None
+        self,
+        worktree_path: Path,
+        mode: TerminalMode,
+        session_id: str | None = None,
+        init_script: str | None = None,
     ) -> bool:
-        self.switch_calls.append((worktree_path, mode, session_id))
+        self.switch_calls.append((worktree_path, mode, session_id, init_script))
         return self.switch_success
 
 

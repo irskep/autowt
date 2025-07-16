@@ -36,7 +36,9 @@ class ProcessService:
                 logger.debug("No processes found in directory (no output)")
                 return processes
             elif result.returncode not in [0, 1]:
-                logger.warning(f"lsof command failed with exit code {result.returncode}: {result.stderr}")
+                logger.warning(
+                    f"lsof command failed with exit code {result.returncode}: {result.stderr}"
+                )
                 return processes
 
             # Parse lsof output

@@ -7,9 +7,11 @@ uv = "latest"
 
 [env]
 _.python.venv = { path = ".venv" }
+_.file = ".env"
 
 [tasks]
 install = "uv sync"
 test = "uv run pytest"
 lint = "uv run ruff check"
 format = "uv run ruff format"
+format-check = "uv run ruff format --check"

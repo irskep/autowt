@@ -133,7 +133,11 @@ class TestBranchStatus:
         """Test creating BranchStatus instance."""
         path = Path("/test/path")
         status = BranchStatus(
-            branch="test-branch", has_remote=True, is_merged=False, is_identical=False, path=path
+            branch="test-branch",
+            has_remote=True,
+            is_merged=False,
+            is_identical=False,
+            path=path,
         )
 
         assert status.branch == "test-branch"
