@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from autowt.commands import checkout, cleanup, init, ls
+from autowt.commands import checkout, cleanup, ls
 from autowt.models import (
     CleanupMode,
     TerminalMode,
