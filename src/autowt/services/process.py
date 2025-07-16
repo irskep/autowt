@@ -31,12 +31,12 @@ class ProcessService:
                 description=f"Find processes in directory {directory}",
             )
 
-            if result.returncode != 0:
-                # lsof returns 1 if no files found, which is normal
-                if result.returncode == 1:
-                    logger.debug("No processes found in directory")
-                else:
-                    logger.warning(f"lsof command failed: {result.stderr}")
+            # lsof can return 1 even when it finds results, so check output content
+            if result.returncode != 0 and not result.stdout.strip():
+                logger.debug("No processes found in directory (no output)")
+                return processes
+            elif result.returncode not in [0, 1]:
+                logger.warning(f"lsof command failed with exit code {result.returncode}: {result.stderr}")
                 return processes
 
             # Parse lsof output

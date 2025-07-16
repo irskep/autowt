@@ -100,8 +100,11 @@ class GitService:
                     current_branch = None
                 elif line.startswith("worktree "):
                     current_path = line[9:]  # Remove 'worktree ' prefix
+                elif line.startswith("branch refs/heads/"):
+                    current_branch = line[18:]  # Remove 'branch refs/heads/' prefix
                 elif line.startswith("HEAD "):
-                    current_branch = line[5:]  # Remove 'HEAD ' prefix
+                    # This is just the commit hash, ignore for branch name
+                    continue
                 elif line == "bare":
                     # Skip bare repositories
                     continue
@@ -167,17 +170,35 @@ class GitService:
                 # Branch exists locally
                 cmd = ["git", "worktree", "add", str(worktree_path), branch]
             else:
-                # Try to create from remote
-                cmd = [
-                    "git",
-                    "worktree",
-                    "add",
-                    str(worktree_path),
-                    "-b",
-                    branch,
-                    f"origin/{branch}",
-                ]
+                # Check if remote branch exists
+                result = run_command(
+                    ["git", "show-ref", "--verify", f"refs/remotes/origin/{branch}"],
+                    cwd=repo_path,
+                    timeout=10,
+                    description=f"Check if remote branch origin/{branch} exists",
+                )
 
+                if result.returncode == 0:
+                    # Remote branch exists, create from it
+                    cmd = [
+                        "git",
+                        "worktree",
+                        "add",
+                        str(worktree_path),
+                        "-b",
+                        branch,
+                        f"origin/{branch}",
+                    ]
+                else:
+                    # Neither local nor remote exists, create new branch from current HEAD
+                    cmd = [
+                        "git",
+                        "worktree",
+                        "add",
+                        str(worktree_path),
+                        "-b",
+                        branch,
+                    ]
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0
@@ -229,7 +250,11 @@ class GitService:
             # Check if branch has remote
             has_remote = self._branch_has_remote(repo_path, branch)
 
-            # Check if branch is merged
+            # Check if branch has unique commits
+            has_unique_commits = self._branch_has_unique_commits(repo_path, branch)
+            is_identical = not has_unique_commits
+
+            # Check if branch is merged (only if it had unique commits)
             is_merged = self._branch_is_merged(repo_path, branch)
 
             branch_statuses.append(
@@ -237,6 +262,7 @@ class GitService:
                     branch=branch,
                     has_remote=has_remote,
                     is_merged=is_merged,
+                    is_identical=is_identical,
                     path=worktree.path,
                 )
             )
@@ -257,22 +283,11 @@ class GitService:
         except Exception:
             return False
 
-    def _branch_is_merged(self, repo_path: Path, branch: str) -> bool:
-        """Check if branch is merged into main/master (including squash merges)."""
+    def _branch_has_unique_commits(self, repo_path: Path, branch: str) -> bool:
+        """Check if branch has any commits not in main/master."""
         try:
             # Try main first, then master
             for base_branch in ["main", "master"]:
-                # Check regular merge
-                result = run_command(
-                    ["git", "merge-base", "--is-ancestor", branch, base_branch],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Check if {branch} is merged into {base_branch}",
-                )
-                if result.returncode == 0:
-                    return True
-
-                # Check for squash merge by looking for identical trees
                 result = run_command(
                     [
                         "git",
@@ -283,10 +298,34 @@ class GitService:
                     ],
                     cwd=repo_path,
                     timeout=10,
-                    description=f"Check for squash merge of {branch} into {base_branch}",
+                    description=f"Check for unique commits in {branch} vs {base_branch}",
                 )
-                if result.returncode == 0 and not result.stdout.strip():
-                    # No commits unique to branch means it was squash merged
+                if result.returncode == 0:
+                    # If there's any output, branch has unique commits
+                    return bool(result.stdout.strip())
+
+            return False
+        except Exception:
+            return False
+
+    def _branch_is_merged(self, repo_path: Path, branch: str) -> bool:
+        """Check if branch is merged into main/master (but has unique commits)."""
+        try:
+            # Only consider it "merged" if it was an ancestor AND had unique commits
+            # This excludes branches that are identical to main
+            if not self._branch_has_unique_commits(repo_path, branch):
+                return False
+
+            # Try main first, then master
+            for base_branch in ["main", "master"]:
+                # Check if branch is ancestor (was merged)
+                result = run_command(
+                    ["git", "merge-base", "--is-ancestor", branch, base_branch],
+                    cwd=repo_path,
+                    timeout=10,
+                    description=f"Check if {branch} is merged into {base_branch}",
+                )
+                if result.returncode == 0:
                     return True
 
             return False

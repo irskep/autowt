@@ -84,7 +84,7 @@ def list_worktrees(
         # Check if this branch has a session ID
         session_indicator = ""
         if branch in session_ids:
-            session_indicator = " 📱"  # Terminal icon to indicate active session
+            session_indicator = " 💻"  # Laptop icon to indicate active session
 
         print(f"  {branch:<20} {display_path}{session_indicator}")
 

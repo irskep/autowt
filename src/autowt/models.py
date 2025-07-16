@@ -40,6 +40,7 @@ class BranchStatus:
     branch: str
     has_remote: bool
     is_merged: bool
+    is_identical: bool  # True if branch has no unique commits vs main
     path: Path
 
 

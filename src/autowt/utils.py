@@ -118,15 +118,19 @@ def setup_command_logging(debug: bool = False) -> None:
     """Setup command logging to show subprocess execution."""
     level = logging.INFO if not debug else logging.DEBUG
 
-    # Create handler for command logger
-    handler = logging.StreamHandler()
-    handler.setLevel(level)
+    # Only add handler if none exists yet
+    if not command_logger.handlers:
+        # Create handler for command logger
+        handler = logging.StreamHandler()
+        handler.setLevel(level)
 
-    # Format just the message for command output
-    formatter = logging.Formatter("%(message)s")
-    handler.setFormatter(formatter)
+        # Format just the message for command output
+        formatter = logging.Formatter("%(message)s")
+        handler.setFormatter(formatter)
 
-    # Configure command logger
+        # Configure command logger
+        command_logger.addHandler(handler)
+        command_logger.propagate = False  # Don't propagate to root logger
+
+    # Always update the level in case debug setting changed
     command_logger.setLevel(level)
-    command_logger.addHandler(handler)
-    command_logger.propagate = False  # Don't propagate to root logger
