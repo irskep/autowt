@@ -112,6 +112,16 @@ autowt branch-name --init "npm install && npm run dev"
 
 The init script runs after changing to the worktree directory.
 
+### Project Configuration
+
+Create an `autowt.toml` or `.autowt.toml` file in your project root to set a default init script:
+
+```toml
+init = "npm install && npm run dev"
+```
+
+This eliminates the need to pass `--init` every time. The command-line `--init` flag still overrides the config file setting.
+
 ## State Management
 
 autowt stores its state in platform-appropriate directories:

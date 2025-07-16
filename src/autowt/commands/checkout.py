@@ -34,8 +34,13 @@ def checkout_branch(
 
     # Load configuration and state
     config = state_service.load_config()
+    project_config = state_service.load_project_config(repo_path)
     state = state_service.load_state(repo_path)
     session_ids = state_service.load_session_ids()
+
+    # Use project config init as default if no init_script provided
+    if init_script is None:
+        init_script = project_config.init
 
     # Use provided terminal mode or fall back to config
     if terminal_mode is None:
