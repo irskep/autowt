@@ -62,6 +62,10 @@ class AutowtGroup(click.Group):
             state_service, git_service, terminal_service, process_service = (
                 create_services()
             )
+
+            # Get init_script from command line args
+            init_script = kwargs.get("init")
+
             checkout_branch(
                 cmd_name,
                 terminal_mode,
@@ -69,7 +73,7 @@ class AutowtGroup(click.Group):
                 git_service,
                 terminal_service,
                 process_service,
-                init_script=kwargs.get("init"),
+                init_script=init_script,
             )
 
         # Create a new command with the same options as switch

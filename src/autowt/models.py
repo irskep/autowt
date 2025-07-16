@@ -68,6 +68,26 @@ class Configuration:
 
 
 @dataclass
+class ProjectConfig:
+    """Project-specific configuration."""
+
+    init: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ProjectConfig":
+        """Create project configuration from dictionary."""
+        return cls(
+            init=data.get("init"),
+        )
+
+    def to_dict(self) -> dict:
+        """Convert project configuration to dictionary."""
+        return {
+            "init": self.init,
+        }
+
+
+@dataclass
 class ApplicationState:
     """Main application state."""
 
