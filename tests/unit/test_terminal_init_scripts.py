@@ -207,24 +207,29 @@ class TestTerminalServiceInitScripts:
             assert success
             mock_window.assert_called_once_with(self.test_path, self.init_script)
 
-    def test_switch_to_existing_or_new_with_init_script(self):
-        """Test switch_to_existing_or_new handles init scripts."""
+    def test_switch_to_existing_or_new_tab_with_init_script(self):
+        """Test switch_to_existing_or_new_tab handles init scripts."""
         with (
             patch.object(
                 self.terminal_service, "_switch_to_iterm_session"
             ) as mock_switch,
             patch.object(self.terminal_service, "_open_new_tab") as mock_tab,
+            patch.object(
+                self.terminal_service, "_should_switch_to_existing"
+            ) as mock_should_switch,
         ):
             mock_switch.return_value = False  # Simulate session switch failure
             mock_tab.return_value = True
+            mock_should_switch.return_value = True  # User wants to switch
             self.terminal_service.is_iterm = True
 
-            success = self.terminal_service._switch_to_existing_or_new(
-                self.test_path, "session-id", self.init_script
+            success = self.terminal_service._switch_to_existing_or_new_tab(
+                self.test_path, "session-id", self.init_script, "test-branch", False
             )
 
             assert success
             # Should try to switch to session first, then fall back to new tab
+            mock_should_switch.assert_called_once_with("test-branch")
             mock_switch.assert_called_once_with("session-id", self.init_script)
             mock_tab.assert_called_once_with(self.test_path, self.init_script)
 

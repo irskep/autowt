@@ -60,4 +60,5 @@ dev = [
     "ruff>=0.12.3",
     "cimonitor>=0.1.4",
     "pytest-cov>=6.2.1",
+    "pre-commit>=3.0.0",
 ]

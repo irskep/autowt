@@ -8,7 +8,6 @@ from pathlib import Path
 class TerminalMode(Enum):
     """Terminal switching modes."""
 
-    SAME = "same"
     TAB = "tab"
     WINDOW = "window"
     INPLACE = "inplace"
@@ -48,14 +47,14 @@ class BranchStatus:
 class Configuration:
     """Application configuration."""
 
-    terminal: TerminalMode = TerminalMode.SAME
+    terminal: TerminalMode = TerminalMode.TAB
     terminal_always_new: bool = False
 
     @classmethod
     def from_dict(cls, data: dict) -> "Configuration":
         """Create configuration from dictionary."""
         return cls(
-            terminal=TerminalMode(data.get("terminal", "same")),
+            terminal=TerminalMode(data.get("terminal", "tab")),
             terminal_always_new=data.get("terminal_always_new", False),
         )
 

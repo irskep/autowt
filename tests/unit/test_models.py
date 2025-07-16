@@ -19,7 +19,7 @@ class TestConfiguration:
     def test_default_configuration(self):
         """Test default configuration values."""
         config = Configuration()
-        assert config.terminal == TerminalMode.SAME
+        assert config.terminal == TerminalMode.TAB
         assert config.terminal_always_new is False
 
     def test_configuration_from_dict(self):
@@ -167,7 +167,6 @@ class TestEnums:
 
     def test_terminal_mode_values(self):
         """Test TerminalMode enum values."""
-        assert TerminalMode.SAME.value == "same"
         assert TerminalMode.TAB.value == "tab"
         assert TerminalMode.WINDOW.value == "window"
         assert TerminalMode.INPLACE.value == "inplace"

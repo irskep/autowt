@@ -51,9 +51,8 @@ def _simple_config_interface(state_service: StateService) -> None:
 
     # Configure terminal mode
     print("Terminal mode options:")
-    print("  same   - Switch to existing terminal tab/window if available")
-    print("  tab    - Always open new tab")
-    print("  window - Always open new window")
+    print("  tab     - Switch to existing session or open new tab")
+    print("  window  - Switch to existing session or open new window")
     print("  inplace - Change directory in current terminal")
     print()
 
@@ -66,7 +65,7 @@ def _simple_config_interface(state_service: StateService) -> None:
             config.terminal = TerminalMode(terminal_input)
             break
         except ValueError:
-            print("Invalid terminal mode. Please choose: same, tab, window, or inplace")
+            print("Invalid terminal mode. Please choose: tab, window, or inplace")
 
     # Configure always new terminal
     while True:

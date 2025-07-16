@@ -6,6 +6,9 @@ echo "Setting up autowt development environment..."
 echo "Trusting mise configuration..."
 mise trust
 
+echo "Installing mise dependencies..."
+mise install
+
 echo "Installing dependencies..."
 uv sync --extra=dev
 

@@ -159,21 +159,24 @@ class TestCheckoutCommand:
         git_service.repo_root = temp_repo_path
         git_service.worktrees = sample_worktrees
         terminal_service = MockTerminalService()
+        terminal_service.switch_success = (
+            False  # Simulate user declining/switch failure
+        )
         process_service = MockProcessService()
 
-        # Mock user input to decline switch
-        with patch("builtins.input", return_value="n"):
-            checkout.checkout_branch(
-                "feature1",
-                TerminalMode.TAB,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
+        checkout.checkout_branch(
+            "feature1",
+            TerminalMode.TAB,
+            state_service,
+            git_service,
+            terminal_service,
+            process_service,
+        )
 
-        # Verify no terminal switching was attempted
-        assert len(terminal_service.switch_calls) == 0
+        # Verify terminal service was called but returned False (declined/failed)
+        assert len(terminal_service.switch_calls) == 1
+        assert terminal_service.switch_calls[0][4] == "feature1"  # branch_name
+        assert not terminal_service.switch_calls[0][5]  # auto_confirm
 
     def test_checkout_existing_worktree_with_init_script(
         self, temp_repo_path, sample_worktrees

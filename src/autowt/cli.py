@@ -79,7 +79,7 @@ class AutowtGroup(click.Group):
             params=[
                 click.Option(
                     ["--terminal"],
-                    type=click.Choice(["same", "tab", "window", "inplace"]),
+                    type=click.Choice(["tab", "window", "inplace"]),
                     help="How to open the worktree terminal",
                 ),
                 click.Option(
@@ -191,7 +191,7 @@ def config(debug: bool) -> None:
 @click.argument("branch")
 @click.option(
     "--terminal",
-    type=click.Choice(["same", "tab", "window", "inplace"]),
+    type=click.Choice(["tab", "window", "inplace"]),
     help="How to open the worktree terminal",
 )
 @click.option(

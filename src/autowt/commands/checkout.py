@@ -3,8 +3,8 @@
 import logging
 from pathlib import Path
 
+from autowt.global_config import options
 from autowt.models import TerminalMode, WorktreeInfo
-from autowt.prompts import confirm_default_yes
 from autowt.services.git import GitService
 from autowt.services.process import ProcessService
 from autowt.services.state import StateService
@@ -52,16 +52,27 @@ def checkout_branch(
             break
 
     if existing_worktree:
-        _handle_existing_worktree(
-            branch,
-            existing_worktree,
+        # Switch to existing worktree - the terminal service handles prompting
+        session_id = session_ids.get(branch)
+        success = terminal_service.switch_to_worktree(
+            existing_worktree.path,
             terminal_mode,
-            config,
-            session_ids,
-            terminal_service,
-            state_service,
+            session_id,
             init_script,
+            branch_name=branch,
+            auto_confirm=options.auto_confirm,
         )
+
+        if not success:
+            print(f"Failed to switch to {branch} worktree")
+            return
+
+        # Update session ID if we're in a terminal that supports it
+        current_session = terminal_service.get_current_session_id()
+        if current_session:
+            session_ids[branch] = current_session
+            state_service.save_session_ids(session_ids)
+
         return
 
     # Create new worktree
@@ -76,41 +87,6 @@ def checkout_branch(
         state_service,
         init_script,
     )
-
-
-def _handle_existing_worktree(
-    branch: str,
-    existing_worktree: WorktreeInfo,
-    terminal_mode: TerminalMode,
-    config,
-    session_ids: dict,
-    terminal_service: TerminalService,
-    state_service: StateService,
-    init_script: str | None = None,
-) -> None:
-    """Handle switching to an existing worktree."""
-    # Ask to switch unless always creating new terminals
-    if not config.terminal_always_new:
-        if not confirm_default_yes(f"{branch} already has a worktree. Switch to it?"):
-            return
-
-    # Switch to existing worktree
-    session_id = session_ids.get(branch)
-    success = terminal_service.switch_to_worktree(
-        existing_worktree.path, terminal_mode, session_id, init_script
-    )
-
-    if not success:
-        print(f"Failed to switch to {branch} worktree")
-        return
-
-    print(f"Switched to {branch} worktree")
-
-    # Update session ID if we're in a terminal that supports it
-    current_session = terminal_service.get_current_session_id()
-    if current_session:
-        session_ids[branch] = current_session
-        state_service.save_session_ids(session_ids)
 
 
 def _create_new_worktree(

@@ -7,6 +7,7 @@ import shlex
 from pathlib import Path
 
 from autowt.models import TerminalMode
+from autowt.prompts import confirm_default_yes
 from autowt.utils import run_command
 
 logger = logging.getLogger(__name__)
@@ -50,20 +51,22 @@ class TerminalService:
         mode: TerminalMode,
         session_id: str | None = None,
         init_script: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
     ) -> bool:
         """Switch to a worktree using the specified terminal mode."""
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
 
         if mode == TerminalMode.INPLACE:
             return self._change_directory_inplace(worktree_path, init_script)
-        elif mode == TerminalMode.SAME:
-            return self._switch_to_existing_or_new(
-                worktree_path, session_id, init_script
-            )
         elif mode == TerminalMode.TAB:
-            return self._open_new_tab(worktree_path, init_script)
+            return self._switch_to_existing_or_new_tab(
+                worktree_path, session_id, init_script, branch_name, auto_confirm
+            )
         elif mode == TerminalMode.WINDOW:
-            return self._open_new_window(worktree_path, init_script)
+            return self._switch_to_existing_or_new_window(
+                worktree_path, session_id, init_script, branch_name, auto_confirm
+            )
         else:
             logger.error(f"Unknown terminal mode: {mode}")
             return False
@@ -86,20 +89,54 @@ class TerminalService:
             logger.error(f"Failed to output cd command: {e}")
             return False
 
-    def _switch_to_existing_or_new(
+    def _switch_to_existing_or_new_tab(
         self,
         worktree_path: Path,
         session_id: str | None = None,
         init_script: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
     ) -> bool:
         """Switch to existing session or create new tab."""
+        # If we have a session ID, ask user if they want to switch to existing
         if session_id and self.is_iterm:
-            # Try to switch to existing session
-            if self._switch_to_iterm_session(session_id, init_script):
-                return True
+            if auto_confirm or self._should_switch_to_existing(branch_name):
+                # Try to switch to existing session
+                if self._switch_to_iterm_session(session_id, init_script):
+                    print(f"Switched to existing {branch_name or 'worktree'} session")
+                    return True
 
         # Fall back to creating new tab
         return self._open_new_tab(worktree_path, init_script)
+
+    def _switch_to_existing_or_new_window(
+        self,
+        worktree_path: Path,
+        session_id: str | None = None,
+        init_script: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+    ) -> bool:
+        """Switch to existing session or create new window."""
+        # If we have a session ID, ask user if they want to switch to existing
+        if session_id and self.is_iterm:
+            if auto_confirm or self._should_switch_to_existing(branch_name):
+                # Try to switch to existing session
+                if self._switch_to_iterm_session(session_id, init_script):
+                    print(f"Switched to existing {branch_name or 'worktree'} session")
+                    return True
+
+        # Fall back to creating new window
+        return self._open_new_window(worktree_path, init_script)
+
+    def _should_switch_to_existing(self, branch_name: str | None) -> bool:
+        """Ask user if they want to switch to existing session."""
+        if branch_name:
+            return confirm_default_yes(
+                f"{branch_name} already has a session. Switch to it?"
+            )
+        else:
+            return confirm_default_yes("Worktree already has a session. Switch to it?")
 
     def _switch_to_iterm_session(
         self, session_id: str, init_script: str | None = None

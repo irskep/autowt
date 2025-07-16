@@ -56,7 +56,7 @@ class TestStateServiceLogic:
         """Test config creation with partial data uses defaults."""
         # Test with minimal data
         config = Configuration.from_dict({})
-        assert config.terminal == TerminalMode.SAME  # default
+        assert config.terminal == TerminalMode.TAB  # default
         assert config.terminal_always_new is False  # default
 
         # Test with partial data

@@ -39,17 +39,12 @@ class ConfigTUI(App):
 
                 with RadioSet(id="terminal-mode"):
                     yield RadioButton(
-                        "same - Switch to existing tab/window if available",
-                        value=self.config.terminal == TerminalMode.SAME,
-                        id="mode-same",
-                    )
-                    yield RadioButton(
-                        "tab - Always open new tab",
+                        "tab - Switch to existing session or open new tab",
                         value=self.config.terminal == TerminalMode.TAB,
                         id="mode-tab",
                     )
                     yield RadioButton(
-                        "window - Always open new window",
+                        "window - Switch to existing session or open new window",
                         value=self.config.terminal == TerminalMode.WINDOW,
                         id="mode-window",
                     )
@@ -89,9 +84,7 @@ class ConfigTUI(App):
         pressed_button = radio_set.pressed_button
 
         if pressed_button:
-            if pressed_button.id == "mode-same":
-                self.config.terminal = TerminalMode.SAME
-            elif pressed_button.id == "mode-tab":
+            if pressed_button.id == "mode-tab":
                 self.config.terminal = TerminalMode.TAB
             elif pressed_button.id == "mode-window":
                 self.config.terminal = TerminalMode.WINDOW
