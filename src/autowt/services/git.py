@@ -391,3 +391,17 @@ class GitService:
 
         except Exception:
             return False
+
+    def delete_branch(self, repo_path: Path, branch: str, force: bool = False) -> bool:
+        """Delete a local branch."""
+        try:
+            flag = "-D" if force else "-d"
+            result = run_command(
+                ["git", "branch", flag, branch],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Delete branch {branch}",
+            )
+            return result.returncode == 0
+        except Exception:
+            return False

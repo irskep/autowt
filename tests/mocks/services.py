@@ -99,6 +99,10 @@ class MockGitService:
             self.worktrees = [wt for wt in self.worktrees if wt.path != worktree_path]
         return self.remove_success
 
+    def delete_branch(self, repo_path: Path, branch: str, force: bool = False) -> bool:
+        """Mock branch deletion."""
+        return True  # Always succeed for tests
+
     def analyze_branches_for_cleanup(
         self, repo_path: Path, worktrees: list[WorktreeInfo]
     ) -> list[BranchStatus]:

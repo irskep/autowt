@@ -163,8 +163,9 @@ def ls(debug: bool) -> None:
     is_flag=True,
     help="Show what would be removed without actually removing",
 )
+@click.option("-y", "--yes", is_flag=True, help="Auto-confirm all prompts")
 @click.option("--debug", is_flag=True, help="Enable debug logging")
-def cleanup(mode: str, dry_run: bool, debug: bool) -> None:
+def cleanup(mode: str, dry_run: bool, yes: bool, debug: bool) -> None:
     """Clean up merged or remoteless worktrees."""
     setup_logging(debug)
     state_service, git_service, terminal_service, process_service = create_services()
@@ -175,6 +176,7 @@ def cleanup(mode: str, dry_run: bool, debug: bool) -> None:
         terminal_service,
         process_service,
         dry_run,
+        yes,
     )
 
 
