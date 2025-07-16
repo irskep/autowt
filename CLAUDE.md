@@ -19,3 +19,7 @@
 - `src/autowt/commands/` - Command implementations (checkout, cleanup, etc.)
 - `src/autowt/services/` - Core services (git, state, process management)
 - `src/autowt/models/` - Data models and types
+
+## How to get up to speed
+
+- Read README.md
