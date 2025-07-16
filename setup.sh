@@ -7,7 +7,7 @@ echo "Trusting mise configuration..."
 mise trust
 
 echo "Installing dependencies..."
-uv sync
+uv sync --extra=dev
 
 echo "Installing pre-commit hooks..."
 uv run pre-commit install
