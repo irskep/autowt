@@ -248,12 +248,15 @@ class GitService:
         """Analyze branches to determine cleanup candidates."""
         logger.debug("Analyzing branches for cleanup")
 
-        # Get default branch once and cache it
+        # Get default branch once and cache it - use remote tracking branch for comparison
         default_branch = self._get_default_branch(repo_path)
         if not default_branch:
             logger.warning(
                 "Could not determine default branch, skipping merge analysis"
             )
+        else:
+            # Use remote tracking branch for comparison after fetch
+            default_branch = f"origin/{default_branch}"
 
         branch_statuses = []
 

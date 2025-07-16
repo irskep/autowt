@@ -56,6 +56,10 @@ def cleanup_worktrees(
         print("Error: Not in a git repository")
         return
 
+    print("Fetching branches...")
+    if not git_service.fetch_branches(repo_path):
+        print("Warning: Failed to fetch latest branches")
+
     print("Checking branch status...")
 
     # Get worktrees and analyze them

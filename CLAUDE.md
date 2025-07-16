@@ -12,3 +12,10 @@
 - Create `.env` file with `GITHUB_TOKEN=your_token` for cimonitor
 - mise automatically loads .env file (already configured)
 - Use `uv run cimonitor status --pr <number>` to check CI status
+
+## Code Organization
+
+- `src/autowt/cli.py` - Main CLI entry point with command definitions
+- `src/autowt/commands/` - Command implementations (checkout, cleanup, etc.)
+- `src/autowt/services/` - Core services (git, state, process management)
+- `src/autowt/models/` - Data models and types
