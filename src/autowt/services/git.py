@@ -83,6 +83,7 @@ class GitService:
             current_worktree = None
             current_path = None
             current_branch = None
+            is_first_worktree = True
 
             for line in result.stdout.strip().split("\n"):
                 if not line:
@@ -93,11 +94,13 @@ class GitService:
                                 branch=current_branch,
                                 path=Path(current_path),
                                 is_current=current_worktree is not None,
+                                is_primary=is_first_worktree,
                             )
                         )
                     current_worktree = None
                     current_path = None
                     current_branch = None
+                    is_first_worktree = False
                 elif line.startswith("worktree "):
                     current_path = line[9:]  # Remove 'worktree ' prefix
                 elif line.startswith("branch refs/heads/"):
@@ -119,6 +122,7 @@ class GitService:
                         branch=current_branch,
                         path=Path(current_path),
                         is_current=current_worktree is not None,
+                        is_primary=is_first_worktree,
                     )
                 )
 
@@ -385,5 +389,19 @@ class GitService:
             )
             return result.returncode == 0
 
+        except Exception:
+            return False
+
+    def delete_branch(self, repo_path: Path, branch: str, force: bool = False) -> bool:
+        """Delete a local branch."""
+        try:
+            flag = "-D" if force else "-d"
+            result = run_command(
+                ["git", "branch", flag, branch],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Delete branch {branch}",
+            )
+            return result.returncode == 0
         except Exception:
             return False

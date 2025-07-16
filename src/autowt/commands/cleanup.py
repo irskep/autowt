@@ -45,6 +45,7 @@ def cleanup_worktrees(
     terminal_service: TerminalService,
     process_service: ProcessService,
     dry_run: bool = False,
+    auto_confirm: bool = False,
 ) -> None:
     """Clean up worktrees based on the specified mode."""
     logger.debug(f"Cleaning up worktrees with mode: {mode}")
@@ -63,8 +64,8 @@ def cleanup_worktrees(
         print("No worktrees found.")
         return
 
-    # Filter out primary clone
-    worktrees = [wt for wt in worktrees if wt.path != repo_path]
+    # Filter out primary clone and any primary worktrees
+    worktrees = [wt for wt in worktrees if wt.path != repo_path and not wt.is_primary]
     if not worktrees:
         print("No secondary worktrees found.")
         return
@@ -105,7 +106,7 @@ def cleanup_worktrees(
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
-        to_cleanup, repo_path, git_service, state_service
+        to_cleanup, repo_path, git_service, state_service, auto_confirm
     )
 
 
@@ -187,13 +188,18 @@ def _confirm_cleanup(to_cleanup: list[BranchStatus], mode: CleanupMode) -> bool:
 
 
 def _show_dry_run_results(
-    to_cleanup: list[BranchStatus], process_service: ProcessService
+    to_cleanup: list[BranchStatus],
+    process_service: ProcessService,
 ) -> None:
     """Show what would be removed in dry-run mode."""
     print("\n[DRY RUN] Worktrees that would be removed:")
     for branch_status in to_cleanup:
         display_path = _format_path_for_display(branch_status.path)
         print(f"- {branch_status.branch} ({display_path})")
+
+    print("\n[DRY RUN] Local branches that would be deleted:")
+    for branch_status in to_cleanup:
+        print(f"- {branch_status.branch}")
 
     print("\n[DRY RUN] Processes that would be terminated:")
     all_processes = []
@@ -207,9 +213,8 @@ def _show_dry_run_results(
     else:
         print("- No running processes found")
 
-    print(
-        f"\n[DRY RUN] Would remove {len(to_cleanup)} worktrees and terminate {len(all_processes)} processes"
-    )
+    summary = f"\n[DRY RUN] Would remove {len(to_cleanup)} worktrees and delete {len(to_cleanup)} local branches and terminate {len(all_processes)} processes"
+    print(summary)
 
 
 def _handle_running_processes(
@@ -237,17 +242,45 @@ def _remove_worktrees_and_update_state(
     repo_path: Path,
     git_service: GitService,
     state_service: StateService,
+    auto_confirm: bool = False,
 ) -> None:
     """Remove worktrees and update application state."""
     print("Removing worktrees...")
     removed_count = 0
+    successfully_removed_branches = []
 
     for branch_status in to_cleanup:
         if git_service.remove_worktree(repo_path, branch_status.path):
             print(f"✓ Removed {branch_status.branch}")
             removed_count += 1
+            successfully_removed_branches.append(branch_status.branch)
         else:
             print(f"✗ Failed to remove {branch_status.branch}")
+
+    # Delete local branches for successfully removed worktrees
+    deleted_branches = 0
+    if successfully_removed_branches:
+        should_delete_branches = auto_confirm
+
+        if not auto_confirm:
+            print("\nThe following local branches will be deleted:")
+            for branch in successfully_removed_branches:
+                print(f"  - {branch}")
+
+            from autowt.prompts import confirm_default_yes
+
+            should_delete_branches = confirm_default_yes("Delete these local branches?")
+
+        if should_delete_branches:
+            print("Deleting local branches...")
+            for branch in successfully_removed_branches:
+                if git_service.delete_branch(repo_path, branch, force=True):
+                    print(f"✓ Deleted branch {branch}")
+                    deleted_branches += 1
+                else:
+                    print(f"✗ Failed to delete branch {branch}")
+        else:
+            print("Skipped branch deletion.")
 
     # Update state if we removed any worktrees
     if removed_count == 0:
@@ -273,7 +306,11 @@ def _remove_worktrees_and_update_state(
     state_service.save_session_ids(session_ids)
 
     print("state.toml updated")
-    print(f"\nCleanup complete. Removed {removed_count} worktrees.")
+    summary = f"\nCleanup complete. Removed {removed_count} worktrees"
+    if deleted_branches > 0:
+        summary += f" and deleted {deleted_branches} local branches"
+    summary += "."
+    print(summary)
 
 
 def _interactive_selection(branch_statuses: list[BranchStatus]) -> list[BranchStatus]:

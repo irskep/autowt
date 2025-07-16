@@ -147,13 +147,30 @@ def _create_new_worktree(
 
 def _generate_worktree_path(repo_path: Path, branch: str) -> Path:
     """Generate a path for the new worktree."""
-    repo_name = repo_path.name
+    from autowt.services.git import GitService
+
+    # Find the main repository path (not a worktree)
+    git_service = GitService()
+    worktrees = git_service.list_worktrees(repo_path)
+
+    # Find the primary (main) repository
+    main_repo_path = None
+    for worktree in worktrees:
+        if worktree.is_primary:
+            main_repo_path = worktree.path
+            break
+
+    # Fallback to current repo_path if no primary found
+    if not main_repo_path:
+        main_repo_path = repo_path
+
+    repo_name = main_repo_path.name
 
     # Sanitize branch name for filesystem
     safe_branch = sanitize_branch_name(branch)
 
     # Create worktrees directory next to main repo
-    worktrees_dir = repo_path.parent / f"{repo_name}-worktrees"
+    worktrees_dir = main_repo_path.parent / f"{repo_name}-worktrees"
     worktrees_dir.mkdir(exist_ok=True)
 
     return worktrees_dir / safe_branch
