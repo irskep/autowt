@@ -3,6 +3,7 @@
 import logging
 import os
 import platform
+import shlex
 from pathlib import Path
 
 from autowt.models import TerminalMode
@@ -35,7 +36,7 @@ class TerminalService:
     def get_current_session_id(self) -> str | None:
         """Get the current terminal session ID."""
         if self.is_iterm:
-            session_id = os.getenv("TERM_SESSION_ID")
+            session_id = os.getenv("ITERM_SESSION_ID")
             logger.debug(f"Current session ID: {session_id}")
             return session_id
 
@@ -62,15 +63,16 @@ class TerminalService:
             return False
 
     def _change_directory_inplace(self, worktree_path: Path) -> bool:
-        """Change directory in the current shell (limited effectiveness)."""
-        logger.debug(f"Changing directory to {worktree_path}")
+        """Output shell command to change directory in the current shell."""
+        logger.debug(f"Outputting cd command for {worktree_path}")
 
         try:
-            os.chdir(worktree_path)
-            print(f"cd {worktree_path}")
+            # Output the cd command that the user can evaluate
+            # Usage: eval "$(autowt ci --terminal=inplace)"
+            print(f"cd {shlex.quote(str(worktree_path))}")
             return True
         except Exception as e:
-            logger.error(f"Failed to change directory: {e}")
+            logger.error(f"Failed to output cd command: {e}")
             return False
 
     def _switch_to_existing_or_new(
@@ -93,12 +95,16 @@ class TerminalService:
             logger.warning("Not in iTerm, cannot switch sessions")
             return False
 
+        # Extract UUID part from session ID (format: w0t0p2:UUID)
+        session_uuid = session_id.split(":")[-1] if ":" in session_id else session_id
+        logger.debug(f"Using session UUID: {session_uuid}")
+
         applescript = f'''
         tell application "iTerm2"
             repeat with theWindow in windows
                 repeat with theTab in tabs of theWindow
                     repeat with theSession in sessions of theTab
-                        if id of theSession is "{session_id}" then
+                        if id of theSession is "{session_uuid}" then
                             select theTab
                             select theWindow
                             return
