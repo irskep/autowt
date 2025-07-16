@@ -7,7 +7,7 @@ from pathlib import Path
 
 import toml
 
-from autowt.models import ApplicationState, Configuration
+from autowt.models import ApplicationState, Configuration, ProjectConfig
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +101,30 @@ class StateService:
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
             return Configuration()
+
+    def load_project_config(self, cwd: Path) -> ProjectConfig:
+        """Load project configuration from autowt.toml or .autowt.toml in current directory."""
+        logger.debug(f"Loading project configuration from {cwd}")
+
+        # Check for autowt.toml first, then .autowt.toml
+        config_files = [cwd / "autowt.toml", cwd / ".autowt.toml"]
+
+        for config_file in config_files:
+            if config_file.exists():
+                logger.debug(f"Found project config file: {config_file}")
+                try:
+                    data = toml.load(config_file)
+                    config = ProjectConfig.from_dict(data)
+                    logger.debug("Project configuration loaded successfully")
+                    return config
+                except Exception as e:
+                    logger.error(
+                        f"Failed to load project configuration from {config_file}: {e}"
+                    )
+                    continue
+
+        logger.debug("No project config file found, using defaults")
+        return ProjectConfig()
 
     def save_config(self, config: Configuration) -> None:
         """Save application configuration."""

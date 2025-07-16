@@ -7,6 +7,7 @@ from autowt.models import (
     BranchStatus,
     Configuration,
     ProcessInfo,
+    ProjectConfig,
     TerminalMode,
     WorktreeInfo,
 )
@@ -18,6 +19,7 @@ class MockStateService:
     def __init__(self):
         self.states: dict[str, ApplicationState] = {}
         self.configs: dict[str, Configuration] = {}
+        self.project_configs: dict[str, ProjectConfig] = {}
         self.session_ids: dict[str, str] = {}
         self.save_called = False
         self.load_called = False
@@ -38,6 +40,13 @@ class MockStateService:
 
     def save_config(self, config: Configuration) -> None:
         self.configs["default"] = config
+
+    def load_project_config(self, repo_path: Path) -> ProjectConfig:
+        key = str(repo_path)
+        return self.project_configs.get(key, ProjectConfig())
+
+    def save_project_config(self, repo_path: Path, config: ProjectConfig) -> None:
+        self.project_configs[str(repo_path)] = config
 
     def load_session_ids(self) -> dict[str, str]:
         return self.session_ids.copy()
