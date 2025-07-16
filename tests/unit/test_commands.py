@@ -111,6 +111,7 @@ class TestCheckoutCommand:
         assert call[0] == sample_worktrees[0].path  # worktree path
         assert call[1] == TerminalMode.TAB  # terminal mode
         assert call[2] == "session1"  # session ID
+        assert call[3] is None  # init script
 
     def test_checkout_new_worktree(self, temp_repo_path):
         """Test creating new worktree."""
@@ -145,6 +146,7 @@ class TestCheckoutCommand:
         assert len(terminal_service.switch_calls) == 1
         switch_call = terminal_service.switch_calls[0]
         assert switch_call[1] == TerminalMode.WINDOW
+        assert switch_call[3] is None  # init script
 
         # Verify state was saved
         assert state_service.save_called
@@ -172,6 +174,108 @@ class TestCheckoutCommand:
 
         # Verify no terminal switching was attempted
         assert len(terminal_service.switch_calls) == 0
+
+    def test_checkout_existing_worktree_with_init_script(
+        self, temp_repo_path, sample_worktrees
+    ):
+        """Test switching to existing worktree with init script."""
+        # Setup mocks
+        state_service = MockStateService()
+        state_service.session_ids = {"feature1": "session1"}
+        git_service = MockGitService()
+        git_service.repo_root = temp_repo_path
+        git_service.worktrees = sample_worktrees
+        terminal_service = MockTerminalService()
+        process_service = MockProcessService()
+
+        # Mock user input to confirm switch
+        with (
+            patch("builtins.input", return_value="y"),
+            patch("builtins.print"),
+        ):
+            checkout.checkout_branch(
+                "feature1",
+                TerminalMode.TAB,
+                state_service,
+                git_service,
+                terminal_service,
+                process_service,
+                init_script="setup.sh",
+            )
+
+        # Verify terminal switching was called with init script
+        assert len(terminal_service.switch_calls) == 1
+        call = terminal_service.switch_calls[0]
+        assert call[0] == sample_worktrees[0].path  # worktree path
+        assert call[1] == TerminalMode.TAB  # terminal mode
+        assert call[2] == "session1"  # session ID
+        assert call[3] == "setup.sh"  # init script
+
+    def test_checkout_new_worktree_with_init_script(self, temp_repo_path):
+        """Test creating new worktree with init script."""
+        # Setup mocks
+        state_service = MockStateService()
+        git_service = MockGitService()
+        git_service.repo_root = temp_repo_path
+        git_service.worktrees = []
+        git_service.fetch_success = True
+        git_service.create_success = True
+        terminal_service = MockTerminalService()
+        process_service = MockProcessService()
+
+        # Run command with init script
+        checkout.checkout_branch(
+            "new-feature",
+            TerminalMode.WINDOW,
+            state_service,
+            git_service,
+            terminal_service,
+            process_service,
+            init_script="npm install && cp .env.example .env",
+        )
+
+        # Verify git operations
+        assert git_service.fetch_called
+        assert len(git_service.create_worktree_calls) == 1
+
+        # Verify terminal switching with init script
+        assert len(terminal_service.switch_calls) == 1
+        switch_call = terminal_service.switch_calls[0]
+        assert switch_call[1] == TerminalMode.WINDOW
+        assert switch_call[3] == "npm install && cp .env.example .env"  # init script
+
+        # Verify state was saved
+        assert state_service.save_called
+
+    def test_checkout_with_complex_init_script(self, temp_repo_path):
+        """Test with complex multi-line init script."""
+        # Setup mocks
+        state_service = MockStateService()
+        git_service = MockGitService()
+        git_service.repo_root = temp_repo_path
+        git_service.worktrees = []
+        git_service.fetch_success = True
+        git_service.create_success = True
+        terminal_service = MockTerminalService()
+        process_service = MockProcessService()
+
+        complex_script = "mise install && uv sync --extra=dev && pre-commit install"
+
+        # Run command
+        checkout.checkout_branch(
+            "feature-complex",
+            TerminalMode.TAB,
+            state_service,
+            git_service,
+            terminal_service,
+            process_service,
+            init_script=complex_script,
+        )
+
+        # Verify terminal switching includes the complex script
+        assert len(terminal_service.switch_calls) == 1
+        switch_call = terminal_service.switch_calls[0]
+        assert switch_call[3] == complex_script
 
 
 class TestCleanupCommand:

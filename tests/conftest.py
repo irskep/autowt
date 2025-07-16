@@ -1,6 +1,7 @@
 """Pytest configuration and shared fixtures."""
 
 import pytest
+from unittest.mock import Mock, patch
 
 from autowt.models import (
     ApplicationState,
@@ -100,3 +101,31 @@ def sample_processes(sample_worktrees):
             pid=5678, command="npm run dev", working_dir=sample_worktrees[1].path
         ),
     ]
+
+
+@pytest.fixture(autouse=True)
+def mock_terminal_operations():
+    """Automatically mock potentially harmful terminal operations in all tests."""
+    with (
+        patch(
+            "autowt.services.terminal.TerminalService._run_applescript",
+            return_value=True,
+        ) as mock_applescript,
+        patch(
+            "autowt.services.terminal.run_command", return_value=Mock(returncode=0)
+        ) as mock_run_command,
+        patch("platform.system", return_value="Darwin") as mock_platform,
+    ):
+        yield {
+            "applescript": mock_applescript,
+            "run_command": mock_run_command,
+            "platform": mock_platform,
+        }
+
+
+@pytest.fixture
+def mock_terminal_service():
+    """Provide a fully mocked terminal service."""
+    from tests.mocks.services import MockTerminalService
+
+    return MockTerminalService()
