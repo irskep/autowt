@@ -1,7 +1,8 @@
 """Tests for command handlers with mocked services."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from autowt.commands import checkout, cleanup, ls
 from autowt.models import (
