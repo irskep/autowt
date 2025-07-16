@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from autowt.cli import main
+from autowt.models import CleanupMode, TerminalMode
 
 
 class TestCLIRouting:
@@ -126,8 +127,6 @@ class TestCLIRouting:
             args, kwargs = mock_checkout.call_args
             assert args[0] == "feature-branch"  # branch name
             # args[1] should be the TerminalMode
-            from autowt.models import TerminalMode
-
             assert args[1] == TerminalMode.WINDOW
 
             mock_checkout.reset_mock()
@@ -216,8 +215,6 @@ class TestCLIRouting:
                 return_value=(Mock(), Mock(), Mock(), Mock()),
             ),
         ):
-            from autowt.models import CleanupMode
-
             # Test different modes
             for mode_str, mode_enum in [
                 ("all", CleanupMode.ALL),

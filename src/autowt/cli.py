@@ -1,6 +1,8 @@
 """Main CLI entry point for autowt."""
 
 import logging
+import os
+from pathlib import Path
 
 import click
 
@@ -167,9 +169,6 @@ def register_session_for_path(debug: bool) -> None:
     session_id = terminal_service.get_current_session_id()
     if session_id:
         # Extract branch name from current working directory
-        import os
-        from pathlib import Path
-
         worktree_path = Path(os.getcwd())
         branch_name = worktree_path.name
 
