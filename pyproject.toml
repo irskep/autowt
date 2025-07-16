@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Version Control",
     "Topic :: System :: Shells",
 ]
@@ -58,4 +59,5 @@ dev = [
     "pytest>=8.4.1",
     "ruff>=0.12.3",
     "cimonitor>=0.1.4",
+    "pytest-cov>=6.2.1",
 ]
