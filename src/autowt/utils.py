@@ -5,6 +5,8 @@ import shlex
 import subprocess
 from pathlib import Path
 
+from autowt.console import print_command
+
 # Special logger for command execution
 command_logger = logging.getLogger("autowt.commands")
 
@@ -75,7 +77,7 @@ def run_command_visible(
     cmd_str = shlex.join(cmd)
 
     # Show the command with a clear prefix
-    command_logger.info(f"> {cmd_str}")
+    print_command(cmd_str)
 
     if cwd:
         command_logger.debug(f"Working directory: {cwd}")

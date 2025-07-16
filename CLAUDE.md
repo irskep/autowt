@@ -12,3 +12,7 @@
 - Create `.env` file with `GITHUB_TOKEN=your_token` for cimonitor
 - mise automatically loads .env file (already configured)
 - Use `uv run cimonitor status --pr <number>` to check CI status
+
+## How to get up to speed
+
+- Read README.md
