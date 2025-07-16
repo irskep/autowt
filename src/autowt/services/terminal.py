@@ -143,7 +143,7 @@ class TerminalService:
             tell current window
                 create tab with default profile
                 tell current session of current tab
-                    write text "cd {self._escape_path(worktree_path)}"
+                    write text "cd {self._escape_path_for_command(worktree_path)}"
                 end tell
             end tell
         end tell
@@ -157,7 +157,7 @@ class TerminalService:
         tell application "iTerm2"
             create window with default profile
             tell current session of current window
-                write text "cd {self._escape_path(worktree_path)}"
+                write text "cd {self._escape_path_for_command(worktree_path)}"
             end tell
         end tell
         """
@@ -199,8 +199,13 @@ class TerminalService:
             logger.error(f"Failed to open generic terminal: {e}")
             return False
 
+    def _escape_path_for_command(self, path: Path) -> str:
+        """Escape a path for use inside AppleScript command strings."""
+        # For use inside "write text" commands - don't add extra quotes
+        return str(path).replace("\\", "\\\\").replace('"', '\\"')
+    
     def _escape_path(self, path: Path) -> str:
-        """Escape a path for use in AppleScript."""
+        """Escape a path for use in AppleScript (with quotes)."""
         # AppleScript string escaping: double quotes and backslashes
         escaped = str(path).replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'

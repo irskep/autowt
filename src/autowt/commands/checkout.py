@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from autowt.models import TerminalMode, WorktreeInfo
+from autowt.prompts import confirm_default_yes
 from autowt.services.git import GitService
 from autowt.services.process import ProcessService
 from autowt.services.state import StateService
@@ -86,8 +87,7 @@ def _handle_existing_worktree(
     """Handle switching to an existing worktree."""
     # Ask to switch unless always creating new terminals
     if not config.terminal_always_new:
-        response = input(f"{branch} already has a worktree. Switch to it? (Y/n) ")
-        if response.lower() in ["n", "no"]:
+        if not confirm_default_yes(f"{branch} already has a worktree. Switch to it?"):
             return
 
     # Switch to existing worktree
