@@ -35,7 +35,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "cimonitor", specifier = ">=0.1.0" },
+    { name = "cimonitor", specifier = ">=0.1.4" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "ruff", specifier = ">=0.12.3" },
 ]
@@ -112,16 +112,16 @@ wheels = [
 
 [[package]]
 name = "cimonitor"
-version = "0.1.0"
+version = "0.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "gitpython" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/df/23643b99edd03300a9090d4153e06f1ec628b1ff459337e78ab6961217ad/cimonitor-0.1.0.tar.gz", hash = "sha256:ed0febde55e66c7a0c56a64960295b992cfb2f3a065e13fb3032dca9563af08b", size = 47527 }
+sdist = { url = "https://files.pythonhosted.org/packages/24/65/d7a073a483af9f93772691bc0d589f57fb8b2422f20db089fcccef40bac0/cimonitor-0.1.4.tar.gz", hash = "sha256:9fe0ca323b820c1f977d4c845f15a470dea593c8e5a811ac760b9b1625686a4f", size = 55174 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/0b/864ee7e879ee50282b702e9d7debdd5a623651353c5e6da37e6555852d2f/cimonitor-0.1.0-py3-none-any.whl", hash = "sha256:0b723c8f94bdfe674e40c97bf2fedeb4620ca64344403d239bfdf265dc537cc7", size = 12594 },
+    { url = "https://files.pythonhosted.org/packages/9f/e2/9b527abcf03015134286e8a4a55af6795b2f2e69c79b71867dbef94b5eab/cimonitor-0.1.4-py3-none-any.whl", hash = "sha256:853d10ab2be5a3db077ab6c1a1a0c9a872c2302e1e119cc1a3a27b28ba8c9394", size = 20236 },
 ]
 
 [[package]]

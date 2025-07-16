@@ -57,5 +57,5 @@ indent-style = "space"
 dev = [
     "pytest>=8.4.1",
     "ruff>=0.12.3",
-    "cimonitor>=0.1.0",
+    "cimonitor>=0.1.4",
 ]
