@@ -2,12 +2,10 @@
 
 import logging
 
-try:
-    from autowt.tui.config import run_config_tui
-
-    HAS_TUI = True
-except ImportError:
-    HAS_TUI = False
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
 
 from autowt.models import TerminalMode
 from autowt.services.git import GitService
@@ -18,81 +16,111 @@ from autowt.services.terminal import TerminalService
 logger = logging.getLogger(__name__)
 
 
+class ConfigApp(App):
+    """Simple configuration interface."""
+
+    BINDINGS = [
+        Binding("ctrl+s", "save", "Save & Exit"),
+        Binding("escape", "cancel", "Cancel & Exit"),
+        Binding("q", "cancel", "Quit"),
+    ]
+
+    def __init__(self, state_service: StateService):
+        super().__init__()
+        self.state_service = state_service
+        self.config = state_service.load_config()
+
+    def compose(self) -> ComposeResult:
+        """Create the UI layout."""
+        with Vertical():
+            yield Label("Autowt Configuration")
+            yield Label("")
+
+            yield Label("Terminal Mode:")
+            with RadioSet(id="terminal-mode"):
+                yield RadioButton(
+                    "tab - Open/switch to terminal tab",
+                    value=self.config.terminal == TerminalMode.TAB,
+                    id="mode-tab",
+                )
+                yield RadioButton(
+                    "window - Open/switch to terminal window",
+                    value=self.config.terminal == TerminalMode.WINDOW,
+                    id="mode-window",
+                )
+                yield RadioButton(
+                    "inplace - Change directory in current terminal",
+                    value=self.config.terminal == TerminalMode.INPLACE,
+                    id="mode-inplace",
+                )
+
+            yield Label("")
+
+            with Horizontal():
+                yield Switch(value=self.config.terminal_always_new, id="always-new")
+                yield Label("Always create new terminal")
+
+            yield Label("")
+
+            with Horizontal():
+                yield Button("Save", id="save")
+                yield Button("Cancel", id="cancel")
+
+            yield Label("")
+            yield Label(
+                "Navigation: Tab to move around • Ctrl+S to save • Esc/Q to cancel"
+            )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "save":
+            self._save_config()
+        elif event.button.id == "cancel":
+            self.exit()
+
+    def action_save(self) -> None:
+        """Save configuration via keyboard shortcut."""
+        self._save_config()
+
+    def action_cancel(self) -> None:
+        """Cancel configuration via keyboard shortcut."""
+        self.exit()
+
+    def _save_config(self) -> None:
+        """Save configuration and exit."""
+        # Get terminal mode from radio buttons
+        radio_set = self.query_one("#terminal-mode", RadioSet)
+        pressed_button = radio_set.pressed_button
+
+        if pressed_button:
+            if pressed_button.id == "mode-tab":
+                self.config.terminal = TerminalMode.TAB
+            elif pressed_button.id == "mode-window":
+                self.config.terminal = TerminalMode.WINDOW
+            elif pressed_button.id == "mode-inplace":
+                self.config.terminal = TerminalMode.INPLACE
+
+        # Get always new setting
+        always_new_switch = self.query_one("#always-new", Switch)
+        self.config.terminal_always_new = always_new_switch.value
+
+        # Save configuration
+        try:
+            self.state_service.save_config(self.config)
+            self.exit()
+        except Exception as e:
+            logger.error(f"Failed to save configuration: {e}")
+            self.exit()
+
+
 def configure_settings(
     state_service: StateService,
     git_service: GitService,
     terminal_service: TerminalService,
     process_service: ProcessService,
 ) -> None:
-    """Configure autowt settings using interactive interface."""
+    """Configure autowt settings interactively."""
     logger.debug("Configuring settings")
 
-    # Try to use Textual TUI if available
-    if HAS_TUI:
-        run_config_tui(state_service)
-    else:
-        # Fall back to simple text interface
-        _simple_config_interface(state_service)
-
-
-def _simple_config_interface(state_service: StateService) -> None:
-    """Simple text-based configuration interface."""
-    print("Autowt Configuration")
-    print("===================")
-    print()
-
-    # Load current configuration
-    config = state_service.load_config()
-
-    print("Current settings:")
-    print(f"  Terminal mode: {config.terminal.value}")
-    print(f"  Always create new terminal: {config.terminal_always_new}")
-    print()
-
-    # Configure terminal mode
-    print("Terminal mode options:")
-    print("  tab     - Switch to existing session or open new tab")
-    print("  window  - Switch to existing session or open new window")
-    print("  inplace - Change directory in current terminal")
-    print()
-
-    while True:
-        terminal_input = input(f"Terminal mode [{config.terminal.value}]: ").strip()
-        if not terminal_input:
-            break
-
-        try:
-            config.terminal = TerminalMode(terminal_input)
-            break
-        except ValueError:
-            print("Invalid terminal mode. Please choose: tab, window, or inplace")
-
-    # Configure always new terminal
-    while True:
-        always_new_input = input(
-            f"Always create new terminal (true/false) [{config.terminal_always_new}]: "
-        ).strip()
-        if not always_new_input:
-            break
-
-        if always_new_input.lower() in ["true", "t", "yes", "y", "1"]:
-            config.terminal_always_new = True
-            break
-        elif always_new_input.lower() in ["false", "f", "no", "n", "0"]:
-            config.terminal_always_new = False
-            break
-        else:
-            print("Please enter 'true' or 'false'")
-
-    # Save configuration
-    try:
-        state_service.save_config(config)
-        print("\n✓ Configuration saved successfully")
-    except Exception as e:
-        logger.error(f"Failed to save configuration: {e}")
-        print("\n✗ Failed to save configuration")
-
-    # Show final settings
-    print("\nFinal settings:")
-    print(f"  Terminal mode: {config.terminal.value}")
-    print(f"  Always create new terminal: {config.terminal_always_new}")
+    app = ConfigApp(state_service)
+    app.run()
