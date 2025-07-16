@@ -69,18 +69,21 @@ def sample_branch_statuses(sample_worktrees):
             branch="feature1",
             has_remote=True,
             is_merged=False,
+            is_identical=False,
             path=sample_worktrees[0].path,
         ),
         BranchStatus(
             branch="feature2",
             has_remote=False,
             is_merged=False,
+            is_identical=True,  # This branch is identical to main
             path=sample_worktrees[1].path,
         ),
         BranchStatus(
             branch="bugfix",
             has_remote=True,
             is_merged=True,
+            is_identical=False,
             path=sample_worktrees[2].path,
         ),
     ]

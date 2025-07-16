@@ -54,14 +54,15 @@ def cleanup_worktrees(
 
     # Categorize branches
     remoteless_branches = [bs for bs in branch_statuses if not bs.has_remote]
+    identical_branches = [bs for bs in branch_statuses if bs.is_identical]
     merged_branches = [bs for bs in branch_statuses if bs.is_merged]
 
     # Display status
-    _display_branch_status(remoteless_branches, merged_branches)
+    _display_branch_status(remoteless_branches, identical_branches, merged_branches)
 
     # Determine what to clean up based on mode
     to_cleanup = _select_branches_for_cleanup(
-        mode, branch_statuses, remoteless_branches, merged_branches
+        mode, branch_statuses, remoteless_branches, identical_branches, merged_branches
     )
     if not to_cleanup:
         print("No worktrees selected for cleanup.")
@@ -84,17 +85,25 @@ def cleanup_worktrees(
 
 
 def _display_branch_status(
-    remoteless_branches: list[BranchStatus], merged_branches: list[BranchStatus]
+    remoteless_branches: list[BranchStatus], 
+    identical_branches: list[BranchStatus],
+    merged_branches: list[BranchStatus]
 ) -> None:
     """Display the status of branches for cleanup."""
     if remoteless_branches:
-        print("PRs without remotes:")
+        print("Branches without remotes:")
         for branch_status in remoteless_branches:
             print(f"- {branch_status.branch}")
         print()
 
+    if identical_branches:
+        print("Branches identical to main:")
+        for branch_status in identical_branches:
+            print(f"- {branch_status.branch}")
+        print()
+
     if merged_branches:
-        print("PRs with merge commits:")
+        print("Branches that were merged:")
         for branch_status in merged_branches:
             print(f"- {branch_status.branch}")
         print()
@@ -104,12 +113,13 @@ def _select_branches_for_cleanup(
     mode: CleanupMode,
     all_statuses: list[BranchStatus],
     remoteless_branches: list[BranchStatus],
+    identical_branches: list[BranchStatus],
     merged_branches: list[BranchStatus],
 ) -> list[BranchStatus]:
     """Select which branches to clean up based on mode."""
     if mode == CleanupMode.ALL:
         # Combine and deduplicate by branch name
-        all_branches = remoteless_branches + merged_branches
+        all_branches = remoteless_branches + identical_branches + merged_branches
         seen_branches = set()
         to_cleanup = []
         for branch_status in all_branches:
@@ -120,7 +130,16 @@ def _select_branches_for_cleanup(
     elif mode == CleanupMode.REMOTELESS:
         return remoteless_branches
     elif mode == CleanupMode.MERGED:
-        return merged_branches
+        # Include both identical and merged branches for "merged" mode
+        # since both are safe to remove
+        combined = identical_branches + merged_branches
+        seen_branches = set()
+        to_cleanup = []
+        for branch_status in combined:
+            if branch_status.branch not in seen_branches:
+                to_cleanup.append(branch_status)
+                seen_branches.add(branch_status.branch)
+        return to_cleanup
     elif mode == CleanupMode.INTERACTIVE:
         return _interactive_selection(all_statuses)
     else:

@@ -323,8 +323,8 @@ class TestCleanupCommand:
                 process_service,
             )
 
-        # Should only remove merged branches
-        assert len(git_service.remove_worktree_calls) == 1  # bugfix (merged)
+        # Should remove both identical and merged branches (both are safe to remove)
+        assert len(git_service.remove_worktree_calls) == 2  # feature2 (identical) + bugfix (merged)
 
     def test_cleanup_with_processes(
         self, temp_repo_path, sample_worktrees, sample_branch_statuses, sample_processes
