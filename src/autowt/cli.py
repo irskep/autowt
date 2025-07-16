@@ -63,8 +63,9 @@ class AutowtGroup(click.Group):
                 create_services()
             )
 
-            # Get init_script from command line args
+            # Get init_script and ignore_same_session from command line args
             init_script = kwargs.get("init")
+            ignore_same_session = kwargs.get("ignore_same_session", False)
 
             checkout_branch(
                 cmd_name,
@@ -74,6 +75,7 @@ class AutowtGroup(click.Group):
                 terminal_service,
                 process_service,
                 init_script=init_script,
+                ignore_same_session=ignore_same_session,
             )
 
         # Create a new command with the same options as switch
@@ -96,6 +98,11 @@ class AutowtGroup(click.Group):
                 click.Option(
                     ["--init"],
                     help="Init script to run in the new terminal",
+                ),
+                click.Option(
+                    ["--ignore-same-session"],
+                    is_flag=True,
+                    help="Always create new terminal, ignore existing sessions",
                 ),
             ],
             help=f"Switch to or create a worktree for branch '{cmd_name}'",
@@ -144,6 +151,67 @@ def init(debug: bool) -> None:
     setup_logging(debug)
     state_service, git_service, terminal_service, process_service = create_services()
     init_autowt(state_service, git_service, terminal_service, process_service)
+
+
+@main.command(
+    "register-session-for-path",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+def register_session_for_path(debug: bool) -> None:
+    """Register the current terminal session for the current working directory."""
+    setup_logging(debug)
+    state_service, git_service, terminal_service, process_service = create_services()
+
+    # Get current session ID
+    session_id = terminal_service.get_current_session_id()
+    if session_id:
+        # Extract branch name from current working directory
+        import os
+        from pathlib import Path
+
+        worktree_path = Path(os.getcwd())
+        branch_name = worktree_path.name
+
+        # Load and update session IDs
+        session_ids = state_service.load_session_ids()
+        session_ids[branch_name] = session_id
+        state_service.save_session_ids(session_ids)
+        print(
+            f"Registered session {session_id} for branch {branch_name} (path: {worktree_path})"
+        )
+    else:
+        print("Could not detect current session ID")
+
+
+@main.command(
+    "list-sessions",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+def list_sessions(debug: bool) -> None:
+    """List all terminal sessions with their working directories."""
+    setup_logging(debug)
+    state_service, git_service, terminal_service, process_service = create_services()
+
+    # Check if we have a terminal that supports session listing
+    if hasattr(terminal_service.terminal, "list_sessions_with_directories"):
+        sessions = terminal_service.terminal.list_sessions_with_directories()
+
+        if not sessions:
+            print("No sessions found or unable to retrieve session information.")
+            return
+
+        print("Terminal Sessions:")
+        print("-" * 80)
+        for session in sessions:
+            session_id = session["session_id"]
+            working_dir = session["working_directory"]
+            print(f"Session ID: {session_id}")
+            print(f"Working Directory: {working_dir}")
+            print("-" * 80)
+    else:
+        print("Current terminal does not support session listing.")
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
