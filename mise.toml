@@ -7,6 +7,7 @@ uv = "latest"
 
 [env]
 _.python.venv = { path = ".venv" }
+_.file = ".env"
 
 [tasks]
 install = "uv sync"
