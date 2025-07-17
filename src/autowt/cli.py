@@ -12,11 +12,13 @@ from autowt.commands.config import configure_settings
 from autowt.commands.init import init_autowt
 from autowt.commands.ls import list_worktrees
 from autowt.global_config import options
-from autowt.models import CleanupMode, TerminalMode
-from autowt.services.git import GitService
-from autowt.services.process import ProcessService
-from autowt.services.state import StateService
-from autowt.services.terminal import TerminalService
+from autowt.models import (
+    CleanupCommand,
+    CleanupMode,
+    Services,
+    SwitchCommand,
+    TerminalMode,
+)
 from autowt.utils import setup_command_logging
 
 
@@ -32,15 +34,9 @@ def setup_logging(debug: bool) -> None:
     setup_command_logging(debug)
 
 
-def create_services() -> tuple[
-    StateService, GitService, TerminalService, ProcessService
-]:
-    """Create and return service instances."""
-    state_service = StateService()
-    git_service = GitService()
-    terminal_service = TerminalService()
-    process_service = ProcessService()
-    return state_service, git_service, terminal_service, process_service
+def create_services() -> Services:
+    """Create and return a Services container with all service instances."""
+    return Services.create()
 
 
 # Custom Group class that handles unknown commands as branch names
@@ -61,24 +57,19 @@ class AutowtGroup(click.Group):
             terminal_mode = (
                 TerminalMode(kwargs["terminal"]) if kwargs.get("terminal") else None
             )
-            state_service, git_service, terminal_service, process_service = (
-                create_services()
-            )
+            services = create_services()
 
-            # Get init_script and ignore_same_session from command line args
-            init_script = kwargs.get("init")
-            ignore_same_session = kwargs.get("ignore_same_session", False)
-
-            checkout_branch(
-                cmd_name,
-                terminal_mode,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-                init_script=init_script,
-                ignore_same_session=ignore_same_session,
+            # Create and execute SwitchCommand
+            switch_cmd = SwitchCommand(
+                branch=cmd_name,
+                terminal_mode=terminal_mode,
+                init_script=kwargs.get("init"),
+                after_init=kwargs.get("after_init"),
+                ignore_same_session=kwargs.get("ignore_same_session", False),
+                auto_confirm=kwargs.get("auto_confirm", False),
+                debug=kwargs.get("debug", False),
             )
+            checkout_branch(switch_cmd, services)
 
         # Create a new command with the same options as switch
         branch_cmd = click.Command(
@@ -100,6 +91,10 @@ class AutowtGroup(click.Group):
                 click.Option(
                     ["--init"],
                     help="Init script to run in the new terminal",
+                ),
+                click.Option(
+                    ["--after-init"],
+                    help="Command to run after init script completes",
                 ),
                 click.Option(
                     ["--ignore-same-session"],
@@ -140,10 +135,8 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
 
     # If no subcommand was invoked, show list
     if ctx.invoked_subcommand is None:
-        state_service, git_service, terminal_service, process_service = (
-            create_services()
-        )
-        list_worktrees(state_service, git_service, terminal_service, process_service)
+        services = create_services()
+        list_worktrees(services)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -151,8 +144,8 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
 def init(debug: bool) -> None:
     """Initialize autowt state management in the current repository."""
     setup_logging(debug)
-    state_service, git_service, terminal_service, process_service = create_services()
-    init_autowt(state_service, git_service, terminal_service, process_service)
+    services = create_services()
+    init_autowt(services)
 
 
 @main.command(
@@ -163,19 +156,19 @@ def init(debug: bool) -> None:
 def register_session_for_path(debug: bool) -> None:
     """Register the current terminal session for the current working directory."""
     setup_logging(debug)
-    state_service, git_service, terminal_service, process_service = create_services()
+    services = create_services()
 
     # Get current session ID
-    session_id = terminal_service.get_current_session_id()
+    session_id = services.terminal.get_current_session_id()
     if session_id:
         # Extract branch name from current working directory
         worktree_path = Path(os.getcwd())
         branch_name = worktree_path.name
 
         # Load and update session IDs
-        session_ids = state_service.load_session_ids()
+        session_ids = services.state.load_session_ids()
         session_ids[branch_name] = session_id
-        state_service.save_session_ids(session_ids)
+        services.state.save_session_ids(session_ids)
         print(
             f"Registered session {session_id} for branch {branch_name} (path: {worktree_path})"
         )
@@ -191,11 +184,11 @@ def register_session_for_path(debug: bool) -> None:
 def list_sessions(debug: bool) -> None:
     """List all terminal sessions with their working directories."""
     setup_logging(debug)
-    state_service, git_service, terminal_service, process_service = create_services()
+    services = create_services()
 
     # Check if we have a terminal that supports session listing
-    if hasattr(terminal_service.terminal, "list_sessions_with_directories"):
-        sessions = terminal_service.terminal.list_sessions_with_directories()
+    if hasattr(services.terminal.terminal, "list_sessions_with_directories"):
+        sessions = services.terminal.terminal.list_sessions_with_directories()
 
         if not sessions:
             print("No sessions found or unable to retrieve session information.")
@@ -218,8 +211,8 @@ def list_sessions(debug: bool) -> None:
 def ls(debug: bool) -> None:
     """List all worktrees and their status."""
     setup_logging(debug)
-    state_service, git_service, terminal_service, process_service = create_services()
-    list_worktrees(state_service, git_service, terminal_service, process_service)
+    services = create_services()
+    list_worktrees(services)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -242,17 +235,16 @@ def ls(debug: bool) -> None:
 def cleanup(mode: str, dry_run: bool, yes: bool, force: bool, debug: bool) -> None:
     """Clean up merged or remoteless worktrees."""
     setup_logging(debug)
-    state_service, git_service, terminal_service, process_service = create_services()
-    cleanup_worktrees(
-        CleanupMode(mode),
-        state_service,
-        git_service,
-        terminal_service,
-        process_service,
-        dry_run,
-        yes,
-        force,
+    services = create_services()
+
+    cleanup_cmd = CleanupCommand(
+        mode=CleanupMode(mode),
+        dry_run=dry_run,
+        auto_confirm=yes,
+        force=force,
+        debug=debug,
     )
+    cleanup_worktrees(cleanup_cmd, services)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -260,8 +252,8 @@ def cleanup(mode: str, dry_run: bool, yes: bool, force: bool, debug: bool) -> No
 def config(debug: bool) -> None:
     """Configure autowt settings using interactive TUI."""
     setup_logging(debug)
-    state_service, git_service, terminal_service, process_service = create_services()
-    configure_settings(state_service, git_service, terminal_service, process_service)
+    services = create_services()
+    configure_settings(services)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -280,16 +272,16 @@ def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> 
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
     terminal_mode = TerminalMode(terminal) if terminal else None
-    state_service, git_service, terminal_service, process_service = create_services()
-    checkout_branch(
-        branch,
-        terminal_mode,
-        state_service,
-        git_service,
-        terminal_service,
-        process_service,
+    services = create_services()
+
+    # Create and execute SwitchCommand
+    switch_cmd = SwitchCommand(
+        branch=branch,
+        terminal_mode=terminal_mode,
         init_script=init,
+        debug=debug,
     )
+    checkout_branch(switch_cmd, services)
 
 
 if __name__ == "__main__":

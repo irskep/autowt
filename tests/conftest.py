@@ -70,7 +70,7 @@ def sample_branch_statuses(sample_worktrees):
     return [
         BranchStatus(
             branch="feature1",
-            has_remote=True,
+            has_remote=False,  # Make it remoteless so it gets cleaned up
             is_merged=False,
             is_identical=False,
             path=sample_worktrees[0].path,

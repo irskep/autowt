@@ -23,3 +23,9 @@
 ## How to get up to speed
 
 - Read README.md
+
+## The scratchpad directory
+
+ENCOURAGED: Use scratch/ directory for all temporary files or non-documentation Markdown files.
+FORBIDDEN: Using /tmp
+FORBIDDEN: deleting the entire scratch/ directory

@@ -3,6 +3,13 @@
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from autowt.services.git import GitService
+    from autowt.services.process import ProcessService
+    from autowt.services.state import StateService
+    from autowt.services.terminal import TerminalService
 
 
 class TerminalMode(Enum):
@@ -138,3 +145,53 @@ class ProcessInfo:
     pid: int
     command: str
     working_dir: Path
+
+
+@dataclass
+class Services:
+    """Container for all application services."""
+
+    state: "StateService"
+    git: "GitService"
+    terminal: "TerminalService"
+    process: "ProcessService"
+
+    @classmethod
+    def create(cls) -> "Services":
+        """Create a new Services container with all services initialized."""
+        # Import here to avoid circular imports
+        from autowt.services.git import GitService  # noqa: PLC0415
+        from autowt.services.process import ProcessService  # noqa: PLC0415
+        from autowt.services.state import StateService  # noqa: PLC0415
+        from autowt.services.terminal import TerminalService  # noqa: PLC0415
+
+        return cls(
+            state=StateService(),
+            git=GitService(),
+            terminal=TerminalService(),
+            process=ProcessService(),
+        )
+
+
+@dataclass
+class SwitchCommand:
+    """Encapsulates all parameters for switching to/creating a worktree."""
+
+    branch: str
+    terminal_mode: TerminalMode | None = None
+    init_script: str | None = None
+    after_init: str | None = None
+    ignore_same_session: bool = False
+    auto_confirm: bool = False
+    debug: bool = False
+
+
+@dataclass
+class CleanupCommand:
+    """Encapsulates all parameters for cleaning up worktrees."""
+
+    mode: CleanupMode
+    dry_run: bool = False
+    auto_confirm: bool = False
+    force: bool = False
+    debug: bool = False

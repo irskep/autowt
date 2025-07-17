@@ -2,6 +2,18 @@
 
 autowt manages git worktrees with automatic terminal switching and cleanup. Each branch gets its own working directory, letting you switch between features without stashing changes or losing context.
 
+## Why worktrees? Why autowt?
+
+<!-- This section reflects the human author's purpose in writing this program. It all comes back to this. -->
+
+Why worktrees: Multitask without switching branches, great for long-running agents like Claude Code
+
+Why autowt:
+- Worktrees don't get initialized with untracked files; this is annoying. `.env` is common, as is the need to install dependencies with `uv sync` or `npm install`.
+- It takes a lot of typing to set up a worktree and cd into it
+
+Core use case is running multiple Claude Code instances on different problems and submitting independent PRs. I can call `autowt feature1 --after-init='claude "add a pony and submit a PR"'` and it opens a new tab in my terminal with Claude off to the races.
+
 ## Quick Start
 
 Initialize autowt in your git repository:

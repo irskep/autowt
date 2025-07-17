@@ -153,6 +153,7 @@ class MockTerminalService:
         mode: TerminalMode,
         session_id: str | None = None,
         init_script: str | None = None,
+        after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
         ignore_same_session: bool = False,
@@ -163,6 +164,7 @@ class MockTerminalService:
                 mode,
                 session_id,
                 init_script,
+                after_init,
                 branch_name,
                 auto_confirm,
                 ignore_same_session,
@@ -194,3 +196,13 @@ class MockProcessService:
     def print_process_summary(self, processes: list[ProcessInfo]) -> None:
         # Mock implementation - just track the call
         pass
+
+
+class MockServices:
+    """Mock Services container for testing."""
+
+    def __init__(self):
+        self.state = MockStateService()
+        self.git = MockGitService()
+        self.terminal = MockTerminalService()
+        self.process = MockProcessService()

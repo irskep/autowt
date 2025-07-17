@@ -1499,12 +1499,24 @@ class TerminalService:
         """Get the current terminal session ID."""
         return self.terminal.get_current_session_id()
 
+    def _combine_scripts(
+        self, init_script: str | None, after_init: str | None
+    ) -> str | None:
+        """Combine init script and after-init command into a single script."""
+        scripts = []
+        if init_script:
+            scripts.append(init_script)
+        if after_init:
+            scripts.append(after_init)
+        return "; ".join(scripts) if scripts else None
+
     def switch_to_worktree(
         self,
         worktree_path: Path,
         mode: TerminalMode,
         session_id: str | None = None,
         init_script: str | None = None,
+        after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
         ignore_same_session: bool = False,
@@ -1513,12 +1525,15 @@ class TerminalService:
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
 
         if mode == TerminalMode.INPLACE:
-            return self._change_directory_inplace(worktree_path, init_script)
+            return self._change_directory_inplace(
+                worktree_path, init_script, after_init
+            )
         elif mode == TerminalMode.TAB:
             return self._switch_to_existing_or_new_tab(
                 worktree_path,
                 session_id,
                 init_script,
+                after_init,
                 branch_name,
                 auto_confirm,
                 ignore_same_session,
@@ -1528,6 +1543,7 @@ class TerminalService:
                 worktree_path,
                 session_id,
                 init_script,
+                after_init,
                 branch_name,
                 auto_confirm,
                 ignore_same_session,
@@ -1537,7 +1553,10 @@ class TerminalService:
             return False
 
     def _change_directory_inplace(
-        self, worktree_path: Path, init_script: str | None = None
+        self,
+        worktree_path: Path,
+        init_script: str | None = None,
+        after_init: str | None = None,
     ) -> bool:
         """Output shell command to change directory in the current shell."""
         logger.debug(f"Outputting cd command for {worktree_path}")
@@ -1548,6 +1567,8 @@ class TerminalService:
             commands = [f"cd {shlex.quote(str(worktree_path))}"]
             if init_script:
                 commands.append(init_script)
+            if after_init:
+                commands.append(after_init)
             print("; ".join(commands))
             return True
         except Exception as e:
@@ -1559,6 +1580,7 @@ class TerminalService:
         worktree_path: Path,
         session_id: str | None = None,
         init_script: str | None = None,
+        after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
         ignore_same_session: bool = False,
@@ -1609,13 +1631,15 @@ class TerminalService:
                                 return True
 
         # Fall back to creating new tab (or forced by ignore_same_session)
-        return self.terminal.open_new_tab(worktree_path, init_script)
+        combined_script = self._combine_scripts(init_script, after_init)
+        return self.terminal.open_new_tab(worktree_path, combined_script)
 
     def _switch_to_existing_or_new_window(
         self,
         worktree_path: Path,
         session_id: str | None = None,
         init_script: str | None = None,
+        after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
         ignore_same_session: bool = False,
@@ -1666,7 +1690,8 @@ class TerminalService:
                                 return True
 
         # Fall back to creating new window (or forced by ignore_same_session)
-        return self.terminal.open_new_window(worktree_path, init_script)
+        combined_script = self._combine_scripts(init_script, after_init)
+        return self.terminal.open_new_window(worktree_path, combined_script)
 
     def _should_switch_to_existing(self, branch_name: str | None) -> bool:
         """Ask user if they want to switch to existing session."""

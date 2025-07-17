@@ -4,25 +4,17 @@ import logging
 from pathlib import Path
 
 from autowt.console import print_error, print_plain, print_section
-from autowt.services.git import GitService
-from autowt.services.process import ProcessService
-from autowt.services.state import StateService
-from autowt.services.terminal import TerminalService
+from autowt.models import Services
 
 logger = logging.getLogger(__name__)
 
 
-def list_worktrees(
-    state_service: StateService,
-    git_service: GitService,
-    terminal_service: TerminalService,
-    process_service: ProcessService,
-) -> None:
+def list_worktrees(services: Services) -> None:
     """List all worktrees and their status."""
     logger.debug("Listing worktrees")
 
     # Find git repository
-    repo_path = git_service.find_repo_root()
+    repo_path = services.git.find_repo_root()
     if not repo_path:
         print_error("Error: Not in a git repository")
         return
@@ -31,11 +23,11 @@ def list_worktrees(
     current_path = Path.cwd()
 
     # Load state and get worktrees from git
-    state_service.load_state(repo_path)  # Ensure state file exists
-    git_worktrees = git_service.list_worktrees(repo_path)
+    services.state.load_state(repo_path)  # Ensure state file exists
+    git_worktrees = services.git.list_worktrees(repo_path)
 
     # Load session IDs
-    session_ids = state_service.load_session_ids()
+    session_ids = services.state.load_session_ids()
 
     # Find the primary clone path
     primary_clone_path = repo_path
