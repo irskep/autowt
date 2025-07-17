@@ -10,7 +10,6 @@ from click_aliases import ClickAliasedGroup
 from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings
-from autowt.commands.init import init_autowt
 from autowt.commands.ls import list_worktrees
 from autowt.global_config import options
 from autowt.models import (
@@ -125,7 +124,7 @@ class AutowtGroup(ClickAliasedGroup):
 def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     """Git worktree manager.
 
-    Use subcommands like 'init', 'ls', 'cleanup', 'config', or 'switch'.
+    Use subcommands like 'ls', 'cleanup', 'config', or 'switch'.
     Or simply run 'autowt <branch>' to switch to a branch.
     """
     # Set global options
@@ -138,15 +137,6 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     if ctx.invoked_subcommand is None:
         services = create_services()
         list_worktrees(services)
-
-
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def init(debug: bool) -> None:
-    """Initialize autowt state management in the current repository."""
-    setup_logging(debug)
-    services = create_services()
-    init_autowt(services)
 
 
 @main.command(

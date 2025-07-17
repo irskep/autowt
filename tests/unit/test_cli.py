@@ -21,7 +21,6 @@ class TestCLIRouting:
 
         # Mock all the command functions to avoid actual execution
         with (
-            patch("autowt.commands.init.init_autowt") as mock_init,
             patch("autowt.commands.ls.list_worktrees") as mock_ls,
             patch("autowt.commands.cleanup.cleanup_worktrees") as mock_cleanup,
             patch("autowt.commands.config.configure_settings") as mock_config,
@@ -30,11 +29,6 @@ class TestCLIRouting:
                 return_value=(Mock(), Mock(), Mock(), Mock()),
             ),
         ):
-            # Test init command
-            result = runner.invoke(main, ["init"])
-            assert result.exit_code == 0
-            mock_init.assert_called_once()
-
             # Test ls command
             result = runner.invoke(main, ["ls"])
             assert result.exit_code == 0
@@ -274,9 +268,9 @@ class TestCLIRouting:
                 return_value=(Mock(), Mock(), Mock(), Mock()),
             ),
         ):
-            # If someone has a branch literally named 'init', they need to use 'switch'
-            result = runner.invoke(main, ["switch", "init"])
+            # If someone has a branch literally named 'cleanup', they need to use 'switch'
+            result = runner.invoke(main, ["switch", "cleanup"])
             assert result.exit_code == 0
             mock_checkout.assert_called_once()
             args, kwargs = mock_checkout.call_args
-            assert args[0] == "init"
+            assert args[0] == "cleanup"
