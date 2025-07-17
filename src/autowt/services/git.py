@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from autowt.models import BranchStatus, WorktreeInfo
+from autowt.prompts import confirm_default_no
 from autowt.utils import run_command, run_command_quiet_on_failure, run_command_visible
 
 logger = logging.getLogger(__name__)
@@ -251,8 +252,6 @@ class GitService:
             ):
                 logger.error(f"Failed to remove worktree: {result.stderr}")
                 print(f"Git error: {result.stderr.strip()}")
-
-                from autowt.prompts import confirm_default_no  # noqa: PLC0415
 
                 if confirm_default_no(
                     "Retry with --force to remove worktree with modified files?"

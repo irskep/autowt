@@ -1,0 +1,6 @@
+INHERIT: mkdocs.yml
+
+# Local (downloadable) build tweaks
+site_author: autowt
+use_directory_urls: false
+site_name: "autowt documentation (local)"

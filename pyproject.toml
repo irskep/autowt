@@ -37,6 +37,14 @@ dev = [
     "pytest>=7.0.0",
     "ruff>=0.1.0",
 ]
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.6",
+    "mkdocstrings[python]>=0.23.0",
+    "pymdown-extensions>=10.3.1",
+    "mkdocs-mermaid2-plugin>=1.1.1",
+    "mkdocs-github-admonitions-plugin",
+]
 
 [project.scripts]
 autowt = "autowt.cli:main"
@@ -55,6 +63,9 @@ extend-select = ["E402", "PLC0415"]
 quote-style = "double"
 indent-style = "space"
 
+[tool.pytest.ini_options]
+norecursedirs = ["scratch"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
@@ -62,4 +73,12 @@ dev = [
     "cimonitor>=0.1.4",
     "pytest-cov>=6.2.1",
     "pre-commit>=3.0.0",
+]
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.6",
+    "mkdocstrings[python]>=0.23.0",
+    "pymdown-extensions>=10.3.1",
+    "mkdocs-mermaid2-plugin>=1.1.1",
+    "mkdocs-github-admonitions-plugin",
 ]
