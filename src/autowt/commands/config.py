@@ -7,11 +7,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
 
-from autowt.models import TerminalMode
-from autowt.services.git import GitService
-from autowt.services.process import ProcessService
-from autowt.services.state import StateService
-from autowt.services.terminal import TerminalService
+from autowt.models import Services, TerminalMode
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +21,10 @@ class ConfigApp(App):
         Binding("q", "cancel", "Quit"),
     ]
 
-    def __init__(self, state_service: StateService):
+    def __init__(self, services: Services):
         super().__init__()
-        self.state_service = state_service
-        self.config = state_service.load_config()
+        self.services = services
+        self.config = services.state.load_config()
 
     def compose(self) -> ComposeResult:
         """Create the UI layout."""
@@ -106,21 +102,16 @@ class ConfigApp(App):
 
         # Save configuration
         try:
-            self.state_service.save_config(self.config)
+            self.services.state.save_config(self.config)
             self.exit()
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
             self.exit()
 
 
-def configure_settings(
-    state_service: StateService,
-    git_service: GitService,
-    terminal_service: TerminalService,
-    process_service: ProcessService,
-) -> None:
+def configure_settings(services: Services) -> None:
     """Configure autowt settings interactively."""
     logger.debug("Configuring settings")
 
-    app = ConfigApp(state_service)
+    app = ConfigApp(services)
     app.run()

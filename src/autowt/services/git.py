@@ -252,7 +252,7 @@ class GitService:
                 logger.error(f"Failed to remove worktree: {result.stderr}")
                 print(f"Git error: {result.stderr.strip()}")
 
-                from autowt.prompts import confirm_default_no
+                from autowt.prompts import confirm_default_no  # noqa: PLC0415
 
                 if confirm_default_no(
                     "Retry with --force to remove worktree with modified files?"

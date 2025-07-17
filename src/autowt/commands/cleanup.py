@@ -10,12 +10,8 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
-from autowt.models import BranchStatus, CleanupMode
+from autowt.models import BranchStatus, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
-from autowt.services.git import GitService
-from autowt.services.process import ProcessService
-from autowt.services.state import StateService
-from autowt.services.terminal import TerminalService
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +36,7 @@ def _format_path_for_display(path: Path) -> str:
 
 def cleanup_worktrees(
     mode: CleanupMode,
-    state_service: StateService,
-    git_service: GitService,
-    terminal_service: TerminalService,
-    process_service: ProcessService,
+    services: Services,
     dry_run: bool = False,
     auto_confirm: bool = False,
     force: bool = False,
@@ -52,19 +45,19 @@ def cleanup_worktrees(
     logger.debug(f"Cleaning up worktrees with mode: {mode}")
 
     # Find git repository
-    repo_path = git_service.find_repo_root()
+    repo_path = services.git.find_repo_root()
     if not repo_path:
         print("Error: Not in a git repository")
         return
 
     print("Fetching branches...")
-    if not git_service.fetch_branches(repo_path):
+    if not services.git.fetch_branches(repo_path):
         print("Warning: Failed to fetch latest branches")
 
     print("Checking branch status...")
 
     # Get worktrees and analyze them
-    worktrees = git_service.list_worktrees(repo_path)
+    worktrees = services.git.list_worktrees(repo_path)
     if not worktrees:
         print("No worktrees found.")
         return
@@ -76,7 +69,7 @@ def cleanup_worktrees(
         return
 
     # Analyze branches
-    branch_statuses = git_service.analyze_branches_for_cleanup(repo_path, worktrees)
+    branch_statuses = services.git.analyze_branches_for_cleanup(repo_path, worktrees)
 
     # Categorize branches
     remoteless_branches = [bs for bs in branch_statuses if not bs.has_remote]
@@ -96,7 +89,7 @@ def cleanup_worktrees(
 
     # Handle dry-run mode
     if dry_run:
-        _show_dry_run_results(to_cleanup, process_service)
+        _show_dry_run_results(to_cleanup, services.process)
         return
 
     # Show what will be cleaned up and confirm
@@ -105,13 +98,13 @@ def cleanup_worktrees(
         return
 
     # Handle running processes
-    if not _handle_running_processes(to_cleanup, process_service):
+    if not _handle_running_processes(to_cleanup, services.process):
         print("Cleanup cancelled.")
         return
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
-        to_cleanup, repo_path, git_service, state_service, auto_confirm, force
+        to_cleanup, repo_path, services, auto_confirm, force
     )
 
 
@@ -194,7 +187,7 @@ def _confirm_cleanup(to_cleanup: list[BranchStatus], mode: CleanupMode) -> bool:
 
 def _show_dry_run_results(
     to_cleanup: list[BranchStatus],
-    process_service: ProcessService,
+    process_service,
 ) -> None:
     """Show what would be removed in dry-run mode."""
     print("\n[DRY RUN] Worktrees that would be removed:")
@@ -222,9 +215,7 @@ def _show_dry_run_results(
     print(summary)
 
 
-def _handle_running_processes(
-    to_cleanup: list[BranchStatus], process_service: ProcessService
-) -> bool:
+def _handle_running_processes(to_cleanup: list[BranchStatus], process_service) -> bool:
     """Handle processes running in worktrees to be removed."""
     all_processes = []
     for branch_status in to_cleanup:
@@ -245,8 +236,7 @@ def _handle_running_processes(
 def _remove_worktrees_and_update_state(
     to_cleanup: list[BranchStatus],
     repo_path: Path,
-    git_service: GitService,
-    state_service: StateService,
+    services: Services,
     auto_confirm: bool = False,
     force: bool = False,
 ) -> None:
@@ -256,7 +246,7 @@ def _remove_worktrees_and_update_state(
     successfully_removed_branches = []
 
     for branch_status in to_cleanup:
-        if git_service.remove_worktree(
+        if services.git.remove_worktree(
             repo_path, branch_status.path, force=force, interactive=not auto_confirm
         ):
             print(f"✓ Removed {branch_status.branch}")
@@ -280,7 +270,7 @@ def _remove_worktrees_and_update_state(
         if should_delete_branches:
             print("Deleting local branches...")
             for branch in successfully_removed_branches:
-                if git_service.delete_branch(repo_path, branch, force=True):
+                if services.git.delete_branch(repo_path, branch, force=True):
                     print(f"✓ Deleted branch {branch}")
                     deleted_branches += 1
                 else:
@@ -293,7 +283,7 @@ def _remove_worktrees_and_update_state(
         print("\nCleanup complete. No worktrees were removed.")
         return
 
-    state = state_service.load_state(repo_path)
+    state = services.state.load_state(repo_path)
     removed_branches = {bs.branch for bs in to_cleanup}
     state.worktrees = [
         wt for wt in state.worktrees if wt.branch not in removed_branches
@@ -303,13 +293,13 @@ def _remove_worktrees_and_update_state(
     if state.current_worktree in removed_branches:
         state.current_worktree = None
 
-    state_service.save_state(state)
+    services.state.save_state(state)
 
     # Update session IDs
-    session_ids = state_service.load_session_ids()
+    session_ids = services.state.load_session_ids()
     for branch in removed_branches:
         session_ids.pop(branch, None)
-    state_service.save_session_ids(session_ids)
+    services.state.save_session_ids(session_ids)
 
     print("state.toml updated")
     summary = f"\nCleanup complete. Removed {removed_count} worktrees"
