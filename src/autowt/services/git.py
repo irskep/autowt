@@ -219,24 +219,51 @@ class GitService:
             logger.error(f"Failed to create worktree: {e}")
             return False
 
-    def remove_worktree(self, repo_path: Path, worktree_path: Path) -> bool:
+    def remove_worktree(
+        self,
+        repo_path: Path,
+        worktree_path: Path,
+        force: bool = False,
+        interactive: bool = True,
+    ) -> bool:
         """Remove a worktree."""
         logger.debug(f"Removing worktree at {worktree_path}")
 
         try:
-            result = run_command_visible(
-                ["git", "worktree", "remove", str(worktree_path)],
-                cwd=repo_path,
-                timeout=30,
-            )
+            cmd = ["git", "worktree", "remove"]
+            if force:
+                cmd.append("--force")
+            cmd.append(str(worktree_path))
+
+            result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0
             if success:
                 logger.debug("Worktree removed successfully")
+                return True
+
+            # If removal failed and we haven't tried force yet
+            if (
+                not force
+                and interactive
+                and result.stderr
+                and "modified or untracked files" in result.stderr
+            ):
+                logger.error(f"Failed to remove worktree: {result.stderr}")
+                print(f"Git error: {result.stderr.strip()}")
+
+                from autowt.prompts import confirm_default_no
+
+                if confirm_default_no(
+                    "Retry with --force to remove worktree with modified files?"
+                ):
+                    return self.remove_worktree(
+                        repo_path, worktree_path, force=True, interactive=False
+                    )
             else:
                 logger.error(f"Failed to remove worktree: {result.stderr}")
 
-            return success
+            return False
 
         except Exception as e:
             logger.error(f"Failed to remove worktree: {e}")

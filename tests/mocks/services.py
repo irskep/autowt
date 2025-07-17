@@ -101,7 +101,13 @@ class MockGitService:
             )
         return self.create_success
 
-    def remove_worktree(self, repo_path: Path, worktree_path: Path) -> bool:
+    def remove_worktree(
+        self,
+        repo_path: Path,
+        worktree_path: Path,
+        force: bool = False,
+        interactive: bool = True,
+    ) -> bool:
         self.remove_worktree_calls.append((repo_path, worktree_path))
         if self.remove_success:
             # Remove from our mock worktree list

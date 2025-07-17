@@ -114,6 +114,19 @@ def _create_new_worktree(
     # Generate worktree path with sanitized branch name
     worktree_path = _generate_worktree_path(repo_path, branch)
 
+    # Check if the target path already exists with a different branch
+    git_worktrees = git_service.list_worktrees(repo_path)
+    for worktree in git_worktrees:
+        if worktree.path == worktree_path and worktree.branch != branch:
+            print_error(
+                f"✗ Directory {worktree_path} already exists with branch '{worktree.branch}'"
+            )
+            print_error(
+                f"  Try 'autowt {worktree.branch}' to switch to existing worktree"
+            )
+            print_error("  Or 'autowt cleanup' to remove unused worktrees")
+            return
+
     print_info(f"Creating worktree for {branch}...")
 
     # Create the worktree

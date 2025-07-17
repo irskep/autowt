@@ -46,6 +46,7 @@ def cleanup_worktrees(
     process_service: ProcessService,
     dry_run: bool = False,
     auto_confirm: bool = False,
+    force: bool = False,
 ) -> None:
     """Clean up worktrees based on the specified mode."""
     logger.debug(f"Cleaning up worktrees with mode: {mode}")
@@ -110,7 +111,7 @@ def cleanup_worktrees(
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
-        to_cleanup, repo_path, git_service, state_service, auto_confirm
+        to_cleanup, repo_path, git_service, state_service, auto_confirm, force
     )
 
 
@@ -247,6 +248,7 @@ def _remove_worktrees_and_update_state(
     git_service: GitService,
     state_service: StateService,
     auto_confirm: bool = False,
+    force: bool = False,
 ) -> None:
     """Remove worktrees and update application state."""
     print("Removing worktrees...")
@@ -254,7 +256,9 @@ def _remove_worktrees_and_update_state(
     successfully_removed_branches = []
 
     for branch_status in to_cleanup:
-        if git_service.remove_worktree(repo_path, branch_status.path):
+        if git_service.remove_worktree(
+            repo_path, branch_status.path, force=force, interactive=not auto_confirm
+        ):
             print(f"✓ Removed {branch_status.branch}")
             removed_count += 1
             successfully_removed_branches.append(branch_status.branch)
