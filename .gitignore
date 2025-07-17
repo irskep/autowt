@@ -58,3 +58,6 @@ dmypy.json
 
 # Mise
 .mise.toml
+
+# Other
+scratch/

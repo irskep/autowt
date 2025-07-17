@@ -23,3 +23,7 @@
 ## How to get up to speed
 
 - Read README.md
+
+## Workflow
+
+Use the scratch/ directory for all temporary files or non-documentation Markdown files. Avoid /tmp. Avoid committing scratchpad files.
