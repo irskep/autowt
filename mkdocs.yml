@@ -1,0 +1,78 @@
+site_name: autowt documentation
+site_description: git worktree manager with automatic terminal switching and cleanup
+site_url: https://irskep.github.io/autowt/
+repo_url: https://github.com/irskep/autowt
+repo_name: irskep/autowt
+
+nav:
+  - Home: index.md
+  - commands.md
+  - Changelog: CHANGELOG.md
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: 'deep orange'
+      accent: 'deep orange'
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: 'deep purple'
+      accent: 'deep purple'
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: sphinx
+  - gh-admonitions
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/irskep/autowt
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/autowt/
+  version:
+    provider: mike
