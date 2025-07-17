@@ -73,7 +73,7 @@ class TestTerminalServiceInitScripts:
         # Test window creation delegation
         mock_terminal.reset_mock()
         success = self.terminal_service._switch_to_existing_or_new_window(
-            self.test_path, None, self.init_script, None, False
+            self.test_path, None, self.init_script, None, None, False
         )
 
         assert success
@@ -93,7 +93,7 @@ class TestTerminalServiceInitScripts:
             )
 
             assert success
-            mock_inplace.assert_called_once_with(self.test_path, self.init_script)
+            mock_inplace.assert_called_once_with(self.test_path, self.init_script, None)
 
         # Mock the terminal implementation to test delegation
         mock_terminal = Mock()
@@ -140,14 +140,20 @@ class TestTerminalServiceInitScripts:
             mock_should_switch.return_value = True  # User wants to switch
 
             success = self.terminal_service._switch_to_existing_or_new_tab(
-                self.test_path, "session-id", self.init_script, "test-branch", False
+                self.test_path,
+                "session-id",
+                self.init_script,
+                None,
+                "test-branch",
+                False,
             )
 
             assert success
-            # Should try to switch to session first, then fall back to new tab
+            # Should try to switch to session first (no init script), then fall back to new tab
             mock_should_switch.assert_called_once_with("test-branch")
             mock_terminal.switch_to_session.assert_called_once_with(
-                "session-id", self.init_script
+                "session-id",
+                None,  # No init script when switching to existing session
             )
             mock_terminal.open_new_tab.assert_called_once_with(
                 self.test_path, self.init_script
