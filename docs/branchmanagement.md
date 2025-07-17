@@ -27,15 +27,15 @@ Branch names are sanitized for the filesystem. For example, a branch named `feat
 
 ## The Cleanup System
 
-The `autowt cleanup` command is a powerful tool for keeping your repository free of stale and unnecessary branches. It analyzes your worktrees and categorizes them for easy removal.
+The `autowt cleanup` command is a powerful tool for keeping your repository free of stale branches and worktrees. It analyzes your worktrees and gives you an opportunity to remove them and their corresponding branches.
 
 ### Cleanup Categories
 
 `autowt` groups branches into three main categories for cleanup:
 
 *   **Merged**: These branches have been fully merged into your main branch. Their changes are already incorporated, so they are generally safe to remove.
-*   **Identical**: These branches are identical to your main branch, meaning they have no new commits. They are also safe to remove.
-*   **Remoteless**: These are local branches that do not have a corresponding remote branch. They are often created for local experiments and can be good candidates for cleanup.
+*   **Identical**: These branches are identical to your main branch, meaning they have no new commits. They are also safe to remove, but maybe you just haven't committed yet.
+*   **Remoteless**: These are local branches that do not have a corresponding remote branch. These can represent branches that were squash-merged, and so wouldn't share history with the main branch, but maybe just haven't been pushed yet.
 
 ### Cleanup Modes
 

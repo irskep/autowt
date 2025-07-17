@@ -95,6 +95,12 @@ The `💻` icon indicates that you have an active terminal session for that work
 
     `autowt` with no arguments is an alias for `autowt ls`.
 
+!!! tip "Additional worktree setup"
+
+    If you want dependencies to be installed automatically, or need to copy over some gitignored files such as `.env` from the original clone, you can lean how to configure a setup script in FIXME.
+
+FIXME: audit docs for words that mean 'main worktree', such as 'primary clone' or 'main clone'. Replace _all_ with 'main worktree', and add a tooltip linking to the man page and containing a one-sentence explanation. The link at the top of index.md should also be replaced.
+
 ---
 
 ## A Typical Workflow
@@ -109,13 +115,17 @@ Imagine you're working on `new-feature` when you get a request for an urgent bug
 autowt hotfix/urgent-bug
 ```
 
-A new terminal session opens for the bug fix. You can now work on the fix without affecting your `new-feature` branch. Once you're done, you can easily switch back:
+A new terminal tab opens for the bug fix. You can now work on the fix without affecting your `new-feature` branch. Once you're done with the bug fix, close your terminal tab and forget about it.
+
+If you prefer to stay in your existing terminal tab the whole time, you can pass `--terminal-inplace`:
 
 ```bash
-autowt new-feature
+autowt hotfix/urgent-bug --terminal=inplace
+# code code code, commit, push
+autowt new-feature --terminal=inplace
 ```
 
-`autowt` will switch you to the existing terminal session for `new-feature`, and you can pick up right where you left off.
+Run `autowt config` to configure the default terminal behavior for switching worktrees.
 
 ### Cleaning Up
 
@@ -134,14 +144,3 @@ autowt cleanup
 ```
 
 `autowt` will remove the worktree and, if the branch is merged, will also offer to delete the local git branch.
-
----
-
-## Next Steps
-
-You've now experienced the core power of `autowt`. Here’s where to go next to become a pro:
-
-*   **[Configuration](configuration.md)**: Customize `autowt` to your liking, from terminal behavior to project-specific init scripts.
-*   **[AI Agent Workflows](aiagentworkflows.md)**: Learn how to use `autowt` to manage multiple AI agents effectively.
-*   **[Branch Management and Cleanup](branchmanagement.md)**: Dive deeper into the cleanup system and learn advanced branch management techniques.
-*   **[CLI Reference](clireference.md)**: Explore all the commands and options `autowt` has to offer.
