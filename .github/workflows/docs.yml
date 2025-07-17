@@ -1,0 +1,105 @@
+name: Build and Deploy Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'docs/**'
+      - 'README.md'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - 'scripts/prepare-docs.sh'
+      - '.github/**/*.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'mkdocs.yml'
+      - 'mkdocs-local.yml'
+      - 'requirements-docs.txt'
+      - 'scripts/prepare-docs.sh'
+    branches-ignore:
+      - 'dependabot/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          
+      - name: Install dependencies
+        run: |
+          uv sync --extra docs --extra dev
+          
+      - name: Prepare documentation
+        run: |
+          chmod +x scripts/prepare-docs.sh
+          ./scripts/prepare-docs.sh
+          
+      - name: Build documentation
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            uv run mkdocs build --strict -f mkdocs-local.yml
+          else
+            uv run mkdocs build --strict
+          fi
+          
+      - name: Upload Pages artifact (for main branch)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './site'
+          
+      - name: Upload PR preview artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-preview-pr-${{ github.event.number }}
+          path: './site'
+          retention-days: 30
+
+      - name: Post PR comment with artifact link
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.number }}
+          body: |
+            📚 **Documentation Preview**
+
+            A preview of the documentation for this PR has been built successfully.
+
+            You can download the artifact with the built site files from the summary of this workflow run:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            *Note: You must be logged into GitHub to download the artifact.*
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
