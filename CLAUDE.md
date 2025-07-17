@@ -24,6 +24,8 @@
 
 - Read README.md
 
-## Workflow
+## The scratchpad directory
 
-Use the scratch/ directory for all temporary files or non-documentation Markdown files. Avoid /tmp. Avoid committing scratchpad files.
+ENCOURAGED: Use scratch/ directory for all temporary files or non-documentation Markdown files.
+FORBIDDEN: Using /tmp
+FORBIDDEN: deleting the entire scratch/ directory

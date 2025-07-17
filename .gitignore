@@ -59,5 +59,8 @@ dmypy.json
 # Mise
 .mise.toml
 
+# Docs
+site/
+
 # Other
 scratch/
