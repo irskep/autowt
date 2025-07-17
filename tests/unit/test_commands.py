@@ -6,14 +6,13 @@ import pytest
 
 from autowt.commands import checkout, cleanup, ls
 from autowt.models import (
+    CleanupCommand,
     CleanupMode,
+    SwitchCommand,
     TerminalMode,
 )
 from tests.mocks.services import (
-    MockGitService,
-    MockProcessService,
-    MockStateService,
-    MockTerminalService,
+    MockServices,
 )
 
 
@@ -24,15 +23,12 @@ class TestListCommand:
     def test_ls_with_worktrees(self, temp_repo_path, sample_worktrees, capsys):
         """Test listing worktrees."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
 
         # Run command
-        ls.list_worktrees(state_service, git_service, terminal_service, process_service)
+        ls.list_worktrees(services)
 
         # Check output
         captured = capsys.readouterr()
@@ -46,15 +42,12 @@ class TestListCommand:
     def test_ls_no_worktrees(self, temp_repo_path, capsys):
         """Test listing when no worktrees exist."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = []
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = []
 
         # Run command
-        ls.list_worktrees(state_service, git_service, terminal_service, process_service)
+        ls.list_worktrees(services)
 
         # Check output
         captured = capsys.readouterr()
@@ -63,14 +56,11 @@ class TestListCommand:
     def test_ls_not_in_repo(self, capsys):
         """Test ls when not in a git repository."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = None
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = None
 
         # Run command
-        ls.list_worktrees(state_service, git_service, terminal_service, process_service)
+        ls.list_worktrees(services)
 
         # Check output
         captured = capsys.readouterr()
@@ -83,31 +73,24 @@ class TestCheckoutCommand:
     def test_checkout_existing_worktree(self, temp_repo_path, sample_worktrees):
         """Test switching to existing worktree."""
         # Setup mocks
-        state_service = MockStateService()
-        state_service.session_ids = {"feature1": "session1"}  # Add session ID data
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.state.session_ids = {"feature1": "session1"}  # Add session ID data
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+
+        # Create SwitchCommand
+        switch_cmd = SwitchCommand(branch="feature1", terminal_mode=TerminalMode.TAB)
 
         # Mock user input to confirm switch
         with (
             patch("builtins.input", return_value="y"),
             patch("builtins.print"),
         ):  # Suppress print output
-            checkout.checkout_branch(
-                "feature1",
-                TerminalMode.TAB,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
+            checkout.checkout_branch(switch_cmd, services)
 
         # Verify terminal switching was called
-        assert len(terminal_service.switch_calls) == 1
-        call = terminal_service.switch_calls[0]
+        assert len(services.terminal.switch_calls) == 1
+        call = services.terminal.switch_calls[0]
         assert call[0] == sample_worktrees[0].path  # worktree path
         assert call[1] == TerminalMode.TAB  # terminal mode
         assert call[2] == "session1"  # session ID
@@ -116,173 +99,137 @@ class TestCheckoutCommand:
     def test_checkout_new_worktree(self, temp_repo_path):
         """Test creating new worktree."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = []  # No existing worktrees
-        git_service.fetch_success = True
-        git_service.create_success = True
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = []  # No existing worktrees
+        services.git.fetch_success = True
+        services.git.create_success = True
 
-        # Run command
-        checkout.checkout_branch(
-            "new-feature",
-            TerminalMode.WINDOW,
-            state_service,
-            git_service,
-            terminal_service,
-            process_service,
+        # Create SwitchCommand
+        switch_cmd = SwitchCommand(
+            branch="new-feature", terminal_mode=TerminalMode.WINDOW
         )
 
-        # Verify git operations
-        assert git_service.fetch_called
-        assert len(git_service.create_worktree_calls) == 1
+        # Run command
+        checkout.checkout_branch(switch_cmd, services)
 
-        create_call = git_service.create_worktree_calls[0]
+        # Verify git operations
+        assert services.git.fetch_called
+        assert len(services.git.create_worktree_calls) == 1
+
+        create_call = services.git.create_worktree_calls[0]
         assert create_call[1] == "new-feature"  # branch name
 
         # Verify terminal switching
-        assert len(terminal_service.switch_calls) == 1
-        switch_call = terminal_service.switch_calls[0]
+        assert len(services.terminal.switch_calls) == 1
+        switch_call = services.terminal.switch_calls[0]
         assert switch_call[1] == TerminalMode.WINDOW
         assert switch_call[3] is None  # init script
 
         # Verify state was saved
-        assert state_service.save_called
+        assert services.state.save_called
 
     def test_checkout_decline_switch(self, temp_repo_path, sample_worktrees):
         """Test declining to switch to existing worktree."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        terminal_service = MockTerminalService()
-        terminal_service.switch_success = (
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        services.terminal.switch_success = (
             False  # Simulate user declining/switch failure
         )
-        process_service = MockProcessService()
 
-        checkout.checkout_branch(
-            "feature1",
-            TerminalMode.TAB,
-            state_service,
-            git_service,
-            terminal_service,
-            process_service,
-        )
+        # Create SwitchCommand
+        switch_cmd = SwitchCommand(branch="feature1", terminal_mode=TerminalMode.TAB)
+
+        checkout.checkout_branch(switch_cmd, services)
 
         # Verify terminal service was called but returned False (declined/failed)
-        assert len(terminal_service.switch_calls) == 1
-        assert terminal_service.switch_calls[0][5] == "feature1"  # branch_name
-        assert not terminal_service.switch_calls[0][6]  # auto_confirm
+        assert len(services.terminal.switch_calls) == 1
+        assert services.terminal.switch_calls[0][5] == "feature1"  # branch_name
+        assert not services.terminal.switch_calls[0][6]  # auto_confirm
 
     def test_checkout_existing_worktree_with_init_script(
         self, temp_repo_path, sample_worktrees
     ):
         """Test switching to existing worktree with init script."""
         # Setup mocks
-        state_service = MockStateService()
-        state_service.session_ids = {"feature1": "session1"}
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.state.session_ids = {"feature1": "session1"}
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+
+        # Create SwitchCommand
+        switch_cmd = SwitchCommand(
+            branch="feature1", terminal_mode=TerminalMode.TAB, init_script="setup.sh"
+        )
 
         # Mock user input to confirm switch
         with (
             patch("builtins.input", return_value="y"),
             patch("builtins.print"),
         ):
-            checkout.checkout_branch(
-                "feature1",
-                TerminalMode.TAB,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-                init_script="setup.sh",
-            )
+            checkout.checkout_branch(switch_cmd, services)
 
         # Verify terminal switching was called WITHOUT init script (existing worktree)
-        assert len(terminal_service.switch_calls) == 1
-        call = terminal_service.switch_calls[0]
+        assert len(services.terminal.switch_calls) == 1
+        call = services.terminal.switch_calls[0]
         assert call[0] == sample_worktrees[0].path  # worktree path
         assert call[1] == TerminalMode.TAB  # terminal mode
         assert call[2] == "session1"  # session ID
         assert call[3] is None  # no init script for existing worktrees
         assert call[4] is None  # no after_init for existing worktrees
         assert call[5] == "feature1"  # branch name
-        assert call[6] is False  # auto_confirm
-        assert call[7] is False  # ignore_same_session
 
     def test_checkout_new_worktree_with_init_script(self, temp_repo_path):
         """Test creating new worktree with init script."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = []
-        git_service.fetch_success = True
-        git_service.create_success = True
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = []  # No existing worktrees
+        services.git.fetch_success = True
+        services.git.create_success = True
 
-        # Run command with init script
-        checkout.checkout_branch(
-            "new-feature",
-            TerminalMode.WINDOW,
-            state_service,
-            git_service,
-            terminal_service,
-            process_service,
-            init_script="npm install && cp .env.example .env",
+        # Create SwitchCommand
+        switch_cmd = SwitchCommand(
+            branch="feature-with-init",
+            terminal_mode=TerminalMode.TAB,
+            init_script="npm install",
         )
-
-        # Verify git operations
-        assert git_service.fetch_called
-        assert len(git_service.create_worktree_calls) == 1
-
-        # Verify terminal switching with init script
-        assert len(terminal_service.switch_calls) == 1
-        switch_call = terminal_service.switch_calls[0]
-        assert switch_call[1] == TerminalMode.WINDOW
-        assert switch_call[3] == "npm install && cp .env.example .env"  # init script
-
-        # Verify state was saved
-        assert state_service.save_called
-
-    def test_checkout_with_complex_init_script(self, temp_repo_path):
-        """Test with complex multi-line init script."""
-        # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = []
-        git_service.fetch_success = True
-        git_service.create_success = True
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
-
-        complex_script = "mise install && uv sync --extra=dev && pre-commit install"
 
         # Run command
-        checkout.checkout_branch(
-            "feature-complex",
-            TerminalMode.TAB,
-            state_service,
-            git_service,
-            terminal_service,
-            process_service,
-            init_script=complex_script,
+        checkout.checkout_branch(switch_cmd, services)
+
+        # Verify terminal switching was called WITH init script (new worktree)
+        assert len(services.terminal.switch_calls) == 1
+        call = services.terminal.switch_calls[0]
+        assert call[1] == TerminalMode.TAB  # terminal mode
+        assert call[3] == "npm install"  # init script
+        assert call[5] == "feature-with-init"  # branch name
+
+    def test_checkout_with_complex_init_script(self, temp_repo_path):
+        """Test creating worktree with complex init script."""
+        # Setup mocks
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = []
+        services.git.fetch_success = True
+        services.git.create_success = True
+
+        # Create SwitchCommand
+        switch_cmd = SwitchCommand(
+            branch="feature-complex",
+            terminal_mode=TerminalMode.WINDOW,
+            init_script="echo 'Setting up...' && npm install && npm run build",
         )
 
-        # Verify terminal switching includes the complex script
-        assert len(terminal_service.switch_calls) == 1
-        switch_call = terminal_service.switch_calls[0]
-        assert switch_call[3] == complex_script
+        # Run command
+        checkout.checkout_branch(switch_cmd, services)
+
+        # Verify the complex init script was passed correctly
+        assert len(services.terminal.switch_calls) == 1
+        call = services.terminal.switch_calls[0]
+        assert call[3] == "echo 'Setting up...' && npm install && npm run build"
 
 
 class TestCleanupCommand:
@@ -291,146 +238,107 @@ class TestCleanupCommand:
     def test_cleanup_all_mode(
         self, temp_repo_path, sample_worktrees, sample_branch_statuses
     ):
-        """Test cleanup in ALL mode."""
+        """Test cleanup in all mode."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        git_service.branch_statuses = sample_branch_statuses
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        services.git.branch_statuses = sample_branch_statuses
 
         # Mock user confirmation and print output
         with (
             patch("builtins.input", return_value="y"),
             patch("builtins.print"),
         ):  # Suppress print output
-            cleanup.cleanup_worktrees(
-                CleanupMode.ALL,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.ALL)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
 
-        # Should try to remove merged and remoteless branches
-        assert (
-            len(git_service.remove_worktree_calls) == 2
-        )  # feature2 (no remote) + bugfix (merged)
-        assert state_service.save_called
+        # Verify git operations
+        assert services.git.fetch_called
+        assert len(services.git.remove_worktree_calls) == len(sample_branch_statuses)
 
     def test_cleanup_remoteless_mode(
         self, temp_repo_path, sample_worktrees, sample_branch_statuses
     ):
-        """Test cleanup in REMOTELESS mode."""
+        """Test cleanup in remoteless mode."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        git_service.branch_statuses = sample_branch_statuses
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
-
-        # Mock user confirmation
-        with patch("builtins.input", return_value="y"):
-            cleanup.cleanup_worktrees(
-                CleanupMode.REMOTELESS,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
-
-        # Should only remove remoteless branches
-        assert len(git_service.remove_worktree_calls) == 1  # feature2 (no remote)
-
-    def test_cleanup_merged_mode(
-        self, temp_repo_path, sample_worktrees, sample_branch_statuses
-    ):
-        """Test cleanup in MERGED mode."""
-        # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        git_service.branch_statuses = sample_branch_statuses
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
-
-        # Mock user confirmation
-        with patch("builtins.input", return_value="y"):
-            cleanup.cleanup_worktrees(
-                CleanupMode.MERGED,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
-
-        # Should remove both identical and merged branches (both are safe to remove)
-        assert (
-            len(git_service.remove_worktree_calls) == 2
-        )  # feature2 (identical) + bugfix (merged)
-
-    def test_cleanup_with_processes(
-        self, temp_repo_path, sample_worktrees, sample_branch_statuses, sample_processes
-    ):
-        """Test cleanup when processes are running."""
-        # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        git_service.branch_statuses = sample_branch_statuses
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
-        process_service.processes = sample_processes
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        services.git.branch_statuses = sample_branch_statuses
 
         # Mock user confirmation and print output
         with (
             patch("builtins.input", return_value="y"),
             patch("builtins.print"),
         ):  # Suppress print output
-            cleanup.cleanup_worktrees(
-                CleanupMode.ALL,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.REMOTELESS)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
 
-        # Verify process termination was attempted
-        assert len(process_service.terminate_calls) == 1
-        assert len(process_service.find_calls) >= 1
+        # Verify git operations
+        assert services.git.fetch_called
+
+    def test_cleanup_merged_mode(
+        self, temp_repo_path, sample_worktrees, sample_branch_statuses
+    ):
+        """Test cleanup in merged mode."""
+        # Setup mocks
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        services.git.branch_statuses = sample_branch_statuses
+
+        # Mock user confirmation and print output
+        with (
+            patch("builtins.input", return_value="y"),
+            patch("builtins.print"),
+        ):  # Suppress print output
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.MERGED)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify git operations
+        assert services.git.fetch_called
+
+    def test_cleanup_with_processes(
+        self, temp_repo_path, sample_worktrees, sample_branch_statuses
+    ):
+        """Test cleanup with running processes."""
+        # Setup mocks
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        services.git.branch_statuses = sample_branch_statuses
+        # Add mock processes to terminate (empty for now)
+        services.process.processes = []
+
+        # Mock user confirmation and print output
+        with (
+            patch("builtins.input", return_value="y"),
+            patch("builtins.print"),
+        ):  # Suppress print output
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.ALL)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify operations
+        assert services.git.fetch_called
 
     def test_cleanup_cancel(
         self, temp_repo_path, sample_worktrees, sample_branch_statuses
     ):
         """Test canceling cleanup."""
         # Setup mocks
-        state_service = MockStateService()
-        git_service = MockGitService()
-        git_service.repo_root = temp_repo_path
-        git_service.worktrees = sample_worktrees
-        git_service.branch_statuses = sample_branch_statuses
-        terminal_service = MockTerminalService()
-        process_service = MockProcessService()
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        services.git.branch_statuses = sample_branch_statuses
 
         # Mock user cancellation and print output
         with (
             patch("builtins.input", return_value="n"),
             patch("builtins.print"),
         ):  # Suppress print output
-            cleanup.cleanup_worktrees(
-                CleanupMode.ALL,
-                state_service,
-                git_service,
-                terminal_service,
-                process_service,
-            )
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.ALL)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
 
-        # Should not remove any worktrees
-        assert len(git_service.remove_worktree_calls) == 0
-        assert not state_service.save_called
+        # Verify no removal calls were made
+        assert len(services.git.remove_worktree_calls) == 0

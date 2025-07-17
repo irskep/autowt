@@ -184,3 +184,14 @@ class SwitchCommand:
     ignore_same_session: bool = False
     auto_confirm: bool = False
     debug: bool = False
+
+
+@dataclass
+class CleanupCommand:
+    """Encapsulates all parameters for cleaning up worktrees."""
+
+    mode: CleanupMode
+    dry_run: bool = False
+    auto_confirm: bool = False
+    force: bool = False
+    debug: bool = False

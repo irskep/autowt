@@ -196,3 +196,13 @@ class MockProcessService:
     def print_process_summary(self, processes: list[ProcessInfo]) -> None:
         # Mock implementation - just track the call
         pass
+
+
+class MockServices:
+    """Mock Services container for testing."""
+
+    def __init__(self):
+        self.state = MockStateService()
+        self.git = MockGitService()
+        self.terminal = MockTerminalService()
+        self.process = MockProcessService()

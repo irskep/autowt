@@ -10,7 +10,7 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
-from autowt.models import BranchStatus, CleanupMode, Services
+from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
 
 logger = logging.getLogger(__name__)
@@ -34,15 +34,9 @@ def _format_path_for_display(path: Path) -> str:
             return str(path)
 
 
-def cleanup_worktrees(
-    mode: CleanupMode,
-    services: Services,
-    dry_run: bool = False,
-    auto_confirm: bool = False,
-    force: bool = False,
-) -> None:
+def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     """Clean up worktrees based on the specified mode."""
-    logger.debug(f"Cleaning up worktrees with mode: {mode}")
+    logger.debug(f"Cleaning up worktrees with mode: {cleanup_cmd.mode}")
 
     # Find git repository
     repo_path = services.git.find_repo_root()
@@ -81,19 +75,23 @@ def cleanup_worktrees(
 
     # Determine what to clean up based on mode
     to_cleanup = _select_branches_for_cleanup(
-        mode, branch_statuses, remoteless_branches, identical_branches, merged_branches
+        cleanup_cmd.mode,
+        branch_statuses,
+        remoteless_branches,
+        identical_branches,
+        merged_branches,
     )
     if not to_cleanup:
         print("No worktrees selected for cleanup.")
         return
 
     # Handle dry-run mode
-    if dry_run:
+    if cleanup_cmd.dry_run:
         _show_dry_run_results(to_cleanup, services.process)
         return
 
     # Show what will be cleaned up and confirm
-    if not _confirm_cleanup(to_cleanup, mode):
+    if not _confirm_cleanup(to_cleanup, cleanup_cmd.mode):
         print("Cleanup cancelled.")
         return
 
@@ -104,7 +102,7 @@ def cleanup_worktrees(
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
-        to_cleanup, repo_path, services, auto_confirm, force
+        to_cleanup, repo_path, services, cleanup_cmd.auto_confirm, cleanup_cmd.force
     )
 
 

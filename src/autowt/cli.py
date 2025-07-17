@@ -12,7 +12,13 @@ from autowt.commands.config import configure_settings
 from autowt.commands.init import init_autowt
 from autowt.commands.ls import list_worktrees
 from autowt.global_config import options
-from autowt.models import CleanupMode, Services, SwitchCommand, TerminalMode
+from autowt.models import (
+    CleanupCommand,
+    CleanupMode,
+    Services,
+    SwitchCommand,
+    TerminalMode,
+)
 from autowt.utils import setup_command_logging
 
 
@@ -230,13 +236,15 @@ def cleanup(mode: str, dry_run: bool, yes: bool, force: bool, debug: bool) -> No
     """Clean up merged or remoteless worktrees."""
     setup_logging(debug)
     services = create_services()
-    cleanup_worktrees(
-        CleanupMode(mode),
-        services,
-        dry_run,
-        yes,
-        force,
+
+    cleanup_cmd = CleanupCommand(
+        mode=CleanupMode(mode),
+        dry_run=dry_run,
+        auto_confirm=yes,
+        force=force,
+        debug=debug,
     )
+    cleanup_worktrees(cleanup_cmd, services)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
