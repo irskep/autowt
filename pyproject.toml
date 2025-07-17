@@ -49,6 +49,9 @@ docs = [
 [project.scripts]
 autowt = "autowt.cli:main"
 
+[project.entry-points."mkdocs.plugins"]
+help-output = "autowt.mkdocs_plugins.help_output:HelpOutputPlugin"
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"

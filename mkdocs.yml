@@ -61,6 +61,8 @@ markdown_extensions:
 
 plugins:
   - search
+  - help-output:
+      command_prefix: "uv run"
   - mkdocstrings:
       handlers:
         python:
