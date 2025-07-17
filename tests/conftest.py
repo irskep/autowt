@@ -12,6 +12,7 @@ from autowt.models import (
     TerminalMode,
     WorktreeInfo,
 )
+from tests.mocks.services import MockTerminalService
 
 
 @pytest.fixture
@@ -127,6 +128,4 @@ def mock_terminal_operations():
 @pytest.fixture
 def mock_terminal_service():
     """Provide a fully mocked terminal service."""
-    from tests.mocks.services import MockTerminalService
-
     return MockTerminalService()

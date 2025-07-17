@@ -23,6 +23,7 @@ def checkout_branch(
     terminal_service: TerminalService,
     process_service: ProcessService,
     init_script: str | None = None,
+    ignore_same_session: bool = False,
 ) -> None:
     """Switch to or create a worktree for the specified branch."""
     logger.debug(f"Checking out branch: {branch}")
@@ -58,26 +59,23 @@ def checkout_branch(
             break
 
     if existing_worktree:
-        # Switch to existing worktree - the terminal service handles prompting
+        # Switch to existing worktree - no init script needed (worktree already set up)
         session_id = session_ids.get(branch)
         success = terminal_service.switch_to_worktree(
             existing_worktree.path,
             terminal_mode,
             session_id,
-            init_script,
+            None,  # No init script for existing worktrees
             branch_name=branch,
             auto_confirm=options.auto_confirm,
+            ignore_same_session=ignore_same_session,
         )
 
         if not success:
             print_error(f"Failed to switch to {branch} worktree")
             return
 
-        # Update session ID if we're in a terminal that supports it
-        current_session = terminal_service.get_current_session_id()
-        if current_session:
-            session_ids[branch] = current_session
-            state_service.save_session_ids(session_ids)
+        # Session ID will be registered by the new tab itself
 
         return
 
@@ -92,6 +90,7 @@ def checkout_branch(
         terminal_service,
         state_service,
         init_script,
+        ignore_same_session,
     )
 
 
@@ -105,6 +104,7 @@ def _create_new_worktree(
     terminal_service: TerminalService,
     state_service: StateService,
     init_script: str | None = None,
+    ignore_same_session: bool = False,
 ) -> None:
     """Create a new worktree for the branch."""
     print_info("Fetching branches...")
@@ -138,24 +138,25 @@ def _create_new_worktree(
 
     # Switch to the new worktree
     success = terminal_service.switch_to_worktree(
-        worktree_path, terminal_mode, None, init_script
+        worktree_path,
+        terminal_mode,
+        None,
+        init_script,
+        branch_name=branch,
+        ignore_same_session=ignore_same_session,
     )
 
     if not success:
         print_error("Worktree created but failed to switch terminals")
         return
 
-    # Save session ID if available
-    current_session = terminal_service.get_current_session_id()
-    if current_session:
-        session_ids[branch] = current_session
-        state_service.save_session_ids(session_ids)
+    # Session ID will be registered by the new tab itself
 
     # Update state
     new_worktree = WorktreeInfo(
         branch=branch,
         path=worktree_path,
-        session_id=current_session,
+        session_id=None,  # Will be updated when session is registered
     )
     state.worktrees.append(new_worktree)
     state.current_worktree = branch
@@ -166,8 +167,6 @@ def _create_new_worktree(
 
 def _generate_worktree_path(repo_path: Path, branch: str) -> Path:
     """Generate a path for the new worktree."""
-    from autowt.services.git import GitService
-
     # Find the main repository path (not a worktree)
     git_service = GitService()
     worktrees = git_service.list_worktrees(repo_path)

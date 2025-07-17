@@ -275,8 +275,6 @@ def _remove_worktrees_and_update_state(
             for branch in successfully_removed_branches:
                 print(f"  - {branch}")
 
-            from autowt.prompts import confirm_default_yes
-
             should_delete_branches = confirm_default_yes("Delete these local branches?")
 
         if should_delete_branches:

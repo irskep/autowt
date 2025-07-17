@@ -14,6 +14,7 @@ from autowt.console import (
     print_section,
     print_success,
 )
+from autowt.console import console as console2
 
 
 class TestConsoleTheme(unittest.TestCase):
@@ -103,8 +104,6 @@ class TestConsoleIntegration(unittest.TestCase):
 
     def test_console_is_singleton(self):
         """Test that console is a singleton instance."""
-        from autowt.console import console as console2
-
         self.assertIs(console, console2)
 
 

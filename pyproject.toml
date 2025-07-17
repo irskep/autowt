@@ -49,7 +49,7 @@ target-version = "py310"
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["E501"]
 # Enforce that imports are at the top of files
-extend-select = ["E402"]
+extend-select = ["E402", "PLC0415"]
 
 [tool.ruff.format]
 quote-style = "double"

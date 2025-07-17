@@ -4,12 +4,13 @@ import logging
 import os
 import platform
 import shlex
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
-from autowt.utils import run_command
+from autowt.utils import run_command, sanitize_branch_name
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,10 @@ class Terminal(ABC):
         """Whether this terminal supports session management."""
         return False
 
+    def session_exists(self, session_id: str) -> bool:
+        """Check if a session exists in the terminal."""
+        return False
+
     def _escape_for_applescript(self, text: str) -> str:
         """Escape text for use in AppleScript strings."""
         return text.replace("\\", "\\\\").replace('"', '\\"')
@@ -82,6 +87,38 @@ class Terminal(ABC):
             logger.error(f"Failed to run AppleScript: {e}")
             return False
 
+    def _run_applescript_with_result(self, script: str) -> bool:
+        """Execute AppleScript and return success status based on output."""
+        if not self.is_macos:
+            logger.warning("AppleScript not available on this platform")
+            return False
+
+        try:
+            result = run_command(
+                ["osascript", "-e", script],
+                timeout=30,
+                description="Execute AppleScript for terminal switching",
+            )
+
+            if result.returncode != 0:
+                logger.error(f"AppleScript failed: {result.stderr}")
+                return False
+
+            # Check if the output indicates success
+            output = result.stdout.strip().lower()
+            success = output == "true"
+
+            if success:
+                logger.debug("AppleScript executed successfully and returned true")
+            else:
+                logger.debug(f"AppleScript executed but returned: {output}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to run AppleScript: {e}")
+            return False
+
 
 class ITerm2Terminal(Terminal):
     """iTerm2 terminal implementation."""
@@ -95,6 +132,32 @@ class ITerm2Terminal(Terminal):
     def supports_session_management(self) -> bool:
         """iTerm2 supports session management."""
         return True
+
+    def session_exists(self, session_id: str) -> bool:
+        """Check if a session exists in iTerm2."""
+        if not session_id:
+            return False
+
+        # Extract UUID part from session ID (format: w0t0p2:UUID)
+        session_uuid = session_id.split(":")[-1] if ":" in session_id else session_id
+        logger.debug(f"Checking if session exists: {session_uuid}")
+
+        applescript = f'''
+        tell application "iTerm2"
+            repeat with theWindow in windows
+                repeat with theTab in tabs of theWindow
+                    repeat with theSession in sessions of theTab
+                        if id of theSession is "{session_uuid}" then
+                            return true
+                        end if
+                    end repeat
+                end repeat
+            end repeat
+            return false
+        end tell
+        '''
+
+        return self._run_applescript_with_result(applescript)
 
     def switch_to_session(
         self, session_id: str, init_script: str | None = None
@@ -117,7 +180,9 @@ class ITerm2Terminal(Terminal):
 
         if init_script:
             applescript += f'''
-                            write text "{self._escape_for_applescript(init_script)}" to theSession'''
+                            tell theSession
+                                write text "{self._escape_for_applescript(init_script)}"
+                            end tell'''
 
         applescript += """
                             return
@@ -134,7 +199,20 @@ class ITerm2Terminal(Terminal):
         """Open a new iTerm2 tab."""
         logger.debug(f"Opening new iTerm2 tab for {worktree_path}")
 
+        # Get the path to the current autowt executable
+        autowt_path = sys.argv[0]
+        if not autowt_path.startswith("/"):
+            # If relative path, make it absolute
+            autowt_path = os.path.abspath(autowt_path)
+
+        # Escape the autowt_path for shell execution
+        escaped_autowt_path = shlex.quote(autowt_path)
+
         commands = [f"cd {self._escape_path_for_command(worktree_path)}"]
+
+        # Add session registration command (uses current working directory)
+        commands.append(f"{escaped_autowt_path} register-session-for-path")
+
         if init_script:
             commands.append(init_script)
 
@@ -171,6 +249,88 @@ class ITerm2Terminal(Terminal):
         """
 
         return self._run_applescript(applescript)
+
+    def _run_applescript_for_output(self, script: str) -> str | None:
+        """Execute AppleScript and return the output string."""
+        if not self.is_macos:
+            logger.warning("AppleScript not available on this platform")
+            return None
+
+        try:
+            result = run_command(
+                ["osascript", "-e", script],
+                timeout=30,
+                description="Execute AppleScript for output",
+            )
+
+            if result.returncode != 0:
+                logger.error(f"AppleScript failed: {result.stderr}")
+                return None
+
+            return result.stdout.strip()
+
+        except Exception as e:
+            logger.error(f"Failed to run AppleScript: {e}")
+            return None
+
+    def list_sessions_with_directories(self) -> list[dict[str, str]]:
+        """List all iTerm2 sessions with their working directories."""
+        applescript = """
+        tell application "iTerm2"
+            set sessionData to ""
+            repeat with theWindow in windows
+                repeat with theTab in tabs of theWindow
+                    repeat with theSession in sessions of theTab
+                        try
+                            set sessionId to id of theSession
+                            set sessionPath to (variable named "session.path") of theSession
+                            if sessionData is not "" then
+                                set sessionData to sessionData & return
+                            end if
+                            set sessionData to sessionData & sessionId & "|" & sessionPath
+                        on error
+                            if sessionData is not "" then
+                                set sessionData to sessionData & return
+                            end if
+                            set sessionData to sessionData & sessionId & "|unknown"
+                        end try
+                    end repeat
+                end repeat
+            end repeat
+            return sessionData
+        end tell
+        """
+
+        output = self._run_applescript_for_output(applescript)
+        if not output:
+            return []
+
+        sessions = []
+        # Output format: "session1|/path1\nsession2|/path2\n..."
+        for line in output.split("\n"):
+            line = line.strip()
+            if line and "|" in line:
+                session_id, path = line.split("|", 1)
+                sessions.append(
+                    {
+                        "session_id": session_id.strip(),
+                        "working_directory": path.strip(),
+                    }
+                )
+
+        return sessions
+
+    def find_session_by_working_directory(self, target_path: str) -> str | None:
+        """Find a session ID that matches the given working directory."""
+        sessions = self.list_sessions_with_directories()
+        target_path = str(Path(target_path).resolve())  # Normalize path
+
+        for session in sessions:
+            session_path = str(Path(session["working_directory"]).resolve())
+            if session_path == target_path:
+                return session["session_id"]
+
+        return None
 
 
 class TerminalAppTerminal(Terminal):
@@ -450,8 +610,6 @@ class TmuxTerminal(Terminal):
     def _create_session_name(self, worktree_path: Path) -> str:
         """Create a tmux session name for the worktree."""
         # Use sanitized worktree directory name
-        from autowt.utils import sanitize_branch_name
-
         return f"autowt-{sanitize_branch_name(worktree_path.name)}"
 
     def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
@@ -1349,6 +1507,7 @@ class TerminalService:
         init_script: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
+        ignore_same_session: bool = False,
     ) -> bool:
         """Switch to a worktree using the specified terminal mode."""
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
@@ -1357,11 +1516,21 @@ class TerminalService:
             return self._change_directory_inplace(worktree_path, init_script)
         elif mode == TerminalMode.TAB:
             return self._switch_to_existing_or_new_tab(
-                worktree_path, session_id, init_script, branch_name, auto_confirm
+                worktree_path,
+                session_id,
+                init_script,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
             )
         elif mode == TerminalMode.WINDOW:
             return self._switch_to_existing_or_new_window(
-                worktree_path, session_id, init_script, branch_name, auto_confirm
+                worktree_path,
+                session_id,
+                init_script,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
             )
         else:
             logger.error(f"Unknown terminal mode: {mode}")
@@ -1392,28 +1561,54 @@ class TerminalService:
         init_script: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
+        ignore_same_session: bool = False,
     ) -> bool:
         """Switch to existing session or create new tab."""
-        # For Terminal.app, use worktree path as session identifier
-        # For other terminals (iTerm2, tmux), use provided session_id
-        if self.terminal.supports_session_management():
-            if isinstance(self.terminal, TerminalAppTerminal):
-                effective_session_id = str(worktree_path)
-            else:
-                effective_session_id = session_id
+        # If ignore_same_session is True, skip session detection and always create new tab
+        if not ignore_same_session:
+            # For Terminal.app, use worktree path as session identifier
+            # For other terminals (iTerm2, tmux), use provided session_id
+            if self.terminal.supports_session_management():
+                if isinstance(self.terminal, TerminalAppTerminal):
+                    effective_session_id = str(worktree_path)
+                else:
+                    effective_session_id = session_id
 
-            if effective_session_id:
-                if auto_confirm or self._should_switch_to_existing(branch_name):
-                    # Try to switch to existing session
-                    if self.terminal.switch_to_session(
-                        effective_session_id, init_script
-                    ):
-                        print(
-                            f"Switched to existing {branch_name or 'worktree'} session"
+                # First try: Check if the stored session ID exists
+                if effective_session_id and self.terminal.session_exists(
+                    effective_session_id
+                ):
+                    if auto_confirm or self._should_switch_to_existing(branch_name):
+                        # Try to switch to existing session (no init script - session already exists)
+                        if self.terminal.switch_to_session(effective_session_id, None):
+                            print(
+                                f"Switched to existing {branch_name or 'worktree'} session"
+                            )
+                            return True
+
+                # Second try: For iTerm2, check if there's a session in the worktree directory
+                if isinstance(self.terminal, ITerm2Terminal) and hasattr(
+                    self.terminal, "find_session_by_working_directory"
+                ):
+                    fallback_session_id = (
+                        self.terminal.find_session_by_working_directory(
+                            str(worktree_path)
                         )
-                        return True
+                    )
+                    if fallback_session_id:
+                        logger.debug(
+                            f"Found session {fallback_session_id} in directory {worktree_path}"
+                        )
+                        if auto_confirm or self._should_switch_to_existing(branch_name):
+                            if self.terminal.switch_to_session(
+                                fallback_session_id, None
+                            ):
+                                print(
+                                    f"Switched to existing {branch_name or 'worktree'} session (found by directory)"
+                                )
+                                return True
 
-        # Fall back to creating new tab
+        # Fall back to creating new tab (or forced by ignore_same_session)
         return self.terminal.open_new_tab(worktree_path, init_script)
 
     def _switch_to_existing_or_new_window(
@@ -1423,28 +1618,54 @@ class TerminalService:
         init_script: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
+        ignore_same_session: bool = False,
     ) -> bool:
         """Switch to existing session or create new window."""
-        # For Terminal.app, use worktree path as session identifier
-        # For other terminals (iTerm2, tmux), use provided session_id
-        if self.terminal.supports_session_management():
-            if isinstance(self.terminal, TerminalAppTerminal):
-                effective_session_id = str(worktree_path)
-            else:
-                effective_session_id = session_id
+        # If ignore_same_session is True, skip session detection and always create new window
+        if not ignore_same_session:
+            # For Terminal.app, use worktree path as session identifier
+            # For other terminals (iTerm2, tmux), use provided session_id
+            if self.terminal.supports_session_management():
+                if isinstance(self.terminal, TerminalAppTerminal):
+                    effective_session_id = str(worktree_path)
+                else:
+                    effective_session_id = session_id
 
-            if effective_session_id:
-                if auto_confirm or self._should_switch_to_existing(branch_name):
-                    # Try to switch to existing session
-                    if self.terminal.switch_to_session(
-                        effective_session_id, init_script
-                    ):
-                        print(
-                            f"Switched to existing {branch_name or 'worktree'} session"
+                # First try: Check if the stored session ID exists
+                if effective_session_id and self.terminal.session_exists(
+                    effective_session_id
+                ):
+                    if auto_confirm or self._should_switch_to_existing(branch_name):
+                        # Try to switch to existing session (no init script - session already exists)
+                        if self.terminal.switch_to_session(effective_session_id, None):
+                            print(
+                                f"Switched to existing {branch_name or 'worktree'} session"
+                            )
+                            return True
+
+                # Second try: For iTerm2, check if there's a session in the worktree directory
+                if isinstance(self.terminal, ITerm2Terminal) and hasattr(
+                    self.terminal, "find_session_by_working_directory"
+                ):
+                    fallback_session_id = (
+                        self.terminal.find_session_by_working_directory(
+                            str(worktree_path)
                         )
-                        return True
+                    )
+                    if fallback_session_id:
+                        logger.debug(
+                            f"Found session {fallback_session_id} in directory {worktree_path}"
+                        )
+                        if auto_confirm or self._should_switch_to_existing(branch_name):
+                            if self.terminal.switch_to_session(
+                                fallback_session_id, None
+                            ):
+                                print(
+                                    f"Switched to existing {branch_name or 'worktree'} session (found by directory)"
+                                )
+                                return True
 
-        # Fall back to creating new window
+        # Fall back to creating new window (or forced by ignore_same_session)
         return self.terminal.open_new_window(worktree_path, init_script)
 
     def _should_switch_to_existing(self, branch_name: str | None) -> bool:
