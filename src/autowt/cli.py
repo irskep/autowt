@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import click
+from click_aliases import ClickAliasedGroup
 
 from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
@@ -39,8 +40,8 @@ def create_services() -> Services:
     return Services.create()
 
 
-# Custom Group class that handles unknown commands as branch names
-class AutowtGroup(click.Group):
+# Custom Group class that handles unknown commands as branch names and supports aliases
+class AutowtGroup(ClickAliasedGroup):
     def get_command(self, ctx, cmd_name):
         # First, try to get the command normally
         rv = super().get_command(ctx, cmd_name)
@@ -206,7 +207,9 @@ def list_sessions(debug: bool) -> None:
         print("Current terminal does not support session listing.")
 
 
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    aliases=["list"], context_settings={"help_option_names": ["-h", "--help"]}
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def ls(debug: bool) -> None:
     """List all worktrees and their status."""
@@ -231,11 +234,38 @@ def ls(debug: bool) -> None:
 @click.option(
     "--force", is_flag=True, help="Force remove worktrees with modified files"
 )
+@click.option(
+    "--kill", is_flag=True, help="Force kill processes in worktrees (override config)"
+)
+@click.option(
+    "--no-kill",
+    is_flag=True,
+    help="Skip killing processes in worktrees (override config)",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
-def cleanup(mode: str, dry_run: bool, yes: bool, force: bool, debug: bool) -> None:
+def cleanup(
+    mode: str,
+    dry_run: bool,
+    yes: bool,
+    force: bool,
+    kill: bool,
+    no_kill: bool,
+    debug: bool,
+) -> None:
     """Clean up merged or remoteless worktrees."""
+    # Validate mutually exclusive options
+    if kill and no_kill:
+        raise click.UsageError("Cannot specify both --kill and --no-kill")
+
     setup_logging(debug)
     services = create_services()
+
+    # Determine kill_processes override
+    kill_processes = None
+    if kill:
+        kill_processes = True
+    elif no_kill:
+        kill_processes = False
 
     cleanup_cmd = CleanupCommand(
         mode=CleanupMode(mode),
@@ -243,11 +273,15 @@ def cleanup(mode: str, dry_run: bool, yes: bool, force: bool, debug: bool) -> No
         auto_confirm=yes,
         force=force,
         debug=debug,
+        kill_processes=kill_processes,
     )
     cleanup_worktrees(cleanup_cmd, services)
 
 
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    aliases=["configure", "settings"],
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def config(debug: bool) -> None:
     """Configure autowt settings using interactive TUI."""

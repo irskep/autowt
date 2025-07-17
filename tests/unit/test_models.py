@@ -40,7 +40,11 @@ class TestConfiguration:
         """Test converting configuration to dictionary."""
         config = Configuration(terminal=TerminalMode.INPLACE, terminal_always_new=True)
         data = config.to_dict()
-        expected = {"terminal": "inplace", "terminal_always_new": True}
+        expected = {
+            "terminal": "inplace",
+            "terminal_always_new": True,
+            "cleanup": {"kill_processes": True},
+        }
         assert data == expected
 
 

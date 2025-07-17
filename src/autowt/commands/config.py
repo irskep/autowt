@@ -59,6 +59,14 @@ class ConfigApp(App):
             yield Label("")
 
             with Horizontal():
+                yield Switch(
+                    value=self.config.cleanup_kill_processes, id="kill-processes"
+                )
+                yield Label("Kill processes during cleanup")
+
+            yield Label("")
+
+            with Horizontal():
                 yield Button("Save", id="save")
                 yield Button("Cancel", id="cancel")
 
@@ -99,6 +107,10 @@ class ConfigApp(App):
         # Get always new setting
         always_new_switch = self.query_one("#always-new", Switch)
         self.config.terminal_always_new = always_new_switch.value
+
+        # Get kill processes setting
+        kill_processes_switch = self.query_one("#kill-processes", Switch)
+        self.config.cleanup_kill_processes = kill_processes_switch.value
 
         # Save configuration
         try:
