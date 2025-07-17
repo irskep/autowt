@@ -16,12 +16,6 @@ Core use case is running multiple Claude Code instances on different problems an
 
 ## Quick Start
 
-Initialize autowt in your git repository:
-
-```bash
-autowt init
-```
-
 Create or switch to a worktree for any branch:
 
 ```bash
@@ -148,7 +142,6 @@ The state includes worktree locations, current branch tracking, and terminal ses
 ## Command Reference
 
 - `autowt` - List all worktrees (same as `autowt ls`)
-- `autowt init` - Initialize state management
 - `autowt [branch]` - Create or switch to worktree for any branch name
 - `autowt switch <branch>` - Explicitly switch to a branch (useful when branch name conflicts with commands)
 - `autowt ls` - List all worktrees and current location  

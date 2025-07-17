@@ -6,7 +6,16 @@ repo_name: irskep/autowt
 
 nav:
   - Home: index.md
-  - commands.md
+  - Getting Started: gettingstarted.md
+  - User Guide:
+    - Branch Management: branchmanagement.md
+    - Terminal Integration: terminalintegration.md
+    - AI Agent Workflows: aiagentworkflows.md
+  - Reference:
+    - CLI Reference: clireference.md
+    - Configuration: configuration.md
+    - Terminal Support: terminalsupport.md
+    - Troubleshooting: troubleshooting.md
   - Changelog: CHANGELOG.md
 
 theme:
@@ -31,6 +40,7 @@ theme:
     - navigation.expand
     - navigation.path
     - navigation.top
+    - navigation.footer
     - search.highlight
     - search.share
     - content.code.copy
