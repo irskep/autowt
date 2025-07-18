@@ -1,209 +1,66 @@
-# autowt: git worktree manager
+# autowt: Supercharge Your Git Workflow
 
-autowt manages git worktrees with automatic terminal switching and cleanup. Each branch gets its own working directory, letting you switch between features without stashing changes or losing context.
+**autowt** is a git worktree manager designed for developers who juggle multiple tasks. It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal session. This eliminates context-switching friction, letting you focus on your code.
 
-## Why worktrees? Why autowt?
+While powerful for any developer, `autowt` is a game-changer for those working with command-line AI agents like Claude Code, Gemini CLI, or Codex. It provides the perfect environment for running multiple agents in parallel without interference.
 
-<!-- This section reflects the human author's purpose in writing this program. It all comes back to this. -->
+## Core Features
 
-Why worktrees: Multitask without switching branches, great for long-running agents like Claude Code
+**Automated Worktree Management**
 
-Why autowt:
-- Worktrees don't get initialized with untracked files; this is annoying. `.env` is common, as is the need to install dependencies with `uv sync` or `npm install`.
-- It takes a lot of typing to set up a worktree and cd into it
+`autowt` handles the entire lifecycle of your worktrees. It automatically creates them in a consistent directory structure, runs your setup scripts, and provides powerful cleanup tools to keep your workspace tidy.
 
-Core use case is running multiple Claude Code instances on different problems and submitting independent PRs. I can call `autowt feature1 --after-init='claude "add a pony and submit a PR"'` and it opens a new tab in my terminal with Claude off to the races.
+**Seamless Terminal Integration**
 
-## Quick Start
+Switching branches is as simple as typing `autowt <branch-name>`. `autowt` intelligently manages your terminal sessions, automatically switching to the correct tab or window, or creating a new one if needed.
 
-Create or switch to a worktree for any branch:
+**AI Agent Ready**
 
-```bash
-autowt feature-branch
-```
+Isolate your AI agents in their own worktrees. Run multiple agents on different tasks simultaneously without them tripping over each other's work. `autowt` provides the perfect sandbox for parallel development and experimentation.
 
-If the branch exists as a worktree, autowt switches to it. Otherwise, it creates a new worktree and opens it in a new terminal tab.
+**Effortless Cleanup**
 
-## Core Workflow
+Keep your repository clean with `autowt cleanup`. It identifies and removes branches that are merged or have no remote counterpart, ensuring your workspace remains clutter-free.
 
-**Creating worktrees:** When you run `autowt branch-name`, it fetches the latest branches, creates a worktree at `../reponame-worktrees/branch-name`, and switches to it. New branches are created from the latest main branch. Branch names with slashes like `steve/bugfix` become `steve-bugfix` in the filesystem.
+## Getting Started
 
-**Terminal integration:** On macOS with iTerm2, autowt uses AppleScript to switch between existing terminal sessions or create new ones. It tracks session IDs to find the right tab when switching back to a worktree.
+You'll need Python 3.10+ and a version of `git` released in the last decade (2.5+).
 
-**Integration:** autowt is designed to work alongside existing development tools and workflows without modifying your git repository's hooks or configuration.
-
-## Listing and Navigation
-
-```bash
-autowt ls
-```
-
-Shows your primary clone, current location, and all worktrees:
-
-```
-  Primary clone: ~/dev/myproject
-  You are in: feature-branch
-
-  Branches:
-  feature-auth      ~/dev/myproject-worktrees/feature-auth 💻
-  steve/bugfix      ~/dev/myproject-worktrees/steve-bugfix
-  refactor-core     ~/dev/myproject-worktrees/refactor-core 💻
-
-Use 'autowt <branch>' to switch to a worktree or create a new one.
-```
-
-The 💻 icon indicates branches with active terminal sessions.
-
-## Cleanup
-
-```bash
-autowt cleanup
-```
-
-Analyzes your worktrees and categorizes them:
-
-- **Without remotes:** Branches that don't track a remote branch
-- **Identical to main:** Branches pointing to the same commit as main/master
-- **Merged:** Branches that have been merged into main/master
-
-By default, cleanup removes all categories. Use `--mode` to be selective:
-
-```bash
-autowt cleanup --mode all         # All categories (default)
-autowt cleanup --mode merged      # Only merged and identical branches
-autowt cleanup --mode remoteless  # Only branches without remotes
-autowt cleanup --mode interactive # Choose individually with TUI
-```
-
-Use `--dry-run` to see what would be removed without actually removing:
-
-```bash
-autowt cleanup --dry-run
-```
-
-Before removing worktrees, autowt finds running processes in those directories and terminates them with SIGINT, followed by SIGKILL after 10 seconds if needed.
-
-## Terminal Modes
-
-Control how autowt opens terminals:
-
-```bash
-autowt branch-name --terminal=tab     # Switch to existing session or new tab (default)
-autowt branch-name --terminal=window  # Switch to existing session or new window
-autowt branch-name --terminal=inplace # Change directory directly in current terminal
-autowt branch-name --terminal=echo    # Output commands for manual evaluation
-```
-
-**Smart terminal switching:** When using `tab` or `window` modes, autowt first checks if the worktree already has a terminal session. If it does, it prompts whether to switch to the existing session or create a new one. Use `--yes` to automatically switch to existing sessions without prompting.
-
-**Inplace mode** uses osascript (macOS) to execute directory changes directly in your current terminal session, providing seamless switching without opening new tabs or windows.
-
-**Echo mode** outputs shell commands that can be evaluated manually or through shell functions:
-
-```bash
-eval "$(autowt branch-name --terminal=echo)"
-```
-
-### Shell Integration for Echo Mode
-
-Get shell-specific integration instructions:
-
-```bash
-autowt shellconfig                    # Auto-detect current shell
-autowt shellconfig --shell bash      # Get bash instructions
-autowt shellconfig --shell zsh       # Get zsh instructions  
-autowt shellconfig --shell fish      # Get fish instructions
-autowt shellconfig --shell tcsh      # Get tcsh instructions
-autowt shellconfig --shell nu        # Get nushell instructions
-autowt shellconfig --shell oil       # Get oil shell instructions
-autowt shellconfig --shell elvish    # Get elvish instructions
-```
-
-Or manually add these functions:
-
-```bash
-# bash - add to ~/.bashrc
-autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
-
-# zsh - add to ~/.zshrc  
-autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
-
-# fish - add to ~/.config/fish/config.fish
-function autowt_cd
-    eval (autowt $argv --terminal=echo)
-end
-```
-
-Then use: `autowt_cd branch-name`
-
-**Note:** The `shellconfig` command supports bash, zsh, fish, tcsh/csh, nushell, oil shell, and elvish. For unsupported shells, it provides comprehensive fallback instructions covering common shell families.
-
-Configure the default behavior:
-
-```bash
-autowt config
-```
-
-This opens an interactive TUI to set your preferred terminal mode.
-
-## Init Scripts
-
-Run custom commands when switching to a worktree:
-
-```bash
-autowt branch-name --init "npm install && npm run dev"
-```
-
-The init script runs after changing to the worktree directory.
-
-### Project Configuration
-
-Create an `autowt.toml` or `.autowt.toml` file in your project root to set a default init script:
-
-```toml
-init = "npm install && npm run dev"
-```
-
-This eliminates the need to pass `--init` every time. The command-line `--init` flag still overrides the config file setting.
-
-## State Management
-
-autowt stores its state in platform-appropriate directories:
-
-- **macOS:** `~/Library/Application Support/autowt/`
-- **Linux:** `~/.local/share/autowt/` (or `$XDG_DATA_HOME/autowt/`)
-- **Windows:** `~/.autowt/`
-
-The state includes worktree locations, current branch tracking, and terminal session mappings for seamless switching.
-
-## Command Reference
-
-- `autowt` - List all worktrees (same as `autowt ls`)
-- `autowt [branch]` - Create or switch to worktree for any branch name
-- `autowt switch <branch>` - Explicitly switch to a branch (useful when branch name conflicts with commands)
-- `autowt ls` - List all worktrees and current location  
-- `autowt cleanup` - Remove merged, identical, or remoteless worktrees
-- `autowt config` - Configure terminal behavior using interactive TUI
-- `autowt shellconfig` - Show shell integration instructions for your current shell (use `--shell` to override detection)
-
-All commands support `-h` for help, `-y/--yes` for auto-confirmation, and `--debug` for verbose logging.
-
-## Installation
+First, install autowt:
 
 ```bash
 pip install autowt
 ```
 
-For development:
+Then, from within a git repository, create a new worktree for a new or existing branch:
 
 ```bash
-git clone https://github.com/your-username/autowt
-cd autowt
-uv sync
+autowt my-new-feature
 ```
 
-## Requirements
+Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window, ready for you to start coding.
 
-- Python 3.10+
-- git with worktree support
-- iTerm2 on macOS for best terminal integration (falls back to generic methods on other platforms)
+## A Typical Workflow
+
+1.  **Start a new feature**: Run `autowt new-feature`. A new terminal tab opens in an isolated directory for that branch.
+2.  **Get an urgent request**: Don't stash! Just run `autowt hotfix/urgent-bug`. A different terminal tab opens for the hotfix.
+3.  **Finish the hotfix**: Commit, push, and close the hotfix tab.
+4.  **Return to your feature**: Run `autowt new-feature` again, and `autowt` will switch you right back to the existing terminal tab for that feature.
+5.  **Clean up**: Once the hotfix branch is merged, run `autowt cleanup` to remove the old worktree and local branch.
+
+## Dive Deeper
+
+For detailed guides on commands, configuration, and advanced workflows, check out the [**full documentation**](https://irskep.github.io/autowt/).
+
+-   [**Getting Started Guide**](https://irskep.github.io/autowt/gettingstarted/)
+-   [**AI Agent Workflows**](https://irskep.github.io/autowt/aiagentworkflows/)
+-   [**CLI Reference**](https://irskep.github.io/autowt/clireference/)
+-   [**Configuration**](https://irskep.github.io/autowt/configuration/)
+
+## Contributing
+
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the MIT License.
