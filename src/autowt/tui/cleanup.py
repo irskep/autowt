@@ -31,9 +31,9 @@ class CleanupTUI(App):
     BINDINGS = [
         Binding("q,escape", "quit", "Quit"),
         Binding("a", "select_all", "Select All"),
-        Binding("n", "select_none", "Select None"),
-        Binding("m", "select_merged", "Select Merged"),
-        Binding("r", "select_remoteless", "Select No Remote"),
+        Binding("n", "select_none", "None"),
+        Binding("m", "select_merged", "Merged"),
+        Binding("r", "select_remoteless", "No Remote"),
         Binding("space", "toggle_selection", "Toggle"),
         Binding("j", "cursor_down", "Down"),
         Binding("k", "cursor_up", "Up"),
@@ -217,6 +217,10 @@ class CleanupTUI(App):
                 self.update_status_bar()
                 self._update_selection_display()
                 event.prevent_default()
+        elif event.key == "enter":
+            # Ensure Enter key triggers confirm action
+            self.action_confirm()
+            event.prevent_default()
 
     def _format_path_for_display(self, path) -> str:
         """Format a path for compact display."""
