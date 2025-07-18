@@ -4,11 +4,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from autowt.config import Config
 from autowt.models import (
     BranchStatus,
-    Configuration,
     ProcessInfo,
-    TerminalMode,
     WorktreeInfo,
 )
 from tests.mocks.services import MockTerminalService
@@ -25,7 +24,7 @@ def temp_repo_path(tmp_path):
 @pytest.fixture
 def sample_config():
     """Sample configuration for testing."""
-    return Configuration(terminal=TerminalMode.TAB, terminal_always_new=False)
+    return Config()
 
 
 @pytest.fixture

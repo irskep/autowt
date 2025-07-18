@@ -53,52 +53,58 @@ class BranchStatus:
 
 
 @dataclass
-class Configuration:
-    """Application configuration."""
+class ProjectScriptsConfig:
+    """Project-specific scripts configuration."""
 
-    terminal: TerminalMode = TerminalMode.TAB
-    terminal_always_new: bool = False
-    cleanup_kill_processes: bool = True
+    init: str | None = None
+    custom: dict[str, str] | None = None
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Configuration":
-        """Create configuration from dictionary."""
-        cleanup = data.get("cleanup", {})
+    def from_dict(cls, data: dict) -> "ProjectScriptsConfig":
+        """Create project scripts configuration from dictionary."""
         return cls(
-            terminal=TerminalMode(data.get("terminal", "tab")),
-            terminal_always_new=data.get("terminal_always_new", False),
-            cleanup_kill_processes=cleanup.get("kill_processes", True),
+            init=data.get("init"),
+            custom=data.get("custom"),
         )
 
     def to_dict(self) -> dict:
-        """Convert configuration to dictionary."""
-        return {
-            "terminal": self.terminal.value,
-            "terminal_always_new": self.terminal_always_new,
-            "cleanup": {
-                "kill_processes": self.cleanup_kill_processes,
-            },
-        }
+        """Convert project scripts configuration to dictionary."""
+        result = {}
+        if self.init is not None:
+            result["init"] = self.init
+        if self.custom is not None:
+            result["custom"] = self.custom
+        return result
 
 
 @dataclass
 class ProjectConfig:
     """Project-specific configuration."""
 
-    init: str | None = None
+    scripts: ProjectScriptsConfig | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjectConfig":
         """Create project configuration from dictionary."""
+        scripts_data = data.get("scripts", {})
+        scripts = ProjectScriptsConfig.from_dict(scripts_data) if scripts_data else None
         return cls(
-            init=data.get("init"),
+            scripts=scripts,
         )
 
     def to_dict(self) -> dict:
         """Convert project configuration to dictionary."""
-        return {
-            "init": self.init,
-        }
+        result = {}
+        if self.scripts is not None:
+            scripts_dict = self.scripts.to_dict()
+            if scripts_dict:
+                result["scripts"] = scripts_dict
+        return result
+
+    @property
+    def init(self) -> str | None:
+        """Get init script from scripts configuration."""
+        return self.scripts.init if self.scripts else None
 
 
 @dataclass

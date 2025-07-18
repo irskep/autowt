@@ -3,9 +3,9 @@
 from pathlib import Path
 from unittest.mock import Mock
 
+from autowt.config import Config
 from autowt.models import (
     BranchStatus,
-    Configuration,
     ProcessInfo,
     ProjectConfig,
     TerminalMode,
@@ -17,14 +17,14 @@ class MockStateService:
     """Mock state service for testing."""
 
     def __init__(self):
-        self.configs: dict[str, Configuration] = {}
+        self.configs: dict[str, Config] = {}
         self.project_configs: dict[str, ProjectConfig] = {}
         self.session_ids: dict[str, str] = {}
 
-    def load_config(self) -> Configuration:
-        return self.configs.get("default", Configuration())
+    def load_config(self) -> Config:
+        return self.configs.get("default", Config())
 
-    def save_config(self, config: Configuration) -> None:
+    def save_config(self, config: Config) -> None:
         self.configs["default"] = config
 
     def load_project_config(self, repo_path: Path) -> ProjectConfig:

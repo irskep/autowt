@@ -1,4 +1,4 @@
-# Getting Started with autowt
+# Getting started with autowt
 
 This guide will walk you through installing `autowt`, setting it up for a project, and using its core features to streamline your development workflow.
 
@@ -39,11 +39,11 @@ If you have [uv](https://docs.astral.sh/uv/) installed, you can invoke autowt wi
 uvx autowt
 ```
 
-## Your First Worktree
+## Your first worktree
 
 Let's dive in and see `autowt` in action.
 
-### Step 1: Create a New Feature Branch
+### Step 1: Create a new feature branch
 
 Navigate to the root of any git repository you're working on. For this example, let's say your project is located at `~/dev/my-project`.
 
@@ -66,7 +66,7 @@ Here’s what `autowt` does behind the scenes:
 
 You now have a clean, isolated environment for your new feature, without disturbing the main branch.
 
-### Step 2: List Your Worktrees
+### Step 2: List your worktrees
 
 To see an overview of your worktrees, use the `ls` command:
 
@@ -74,11 +74,11 @@ To see an overview of your worktrees, use the `ls` command:
 autowt ls
 ```
 
-The output will look something like this, with an arrow `→` indicating your current directory and a `💻` icon for active terminal sessions.
+The output will look something like this, with an arrow `→` indicating your current directory and a `@` icon for active terminal sessions.
 
 ```txt
   Worktrees:
-→ ~/dev/my-project-worktrees/new-feature 💻      new-feature ←
+→ ~/dev/my-project-worktrees/new-feature @      new-feature ←
   ~/dev/my-project (main worktree)               main
 ```
 
@@ -90,11 +90,11 @@ The output will look something like this, with an arrow `→` indicating your cu
 
     If you want dependencies to be installed automatically, or need to copy over git-ignored files like `.env` from the main worktree, you can learn how to configure a setup script in the [Init Scripts guide](initscripts.md).
 
-## A Typical Workflow
+## A typical workflow
 
 Now that you have the basics down, let's walk through a common development scenario.
 
-### Juggling Multiple Tasks
+### Juggling multiple tasks
 
 Imagine you're working on `new-feature` when you get a request for an urgent bug fix. With `autowt`, you don't need to stash your changes. Just create a new worktree for the hotfix:
 
@@ -114,7 +114,7 @@ autowt new-feature --terminal=inplace
 
 Run `autowt config` to configure the default terminal behavior for switching worktrees.
 
-### Cleaning Up
+### Cleaning up
 
 Once your `hotfix/urgent-bug` branch is merged and no longer needed, you can clean it up.
 

@@ -5,46 +5,10 @@ from pathlib import Path
 from autowt.models import (
     BranchStatus,
     CleanupMode,
-    Configuration,
     ProcessInfo,
     TerminalMode,
     WorktreeInfo,
 )
-
-
-class TestConfiguration:
-    """Tests for Configuration model."""
-
-    def test_default_configuration(self):
-        """Test default configuration values."""
-        config = Configuration()
-        assert config.terminal == TerminalMode.TAB
-        assert config.terminal_always_new is False
-
-    def test_configuration_from_dict(self):
-        """Test creating configuration from dictionary."""
-        data = {"terminal": "tab", "terminal_always_new": True}
-        config = Configuration.from_dict(data)
-        assert config.terminal == TerminalMode.TAB
-        assert config.terminal_always_new is True
-
-    def test_configuration_from_dict_partial(self):
-        """Test creating configuration from partial dictionary."""
-        data = {"terminal": "window"}
-        config = Configuration.from_dict(data)
-        assert config.terminal == TerminalMode.WINDOW
-        assert config.terminal_always_new is False  # default
-
-    def test_configuration_to_dict(self):
-        """Test converting configuration to dictionary."""
-        config = Configuration(terminal=TerminalMode.INPLACE, terminal_always_new=True)
-        data = config.to_dict()
-        expected = {
-            "terminal": "inplace",
-            "terminal_always_new": True,
-            "cleanup": {"kill_processes": True},
-        }
-        assert data == expected
 
 
 class TestWorktreeInfo:
