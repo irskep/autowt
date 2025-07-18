@@ -40,6 +40,15 @@ def create_services() -> Services:
     return Services.create()
 
 
+def is_interactive_terminal() -> bool:
+    """Check if running in an interactive terminal.
+
+    Uses the same approach as Click's internal TTY detection.
+    This function can be easily mocked in tests for consistent behavior.
+    """
+    return sys.stdin.isatty()
+
+
 def _show_shell_config(shell_override: str | None = None) -> None:
     """Show shell integration instructions for the current shell."""
     shell = shell_override or os.getenv("SHELL", "").split("/")[-1]
@@ -332,7 +341,7 @@ def cleanup(
 
     # Default to interactive mode if no mode specified and we're in a TTY
     if mode is None:
-        if sys.stdin.isatty():
+        if is_interactive_terminal():
             mode = "interactive"
         else:
             # Non-interactive environment (script, CI, etc.) - require explicit mode

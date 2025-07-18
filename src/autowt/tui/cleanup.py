@@ -86,6 +86,8 @@ class CleanupTUI(App):
 
         # Status text
         status_parts = []
+        if branch_status.has_uncommitted_changes:
+            status_parts.append("[red]uncommitted[/]")
         if branch_status.is_merged:
             status_parts.append("[green]merged[/]")
         if not branch_status.has_remote:

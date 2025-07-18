@@ -166,6 +166,15 @@ def _select_branches_for_cleanup(
     merged_branches: list[BranchStatus],
 ) -> list[BranchStatus]:
     """Select which branches to clean up based on mode."""
+
+    def _filter_clean_worktrees(branches: list[BranchStatus]) -> list[BranchStatus]:
+        """Filter out worktrees with uncommitted changes."""
+        clean_branches = [b for b in branches if not b.has_uncommitted_changes]
+        dirty_count = len(branches) - len(clean_branches)
+        if dirty_count > 0:
+            print(f"Skipping {dirty_count} worktree(s) with uncommitted changes")
+        return clean_branches
+
     if mode == CleanupMode.ALL:
         # Combine and deduplicate by branch name
         all_branches = remoteless_branches + identical_branches + merged_branches
@@ -175,9 +184,9 @@ def _select_branches_for_cleanup(
             if branch_status.branch not in seen_branches:
                 to_cleanup.append(branch_status)
                 seen_branches.add(branch_status.branch)
-        return to_cleanup
+        return _filter_clean_worktrees(to_cleanup)
     elif mode == CleanupMode.REMOTELESS:
-        return remoteless_branches
+        return _filter_clean_worktrees(remoteless_branches)
     elif mode == CleanupMode.MERGED:
         # Include both identical and merged branches for "merged" mode
         # since both are safe to remove
@@ -188,8 +197,10 @@ def _select_branches_for_cleanup(
             if branch_status.branch not in seen_branches:
                 to_cleanup.append(branch_status)
                 seen_branches.add(branch_status.branch)
-        return to_cleanup
+        return _filter_clean_worktrees(to_cleanup)
     elif mode == CleanupMode.INTERACTIVE:
+        # Interactive mode shows all worktrees including those with uncommitted changes
+        # Users can make informed decisions about what to clean up
         return _interactive_selection(all_statuses)
     else:
         print(f"Unknown cleanup mode: {mode}")
