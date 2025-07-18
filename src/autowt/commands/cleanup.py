@@ -247,17 +247,26 @@ def _handle_running_processes(
 
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
 
-    # Show process summary (same as real execution)
-    if dry_run:
-        print(
-            f"{dry_run_prefix}Found {len(all_processes)} running processes that would be terminated:"
-        )
+    # Show list of processes that will be terminated
+    print(
+        f"\n{dry_run_prefix}Found {len(all_processes)} running processes in worktrees to be removed:"
+    )
+    for process in all_processes:
+        # Truncate long command lines for display
+        command = process.command
+        if len(command) > 80:
+            command = command[:77] + "..."
+        print(f"  PID {process.pid}: {command}")
+        print(f"    Working directory: {process.working_dir}")
 
-    process_service.print_process_summary(all_processes)
+    # Ask user for confirmation before killing processes (even in dry-run)
+    if not confirm_default_yes(f"\nTerminate these {len(all_processes)} processes?"):
+        print(f"{dry_run_prefix}Process termination cancelled.")
+        return False
 
     if dry_run:
         # In dry-run mode, simulate the termination
-        print(f"{dry_run_prefix}Would terminate {len(all_processes)} processes")
+        print(f"{dry_run_prefix}Would terminate these {len(all_processes)} processes")
         return True
     else:
         # Real execution - actually terminate processes
