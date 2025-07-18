@@ -300,6 +300,9 @@ class GitService:
             # Check if branch is merged (only if it had unique commits)
             is_merged = self._branch_is_merged_cached(repo_path, branch, default_branch)
 
+            # Check for uncommitted changes
+            has_uncommitted = self.has_uncommitted_changes(worktree.path)
+
             branch_statuses.append(
                 BranchStatus(
                     branch=branch,
@@ -307,6 +310,7 @@ class GitService:
                     is_merged=is_merged,
                     is_identical=is_identical,
                     path=worktree.path,
+                    has_uncommitted_changes=has_uncommitted,
                 )
             )
 
@@ -419,6 +423,32 @@ class GitService:
             return result.returncode == 0
 
         except Exception:
+            return False
+
+    def has_uncommitted_changes(self, worktree_path: Path) -> bool:
+        """Check if a worktree has uncommitted changes (staged or unstaged)."""
+        try:
+            # Check for staged and unstaged changes
+            result = run_command(
+                ["git", "status", "--porcelain"],
+                cwd=worktree_path,
+                timeout=10,
+                description=f"Check uncommitted changes in {worktree_path}",
+            )
+
+            # If status command succeeds and has output, there are uncommitted changes
+            if result.returncode == 0:
+                has_changes = bool(result.stdout.strip())
+                logger.debug(
+                    f"Worktree {worktree_path} has uncommitted changes: {has_changes}"
+                )
+                return has_changes
+
+            logger.debug(f"Failed to check status in {worktree_path}")
+            return False
+
+        except Exception as e:
+            logger.debug(f"Error checking uncommitted changes in {worktree_path}: {e}")
             return False
 
     def delete_branch(self, repo_path: Path, branch: str, force: bool = False) -> bool:
