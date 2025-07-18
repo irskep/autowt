@@ -8,6 +8,7 @@ from autowt.console import (
     console,
     print_command,
     print_error,
+    print_info,
     print_output,
     print_plain,
     print_prompt,
@@ -15,6 +16,7 @@ from autowt.console import (
     print_success,
 )
 from autowt.console import console as console2
+from autowt.global_config import options
 
 
 class TestConsoleTheme(unittest.TestCase):
@@ -101,9 +103,6 @@ class TestConsoleFunctions(unittest.TestCase):
     @patch("autowt.console.console")
     def test_output_suppression_when_enabled(self, mock_console):
         """Test that rich output can be suppressed via global option."""
-        from autowt.global_config import options
-        from autowt.console import print_info
-
         # Test normal output first
         print_info("Test info message")
         mock_console.print.assert_called_with("Test info message", style="info")
