@@ -2,7 +2,7 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.2.0 - Unreleased
+## 0.2.0 - 2025-07-18
 
 ### Added
 
