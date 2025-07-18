@@ -371,26 +371,14 @@ def _remove_worktrees_and_update_state(
             print(f"{dry_run_prefix}Would clear current worktree setting")
         print(f"{dry_run_prefix}Would update session IDs for removed branches")
     else:
-        # Real execution - actually update state
-        state = services.state.load_state(repo_path)
+        # Real execution - update session IDs
         removed_branches = {bs.branch for bs in to_cleanup}
-        state.worktrees = [
-            wt for wt in state.worktrees if wt.branch not in removed_branches
-        ]
-
-        # Clear current worktree if it was removed
-        if state.current_worktree in removed_branches:
-            state.current_worktree = None
-
-        services.state.save_state(state)
-
-        # Update session IDs
         session_ids = services.state.load_session_ids()
         for branch in removed_branches:
             session_ids.pop(branch, None)
         services.state.save_session_ids(session_ids)
 
-        print("state.toml updated")
+        print("Session IDs updated")
 
     summary = f"\n{dry_run_prefix}Cleanup complete. {'Would remove' if dry_run else 'Removed'} {removed_count} worktrees"
     if deleted_branches > 0:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
-from autowt.models import Services, SwitchCommand, TerminalMode, WorktreeInfo
+from autowt.models import Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.utils import sanitize_branch_name
 
@@ -60,10 +60,9 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
         print_error("Error: Not in a git repository")
         return
 
-    # Load configuration and state
+    # Load configuration
     config = services.state.load_config()
     project_config = services.state.load_project_config(repo_path)
-    state = services.state.load_state(repo_path)
     session_ids = services.state.load_session_ids()
 
     # Use project config init as default if no init_script provided
@@ -92,6 +91,16 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             break
 
     if existing_worktree:
+        # Check if we're already in this worktree
+        current_path = Path.cwd()
+        try:
+            if current_path.is_relative_to(existing_worktree.path):
+                print_info(f"Already in {switch_cmd.branch} worktree")
+                return
+        except ValueError:
+            # is_relative_to raises ValueError if not relative
+            pass
+
         # Switch to existing worktree - no init script needed (worktree already set up)
         session_id = session_ids.get(switch_cmd.branch)
         try:
@@ -122,7 +131,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             switch_cmd,
             repo_path,
             terminal_mode,
-            state,
             session_ids,
             init_script,
         )
@@ -136,7 +144,6 @@ def _create_new_worktree(
     switch_cmd: SwitchCommand,
     repo_path: Path,
     terminal_mode,
-    state,
     session_ids: dict,
     init_script: str | None = None,
 ) -> None:
@@ -208,16 +215,6 @@ def _create_new_worktree(
         return
 
     # Session ID will be registered by the new tab itself
-
-    # Update state
-    new_worktree = WorktreeInfo(
-        branch=switch_cmd.branch,
-        path=worktree_path,
-        session_id=None,  # Will be updated when session is registered
-    )
-    state.worktrees.append(new_worktree)
-    state.current_worktree = switch_cmd.branch
-    services.state.save_state(state)
 
     print_success(f"Switched to new {switch_cmd.branch} worktree")
 

@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from autowt.models import (
-    ApplicationState,
     BranchStatus,
     Configuration,
     ProcessInfo,
@@ -18,23 +17,9 @@ class MockStateService:
     """Mock state service for testing."""
 
     def __init__(self):
-        self.states: dict[str, ApplicationState] = {}
         self.configs: dict[str, Configuration] = {}
         self.project_configs: dict[str, ProjectConfig] = {}
         self.session_ids: dict[str, str] = {}
-        self.save_called = False
-        self.load_called = False
-
-    def load_state(self, repo_path: Path) -> ApplicationState:
-        self.load_called = True
-        key = str(repo_path)
-        return self.states.get(
-            key, ApplicationState(primary_clone=repo_path, worktrees=[])
-        )
-
-    def save_state(self, state: ApplicationState) -> None:
-        self.save_called = True
-        self.states[str(state.primary_clone)] = state
 
     def load_config(self) -> Configuration:
         return self.configs.get("default", Configuration())

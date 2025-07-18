@@ -96,6 +96,30 @@ class TestCheckoutCommand:
         assert call[2] == "session1"  # session ID
         assert call[3] is None  # init script
 
+    def test_checkout_already_in_worktree(
+        self, temp_repo_path, sample_worktrees, capsys
+    ):
+        """Test trying to switch to a worktree you're already in."""
+        # Setup mocks
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+
+        # Create SwitchCommand for feature1
+        switch_cmd = SwitchCommand(branch="feature1", terminal_mode=TerminalMode.TAB)
+
+        # Mock current working directory to be inside the feature1 worktree
+        target_worktree = sample_worktrees[0]  # feature1 worktree
+        with patch("pathlib.Path.cwd", return_value=target_worktree.path / "subdir"):
+            checkout.checkout_branch(switch_cmd, services)
+
+        # Verify no terminal switching was attempted
+        assert len(services.terminal.switch_calls) == 0
+
+        # Check that appropriate message was printed
+        captured = capsys.readouterr()
+        assert "Already in feature1 worktree" in captured.out
+
     def test_checkout_new_worktree(self, temp_repo_path):
         """Test creating new worktree."""
         # Setup mocks
@@ -126,8 +150,7 @@ class TestCheckoutCommand:
         assert switch_call[1] == TerminalMode.WINDOW
         assert switch_call[3] is None  # init script
 
-        # Verify state was saved
-        assert services.state.save_called
+        # State is no longer saved - worktree info is derived from git
 
     def test_checkout_decline_switch(self, temp_repo_path, sample_worktrees):
         """Test declining to switch to existing worktree."""
