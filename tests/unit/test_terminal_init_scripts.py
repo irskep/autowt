@@ -221,8 +221,8 @@ class TestInitScriptEdgeCases:
 
         captured = capsys.readouterr()
         assert success
-        # The whitespace gets trimmed when joining commands
-        assert captured.out.strip() == "cd /test/worktree;"
+        # The whitespace gets trimmed and filtered out, leaving only the cd command
+        assert captured.out.strip() == "cd /test/worktree"
 
     def test_init_script_with_special_characters(self, capsys):
         """Test init script with special shell characters in echo mode."""
@@ -232,6 +232,16 @@ class TestInitScriptEdgeCases:
         captured = capsys.readouterr()
         assert success
         expected = f"cd /test/worktree; {special_script}"
+        assert captured.out.strip() == expected
+
+    def test_multiline_init_script(self, capsys):
+        """Test multi-line init script gets normalized to single line in echo mode."""
+        multiline_script = "echo 'line1'\necho 'line2'\necho 'line3'"
+        success = self.terminal_service._echo_commands(self.test_path, multiline_script)
+
+        captured = capsys.readouterr()
+        assert success
+        expected = "cd /test/worktree; echo 'line1'; echo 'line2'; echo 'line3'"
         assert captured.out.strip() == expected
 
     def test_terminal_implementation_applescript_failure(

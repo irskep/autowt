@@ -164,7 +164,7 @@ class GitService:
 
         try:
             # Check if branch exists locally
-            result = run_command(
+            result = run_command_quiet_on_failure(
                 ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
                 cwd=repo_path,
                 timeout=10,
@@ -176,7 +176,7 @@ class GitService:
                 cmd = ["git", "worktree", "add", str(worktree_path), branch]
             else:
                 # Check if remote branch exists
-                result = run_command(
+                result = run_command_quiet_on_failure(
                     ["git", "show-ref", "--verify", f"refs/remotes/origin/{branch}"],
                     cwd=repo_path,
                     timeout=10,
@@ -331,7 +331,7 @@ class GitService:
 
             # Fall back to checking common default branches
             for branch in ["main", "master"]:
-                result = run_command(
+                result = run_command_quiet_on_failure(
                     ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
                     cwd=repo_path,
                     timeout=10,
