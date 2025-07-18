@@ -50,6 +50,7 @@ class BranchStatus:
     is_merged: bool
     is_identical: bool  # True if branch has no unique commits vs main
     path: Path
+    has_uncommitted_changes: bool = False
 
 
 @dataclass

@@ -6,9 +6,48 @@ from pathlib import Path
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
 from autowt.models import Services, SwitchCommand, TerminalMode, WorktreeInfo
+from autowt.prompts import confirm_default_yes
 from autowt.utils import sanitize_branch_name
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_alternative_worktree_path(base_path: Path, git_worktrees: list) -> Path:
+    """Generate an alternative worktree path with suffix when base path conflicts."""
+    # Extract the base name without any existing suffix
+    base_name = base_path.name
+    parent_dir = base_path.parent
+
+    # Try suffixes -2, -3, -4, etc.
+    suffix = 2
+    while suffix <= 100:  # Reasonable upper limit
+        alternative_name = f"{base_name}-{suffix}"
+        alternative_path = parent_dir / alternative_name
+
+        # Check if this alternative path conflicts with any existing worktree
+        conflicts = False
+        for worktree in git_worktrees:
+            if worktree.path == alternative_path:
+                conflicts = True
+                break
+
+        if not conflicts:
+            return alternative_path
+
+        suffix += 1
+
+    # If we somehow can't find an alternative, return original (shouldn't happen)
+    return base_path
+
+
+def _prompt_for_alternative_worktree(
+    original_path: Path, alternative_path: Path, conflicting_branch: str
+) -> bool:
+    """Prompt user to confirm using an alternative worktree path."""
+    print_info(
+        f"That branch's original worktree is now on a different branch ('{conflicting_branch}')"
+    )
+    return confirm_default_yes(f"Create a new worktree at {alternative_path}?")
 
 
 def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
@@ -111,16 +150,38 @@ def _create_new_worktree(
 
     # Check if the target path already exists with a different branch
     git_worktrees = services.git.list_worktrees(repo_path)
+    conflicting_worktree = None
     for worktree in git_worktrees:
         if worktree.path == worktree_path and worktree.branch != switch_cmd.branch:
+            conflicting_worktree = worktree
+            break
+
+    if conflicting_worktree:
+        # Generate alternative path and prompt user
+        alternative_path = _generate_alternative_worktree_path(
+            worktree_path, git_worktrees
+        )
+
+        if alternative_path == worktree_path:
+            # Fallback to original error if we can't find an alternative
             print_error(
-                f"✗ Directory {worktree_path} already exists with branch '{worktree.branch}'"
+                f"✗ Directory {worktree_path} already exists with branch '{conflicting_worktree.branch}'"
             )
             print_error(
-                f"  Try 'autowt {worktree.branch}' to switch to existing worktree"
+                f"  Try 'autowt {conflicting_worktree.branch}' to switch to existing worktree"
             )
             print_error("  Or 'autowt cleanup' to remove unused worktrees")
             return
+
+        # Prompt user to confirm using alternative path
+        if not _prompt_for_alternative_worktree(
+            worktree_path, alternative_path, conflicting_worktree.branch
+        ):
+            print_info("Worktree creation cancelled.")
+            return
+
+        # Use the alternative path
+        worktree_path = alternative_path
 
     print_info(f"Creating worktree for {switch_cmd.branch}...")
 
