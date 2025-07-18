@@ -1,22 +1,12 @@
 # Submit Changes
 
-Follow these steps to format, lint, commit, push, create a PR, and monitor CI:
+1. `mise run format && mise run lint`, then fix issues
+2. `mise run tests`, then fix issues
+3. Review changes with `git status` and `git diff`, checking for commits vs the merge-base of origin/main, as well as unstaged cahnges, and staged changes
+4. Stage and commit changes:
 
-1. **Format and lint code:**
    ```bash
-   mise run format
-   mise run lint
-   ```
-
-2. **Check git status and review changes:**
-   ```bash
-   git status
-   git diff
-   ```
-
-3. **Stage and commit changes:**
-   ```bash
-   git add .
+   git add . # or an appropriate set of files
    git commit -m "$(cat <<'EOF'
    [Your commit message here]
    
@@ -27,30 +17,18 @@ Follow these steps to format, lint, commit, push, create a PR, and monitor CI:
    )"
    ```
 
-4. **Push to remote:**
-   ```bash
-   git push -u origin [branch-name]
-   ```
+   Avoid unnecessary lists in your commit message. Avoid adding filler to lists to make them longer.
+5. `git push -u origin HEAD`
+6. Create a PR:
 
-5. **Create pull request:**
    ```bash
    gh pr create --title "[PR Title]" --body "$(cat <<'EOF'
-   ## Summary
-   - [Summary point 1]
-   - [Summary point 2]
-   
-   ## Test plan
-   - [x] [Test item 1]
-   - [x] [Test item 2]
+   <message>
    
    🤖 Generated with [Claude Code](https://claude.ai/code)
    EOF
    )"
    ```
 
-6. **Monitor CI:**
-   ```bash
-   uv run cimonitor watch --pr [PR-NUMBER]
-   ```
-
-Replace `[branch-name]`, `[PR Title]`, `[PR-NUMBER]`, and customize the commit message and PR body as needed.
+   Avoid unnecessary lists in the PR description. PR descriptions do not have a minimum length, just do what's appropriate. Adding fluff and over-emphasizing minor points makes you seem less intelligent.
+7. Monitor CI with `uv run cimonitor watch --pr=<pr-number>`
