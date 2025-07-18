@@ -78,6 +78,7 @@ dev = [
     "cimonitor>=0.1.5",
     "pytest-cov>=6.2.1",
     "pre-commit>=3.0.0",
+    "pytest-asyncio>=1.1.0",
 ]
 docs = [
     "mkdocs>=1.5.3",
