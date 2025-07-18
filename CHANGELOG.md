@@ -16,7 +16,7 @@
 
 ### Changed
 
-- Major refactoring of the configuration system. Settings are now managed via a hierarchical system with `config.toml` files (global and project-specific), environment variables, and CLI flags. See the [configuration guide](configuration.md) for full details.
+- Major refactoring of the configuration system. Settings are now managed via a hierarchical system with global `config.toml` and project `autowt.toml`/`.autowt.toml` files, environment variables, and CLI flags. See the [configuration guide](configuration.md) for full details.
 - Improved `autowt config` TUI to display actual platform-specific config file paths
 - Updated documentation to accurately reflect TUI capabilities and limitations
 
