@@ -84,4 +84,3 @@ These commands are for advanced use cases and troubleshooting.
 | Command | Description |
 | --- | --- |
 | `autowt register-session-for-path` | Manually registers the current terminal session for the current directory. |
-| `autowt list-sessions` | Lists all active terminal sessions that `autowt` is aware of. |

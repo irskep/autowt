@@ -260,36 +260,6 @@ def register_session_for_path(debug: bool) -> None:
 
 
 @main.command(
-    "list-sessions",
-    context_settings={"help_option_names": ["-h", "--help"]},
-)
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def list_sessions(debug: bool) -> None:
-    """List all terminal sessions with their working directories."""
-    setup_logging(debug)
-    services = create_services()
-
-    # Check if we have a terminal that supports session listing
-    if hasattr(services.terminal.terminal, "list_sessions_with_directories"):
-        sessions = services.terminal.terminal.list_sessions_with_directories()
-
-        if not sessions:
-            print("No sessions found or unable to retrieve session information.")
-            return
-
-        print("Terminal Sessions:")
-        print("-" * 80)
-        for session in sessions:
-            session_id = session["session_id"]
-            working_dir = session["working_directory"]
-            print(f"Session ID: {session_id}")
-            print(f"Working Directory: {working_dir}")
-            print("-" * 80)
-    else:
-        print("Current terminal does not support session listing.")
-
-
-@main.command(
     aliases=["list"], context_settings={"help_option_names": ["-h", "--help"]}
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
