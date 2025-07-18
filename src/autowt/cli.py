@@ -3,6 +3,7 @@
 import logging
 import os
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 import click
@@ -254,6 +255,17 @@ class AutowtGroup(ClickAliasedGroup):
     help="Automatically confirm all prompts",
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
+@click.option(
+    "--version",
+    is_flag=True,
+    expose_value=False,
+    is_eager=True,
+    callback=lambda ctx, param, value: (
+        click.echo(version("autowt")) if value else None,
+        ctx.exit() if value else None,
+    ),
+    help="Show version and exit",
+)
 @click.pass_context
 def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     """Git worktree manager.
