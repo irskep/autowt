@@ -1,87 +1,98 @@
 # CLI Reference
 
-This page provides a complete reference for all `autowt` commands, their options, and usage patterns.
-
-## Dynamic Branch Command: `autowt <branch-name>`
-
-This is the primary and most frequently used command in `autowt`. It dynamically handles branch creation and switching.
-
-| Option | Description |
-| --- | --- |
-| `--terminal [tab|window|inplace]` | Specify the terminal mode for this command. |
-| `--init <script>` | Run a script after switching to the worktree. |
-| `--after-init <script>` | Run a script after the `--init` script completes. |
-| `--ignore-same-session` | Always create a new terminal, even if a session for the worktree already exists. |
-| `-y`, `--yes` | Auto-confirm all prompts, such as switching to an existing session. |
-| `--debug` | Enable verbose debug logging for this command. |
-
-!!! info "Command-Name Conflicts"
-
-    If you have a branch with a name that conflicts with a built-in `autowt` command (e.g., a branch named `cleanup`), you must use the `switch` command to access it: `autowt switch cleanup`.
+This page provides a comprehensive reference for all `autowt` commands, their options, and usage patterns. For a hands-on introduction, check out the [Getting Started](gettingstarted.md) guide.
 
 ---
 
-## Core Commands
+### `autowt <branch-name>`
+*(Alias: `autowt switch <branch-name>`)*
+
+This is the primary and most convenient way to use `autowt`. It's a dynamic command that intelligently handles switching to an existing worktree or creating a new one. `autowt` automatically determines whether the branch exists locally or on the remote, or if it needs to be created from your repository's main branch.
+
+The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `switch` command if your branch name conflicts with another `autowt` command (e.g., `autowt switch cleanup`).
+
+<div class="autowt-clitable-wrapper"></div>
+
+| Option | Description |
+|---|---|
+| `--terminal <mode>` | Overrides the default terminal behavior. Modes include `tab`, `window`, `inplace`, and `echo`. See [Terminal Support](terminalsupport.md) for details. |
+| `--init <script>` | Runs a setup script in the new terminal session. Ideal for installing dependencies or copying config files. See [Init Scripts](initscripts.md). |
+| `--after-init <script>` | Runs a command *after* the `init` script completes. Perfect for starting a dev server or an [AI agent](aiagentworkflows.md). |
+| `--ignore-same-session` | Forces `autowt` to create a new terminal, even if a session for that worktree already exists. |
+| `-y`, `--yes` | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session. |
+
+---
 
 ### `autowt ls`
+*(Alias: `list`)*
 
-Lists all worktrees for the current project.
+Lists all worktrees for the current project, indicating the main worktree, your current location, and any active terminal sessions. Running `autowt` with no arguments is equivalent to `autowt ls`.
 
-| Option | Description |
-| --- | --- |
-| `--debug` | Enable debug logging. |
+```txt
+> autowt ls
 
-### `autowt switch <branch-name>`
+  Worktrees:
+  ~/dev/my-project-worktrees/feature-new-ui 💻   feature-new-ui
+  ~/dev/my-project-worktrees/hotfix-bug          hotfix-bug
+→ ~/dev/my-project (main worktree)               main ←
+```
 
-Explicitly switches to or creates a worktree. This is useful for avoiding command-name conflicts.
-
-| Option | Description |
-| --- | --- |
-| `--terminal [tab|window|inplace]` | Specify the terminal mode. |
-| `--init <script>` | Run a script after switching. |
-| `-y`, `--yes` | Auto-confirm all prompts. |
-| `--debug` | Enable debug logging. |
+---
 
 ### `autowt cleanup`
 
-Removes merged, identical, or remoteless worktrees.
+Safely removes worktrees, their directories, and associated local git branches. By default, it launches an interactive TUI to let you select which worktrees to remove. For more on cleanup strategies, see the [Branch Management](branchmanagement.md) guide.
+
+<div class="autowt-clitable-wrapper"></div>
 
 | Option | Description |
-| --- | --- |
-| `--mode [all|merged|remoteless|interactive]` | Set the cleanup mode (default: `all`). |
-| `--dry-run` | Preview the cleanup without deleting anything. |
-| `--force` | Force removal of worktrees with uncommitted changes. |
-| `--kill` / `--no-kill` | Override the configured process-killing behavior. |
-| `-y`, `--yes` | Auto-confirm all prompts. |
-| `--debug` | Enable debug logging. |
+|---|---|
+| `--mode <mode>` | Sets the cleanup mode. If not specified in a non-interactive environment (like CI), the command will exit. <br> • `interactive`: (Default in a TTY) Opens a TUI to let you choose what to remove. <br> • `all`: Non-interactively selects all merged and remoteless branches. <br> • `merged`: Selects branches that have been merged into your main branch. <br> • `remoteless`: Selects local branches that don't have an upstream remote. |
+| `--dry-run` | Previews which worktrees and branches would be removed without actually deleting anything. |
+| `--force` | **Use with caution.** Force-removes worktrees even if they have uncommitted changes. |
+| `--kill` / `--no-kill` | Overrides the configured behavior for terminating processes running in a worktree's directory before removal. |
+
+---
 
 ### `autowt config`
+*(Aliases: `configure`, `settings`)*
 
-Opens an interactive TUI to configure global `autowt` settings.
+Opens an interactive TUI to configure global `autowt` settings, such as the default terminal mode. Learn more in the [Configuration](configuration.md) guide.
+
+---
+
+### `autowt shellconfig`
+
+Displays shell functions to enable deeper integration with your shell, particularly for the `--terminal=echo` mode. For example, it can generate a function like this for your `.zshrc` or `.bashrc`:
+
+```bash
+autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
+```
+
+Once added to your shell's config, you can run `autowt_cd my-branch` to change the directory of your *current* terminal session, which is useful in terminals that don't support advanced control.
+
+---
+
+### `autowt register-session-for-path`
+
+Manually registers the current terminal session with the current directory. This is an advanced command useful for troubleshooting if session tracking becomes out of sync. See the [Troubleshooting](troubleshooting.md) guide for more help.
+
+---
+
+### `autowt list-sessions`
+
+Lists all active terminal sessions and their working directories that `autowt` can detect. This is an advanced command useful for debugging terminal integration issues.
+
+---
+
+### Global Options
+
+These options can be used with any `autowt` command.
+
+<div class="autowt-clitable-wrapper"></div>
 
 | Option | Description |
-| --- | --- |
-| `--debug` | Enable debug logging. |
-
----
-
-## Global Flags
-
-These flags can be used with any command.
-
-| Flag | Description |
-| --- | --- |
-| `--version` | Display the installed version of `autowt`. |
-| `-h`, `--help` | Show the help message for a command. |
-| `--debug` | Enable verbose debug logging. |
-
----
-
-## Advanced and Debugging Commands
-
-These commands are for advanced use cases and troubleshooting.
-
-| Command | Description |
-| --- | --- |
-| `autowt register-session-for-path` | Manually registers the current terminal session for the current directory. |
-| `autowt list-sessions` | Lists all active terminal sessions that `autowt` is aware of. |
+|---|---|
+| `-y`, `--yes` | Automatically answers "yes" to all confirmation prompts. |
+| `--debug` | Enables verbose debug logging for troubleshooting. |
+| `-h`, `--help` | Shows the help message for `autowt` or a specific subcommand. |

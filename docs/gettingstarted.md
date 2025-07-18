@@ -14,13 +14,11 @@ Before you begin, make sure you have the following installed:
 
 ### Pip
 
-First, `pip install autowt`.  To verify the installation, run `autowt` to show the current state:
+First, `pip install autowt`. To verify the installation, run `autowt` in a git repository to see its status:
 
 ```txt
-Primary clone: ~/dev/my-project
-You are in: main clone
-
-Branches:
+  Worktrees:
+→ ~/dev/my-project (main worktree)             main ←
 
 Use 'autowt <branch>' to switch to a worktree or create a new one.
 ```
@@ -78,18 +76,13 @@ To see an overview of your worktrees, use the `ls` command:
 autowt ls
 ```
 
-The output will look something like this:
+The output will look something like this, with an arrow `→` indicating your current directory and a `💻` icon for active terminal sessions.
 
+```txt
+  Worktrees:
+→ ~/dev/my-project-worktrees/new-feature 💻      new-feature ←
+  ~/dev/my-project (main worktree)               main
 ```
-Primary clone: ~/dev/my-project
-You are in: new-feature
-
-Branches:
-new-feature      ~/dev/my-project-worktrees/new-feature 💻
-main             ~/dev/my-project
-```
-
-The `💻` icon indicates that you have an active terminal session for that worktree.
 
 !!! info
 
@@ -97,9 +90,7 @@ The `💻` icon indicates that you have an active terminal session for that work
 
 !!! tip "Additional worktree setup"
 
-    If you want dependencies to be installed automatically, or need to copy over some gitignored files such as `.env` from the original clone, you can lean how to configure a setup script in FIXME.
-
-FIXME: audit docs for words that mean 'main worktree', such as 'primary clone' or 'main clone'. Replace _all_ with 'main worktree', and add a tooltip linking to the man page and containing a one-sentence explanation. The link at the top of index.md should also be replaced.
+    If you want dependencies to be installed automatically, or need to copy over git-ignored files like `.env` from the main worktree, you can learn how to configure a setup script in the [Init Scripts guide](initscripts.md).
 
 ---
 
@@ -117,7 +108,7 @@ autowt hotfix/urgent-bug
 
 A new terminal tab opens for the bug fix. You can now work on the fix without affecting your `new-feature` branch. Once you're done with the bug fix, close your terminal tab and forget about it.
 
-If you prefer to stay in your existing terminal tab the whole time, you can pass `--terminal-inplace`:
+If you prefer to stay in your existing terminal tab the whole time, you can pass `--terminal=inplace`:
 
 ```bash
 autowt hotfix/urgent-bug --terminal=inplace
@@ -144,3 +135,7 @@ autowt cleanup
 ```
 
 `autowt` will remove the worktree and, if the branch is merged, will also offer to delete the local git branch.
+
+---
+*[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
+*[main worktree]: The original repository directory, as opposed to the worktree directories managed by `autowt`.

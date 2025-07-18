@@ -9,7 +9,7 @@ nav:
   - Getting Started: gettingstarted.md
   - User Guide:
     - Branch Management: branchmanagement.md
-    - Terminal Integration: terminalintegration.md
+    - Init Scripts: initscripts.md
     - AI Agent Workflows: aiagentworkflows.md
   - Reference:
     - CLI Reference: clireference.md
@@ -45,8 +45,10 @@ theme:
     - search.share
     - content.code.copy
     - content.code.annotate
+    - content.tooltips
 
 markdown_extensions:
+  - abbr
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -88,3 +90,6 @@ extra:
       link: https://pypi.org/project/autowt/
   version:
     provider: mike
+
+extra_css:
+  - stylesheets/extra.css
