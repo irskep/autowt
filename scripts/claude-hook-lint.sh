@@ -15,7 +15,7 @@ if [[ "$file_path" == *.py ]]; then
     uv run ruff format "$file_path"
     
     # Run ruff check --fix and capture exit code
-    if ! uv run ruff check --fix "$file_path"; then
+    if ! uv run ruff check "$file_path"; then
         echo "Ruff found unfixable lint violations in $file_path:" >&2
         uv run ruff check "$file_path" >&2
         exit 1

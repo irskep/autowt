@@ -51,22 +51,14 @@ If you prefer to avoid any terminal automation (tab/window creation), you can co
 
 ### Option 1: Global configuration
 
-Set the default terminal mode to prevent automation:
-
-```bash
-# Via environment variable
-export AUTOWT_TERMINAL_MODE=echo
-
-# Or via config file
-autowt config
-# Set terminal.mode to "echo" or "inplace"
-```
+Set the default terminal mode to `echo` prevent automation, either using `autowt config`, or in `.autowt.toml`.
 
 ### Option 2: Shell integration
 
 Use the shell function from `autowt shellconfig` for manual directory switching:
 
 ```bash
+> autowt shellconfig
 # Add to your shell config (e.g., ~/.zshrc)
 autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
 

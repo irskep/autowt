@@ -7,7 +7,13 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
 
-from autowt.config import CleanupConfig, Config, TerminalConfig
+from autowt.config import (
+    CleanupConfig,
+    Config,
+    ConfigLoader,
+    TerminalConfig,
+    WorktreeConfig,
+)
 from autowt.models import Services, TerminalMode
 
 logger = logging.getLogger(__name__)
@@ -50,12 +56,23 @@ class ConfigApp(App):
                     value=self.config.terminal.mode == TerminalMode.INPLACE,
                     id="mode-inplace",
                 )
+                yield RadioButton(
+                    "echo - Output shell commands (for manual navigation)",
+                    value=self.config.terminal.mode == TerminalMode.ECHO,
+                    id="mode-echo",
+                )
 
             yield Label("")
 
             with Horizontal():
                 yield Switch(value=self.config.terminal.always_new, id="always-new")
                 yield Label("Always create new terminal")
+
+            yield Label("")
+
+            with Horizontal():
+                yield Switch(value=self.config.worktree.auto_fetch, id="auto-fetch")
+                yield Label("Automatically fetch from remote before creating worktrees")
 
             yield Label("")
 
@@ -71,6 +88,14 @@ class ConfigApp(App):
                 yield Button("Save", id="save")
                 yield Button("Cancel", id="cancel")
 
+            yield Label("")
+            yield Label("For all settings, edit the config file directly:")
+
+            # Get the actual global config path for this platform
+            config_loader = ConfigLoader(app_dir=self.services.state.app_dir)
+            global_config_path = config_loader.global_config_file
+            yield Label(f"• Global: {global_config_path}")
+            yield Label("• Project: autowt.toml or .autowt.toml in repository root")
             yield Label("")
             yield Label(
                 "Navigation: Tab to move around • Ctrl+S to save • Esc/Q to cancel"
@@ -106,10 +131,16 @@ class ConfigApp(App):
                 terminal_mode = TerminalMode.WINDOW
             elif pressed_button.id == "mode-inplace":
                 terminal_mode = TerminalMode.INPLACE
+            elif pressed_button.id == "mode-echo":
+                terminal_mode = TerminalMode.ECHO
 
         # Get always new setting
         always_new_switch = self.query_one("#always-new", Switch)
         always_new = always_new_switch.value
+
+        # Get auto fetch setting
+        auto_fetch_switch = self.query_one("#auto-fetch", Switch)
+        auto_fetch = auto_fetch_switch.value
 
         # Get kill processes setting
         kill_processes_switch = self.query_one("#kill-processes", Switch)
@@ -123,7 +154,13 @@ class ConfigApp(App):
                 always_new=always_new,
                 program=self.config.terminal.program,
             ),
-            worktree=self.config.worktree,
+            worktree=WorktreeConfig(
+                directory_pattern=self.config.worktree.directory_pattern,
+                max_worktrees=self.config.worktree.max_worktrees,
+                auto_fetch=auto_fetch,
+                default_remote=self.config.worktree.default_remote,
+                branch_sanitization=self.config.worktree.branch_sanitization,
+            ),
             cleanup=CleanupConfig(
                 kill_processes=kill_processes,
                 kill_process_timeout=self.config.cleanup.kill_process_timeout,

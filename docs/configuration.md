@@ -22,7 +22,7 @@ Your global settings are stored in a `config.toml` file in a platform-appropriat
 *   **Linux**: `~/.config/autowt/config.toml` (or `$XDG_CONFIG_HOME/autowt/config.toml`)
 *   **Windows**: `~/.autowt/config.toml`
 
-The easiest way to manage these settings is with the `autowt config` command, which launches an interactive TUI (Text-based User Interface).
+The easiest way to manage common settings is with the `autowt config` command, which launches an interactive TUI (Text-based User Interface) for the most frequently used options. For the complete set of configuration options, you can edit the config file directly.
 
 ### Project-specific configuration
 
