@@ -8,10 +8,12 @@ from pathlib import Path
 import click
 from click_aliases import ClickAliasedGroup
 
+from autowt.cli_config import create_cli_config_overrides, initialize_config
 from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings
 from autowt.commands.ls import list_worktrees
+from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
     CleanupCommand,
@@ -167,9 +169,26 @@ class AutowtGroup(ClickAliasedGroup):
             options.debug = kwargs.get("debug", False)
 
             setup_logging(kwargs.get("debug", False))
-            terminal_mode = (
-                TerminalMode(kwargs["terminal"]) if kwargs.get("terminal") else None
+
+            # Create CLI overrides for this specific command
+            cli_overrides = create_cli_config_overrides(
+                terminal=kwargs.get("terminal"),
+                init=kwargs.get("init"),
+                after_init=kwargs.get("after_init"),
+                ignore_same_session=kwargs.get("ignore_same_session", False),
             )
+
+            # Initialize configuration with CLI overrides
+            initialize_config(cli_overrides)
+
+            # Get terminal mode from configuration
+            config = get_config()
+            terminal_mode = (
+                config.terminal.mode
+                if not kwargs.get("terminal")
+                else TerminalMode(kwargs["terminal"])
+            )
+
             services = create_services()
             auto_register_session(services)
 
@@ -177,9 +196,10 @@ class AutowtGroup(ClickAliasedGroup):
             switch_cmd = SwitchCommand(
                 branch=cmd_name,
                 terminal_mode=terminal_mode,
-                init_script=kwargs.get("init"),
+                init_script=config.scripts.init,
                 after_init=kwargs.get("after_init"),
-                ignore_same_session=kwargs.get("ignore_same_session", False),
+                ignore_same_session=config.terminal.always_new
+                or kwargs.get("ignore_same_session", False),
                 auto_confirm=kwargs.get("auto_confirm", False),
                 debug=kwargs.get("debug", False),
             )
@@ -246,6 +266,9 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     options.debug = debug
 
     setup_logging(debug)
+
+    # Initialize configuration system early
+    initialize_config()
 
     # If no subcommand was invoked, show list
     if ctx.invoked_subcommand is None:
@@ -334,10 +357,25 @@ def cleanup(
     if kill and no_kill:
         raise click.UsageError("Cannot specify both --kill and --no-kill")
 
-    # Default to interactive mode if no mode specified and we're in a TTY
+    setup_logging(debug)
+
+    # Create CLI overrides for cleanup command
+    cli_overrides = create_cli_config_overrides(
+        mode=mode,
+        kill=kill,
+        no_kill=no_kill,
+    )
+
+    # Initialize configuration with CLI overrides
+    initialize_config(cli_overrides)
+
+    # Get configuration values
+    config = get_config()
+
+    # Use configured mode if not specified
     if mode is None:
         if is_interactive_terminal():
-            mode = "interactive"
+            mode = config.cleanup.default_mode.value
         else:
             # Non-interactive environment (script, CI, etc.) - require explicit mode
             raise click.UsageError(
@@ -345,16 +383,17 @@ def cleanup(
                 "Available modes: all, remoteless, merged, interactive"
             )
 
-    setup_logging(debug)
     services = create_services()
     auto_register_session(services)
 
-    # Determine kill_processes override
+    # Determine kill_processes from configuration or override
     kill_processes = None
     if kill:
         kill_processes = True
     elif no_kill:
         kill_processes = False
+    else:
+        kill_processes = config.cleanup.kill_processes
 
     cleanup_cmd = CleanupCommand(
         mode=CleanupMode(mode),
@@ -408,7 +447,20 @@ def shellconfig(debug: bool, shell: str | None) -> None:
 def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> None:
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
-    terminal_mode = TerminalMode(terminal) if terminal else None
+
+    # Create CLI overrides for switch command
+    cli_overrides = create_cli_config_overrides(
+        terminal=terminal,
+        init=init,
+    )
+
+    # Initialize configuration with CLI overrides
+    initialize_config(cli_overrides)
+
+    # Get configuration values
+    config = get_config()
+    terminal_mode = config.terminal.mode if not terminal else TerminalMode(terminal)
+
     services = create_services()
     auto_register_session(services)
 
@@ -416,7 +468,7 @@ def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> 
     switch_cmd = SwitchCommand(
         branch=branch,
         terminal_mode=terminal_mode,
-        init_script=init,
+        init_script=config.scripts.init,
         debug=debug,
     )
     checkout_branch(switch_cmd, services)

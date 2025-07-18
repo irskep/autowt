@@ -7,6 +7,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
 
+from autowt.config import CleanupConfig, Config, TerminalConfig
 from autowt.models import Services, TerminalMode
 
 logger = logging.getLogger(__name__)
@@ -36,31 +37,31 @@ class ConfigApp(App):
             with RadioSet(id="terminal-mode"):
                 yield RadioButton(
                     "tab - Open/switch to terminal tab",
-                    value=self.config.terminal == TerminalMode.TAB,
+                    value=self.config.terminal.mode == TerminalMode.TAB,
                     id="mode-tab",
                 )
                 yield RadioButton(
                     "window - Open/switch to terminal window",
-                    value=self.config.terminal == TerminalMode.WINDOW,
+                    value=self.config.terminal.mode == TerminalMode.WINDOW,
                     id="mode-window",
                 )
                 yield RadioButton(
                     "inplace - Change directory in current terminal",
-                    value=self.config.terminal == TerminalMode.INPLACE,
+                    value=self.config.terminal.mode == TerminalMode.INPLACE,
                     id="mode-inplace",
                 )
 
             yield Label("")
 
             with Horizontal():
-                yield Switch(value=self.config.terminal_always_new, id="always-new")
+                yield Switch(value=self.config.terminal.always_new, id="always-new")
                 yield Label("Always create new terminal")
 
             yield Label("")
 
             with Horizontal():
                 yield Switch(
-                    value=self.config.cleanup_kill_processes, id="kill-processes"
+                    value=self.config.cleanup.kill_processes, id="kill-processes"
                 )
                 yield Label("Kill processes during cleanup")
 
@@ -92,29 +93,49 @@ class ConfigApp(App):
 
     def _save_config(self) -> None:
         """Save configuration and exit."""
+
         # Get terminal mode from radio buttons
         radio_set = self.query_one("#terminal-mode", RadioSet)
         pressed_button = radio_set.pressed_button
 
+        terminal_mode = self.config.terminal.mode
         if pressed_button:
             if pressed_button.id == "mode-tab":
-                self.config.terminal = TerminalMode.TAB
+                terminal_mode = TerminalMode.TAB
             elif pressed_button.id == "mode-window":
-                self.config.terminal = TerminalMode.WINDOW
+                terminal_mode = TerminalMode.WINDOW
             elif pressed_button.id == "mode-inplace":
-                self.config.terminal = TerminalMode.INPLACE
+                terminal_mode = TerminalMode.INPLACE
 
         # Get always new setting
         always_new_switch = self.query_one("#always-new", Switch)
-        self.config.terminal_always_new = always_new_switch.value
+        always_new = always_new_switch.value
 
         # Get kill processes setting
         kill_processes_switch = self.query_one("#kill-processes", Switch)
-        self.config.cleanup_kill_processes = kill_processes_switch.value
+        kill_processes = kill_processes_switch.value
+
+        # Create new config with updated values (immutable dataclasses)
+
+        new_config = Config(
+            terminal=TerminalConfig(
+                mode=terminal_mode,
+                always_new=always_new,
+                program=self.config.terminal.program,
+            ),
+            worktree=self.config.worktree,
+            cleanup=CleanupConfig(
+                kill_processes=kill_processes,
+                kill_process_timeout=self.config.cleanup.kill_process_timeout,
+                default_mode=self.config.cleanup.default_mode,
+            ),
+            scripts=self.config.scripts,
+            confirmations=self.config.confirmations,
+        )
 
         # Save configuration
         try:
-            self.services.state.save_config(self.config)
+            self.services.state.save_config(new_config)
             self.exit()
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")

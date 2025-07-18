@@ -74,11 +74,11 @@ To see an overview of your worktrees, use the `ls` command:
 autowt ls
 ```
 
-The output will look something like this, with an arrow `→` indicating your current directory and a `💻` icon for active terminal sessions.
+The output will look something like this, with an arrow `→` indicating your current directory and a `@` icon for active terminal sessions.
 
 ```txt
   Worktrees:
-→ ~/dev/my-project-worktrees/new-feature 💻      new-feature ←
+→ ~/dev/my-project-worktrees/new-feature @      new-feature ←
   ~/dev/my-project (main worktree)               main
 ```
 

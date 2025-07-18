@@ -24,14 +24,14 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 
 Lists all worktrees for the current project, indicating the main worktree, your current location, and any active terminal sessions. Running `autowt` with no arguments is equivalent to `autowt ls`.
 
-The laptop emoji indicates that there is an active terminal session for a worktree.
+The @ symbol indicates that there is an active terminal session for a worktree.
 
 ```txt
 > autowt ls
 
   Worktrees:
 → ~/dev/my-project (main worktree)                         main ←
-  ~/dev/my-project-worktrees/feature-new-ui 💻   feature-new-ui
+  ~/dev/my-project-worktrees/feature-new-ui @   feature-new-ui
   ~/dev/my-project-worktrees/hotfix-bug              hotfix-bug
 ```
 

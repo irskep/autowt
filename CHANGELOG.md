@@ -8,6 +8,8 @@
 
 ### Changed
 
+- Major refactoring of the configuration system. Settings are now managed via a hierarchical system with `config.toml` files (global and project-specific), environment variables, and CLI flags. See the [configuration guide](configuration.md) for full details.
+
 ### Fixed
 
 ## 0.1.0 - 2025-07-18

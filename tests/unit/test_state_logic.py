@@ -4,7 +4,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from autowt.models import Configuration, TerminalMode
+from autowt.config import Config, TerminalConfig
+from autowt.models import TerminalMode
 from autowt.services.state import StateService
 
 
@@ -14,31 +15,31 @@ class TestStateServiceLogic:
     def test_config_round_trip_conversion(self):
         """Test converting config to dict and back preserves data."""
         # Create original config
-        original_config = Configuration(
-            terminal=TerminalMode.WINDOW, terminal_always_new=True
+        original_config = Config(
+            terminal=TerminalConfig(mode=TerminalMode.WINDOW, always_new=True)
         )
 
         # Convert to dict and back
         config_dict = original_config.to_dict()
-        restored_config = Configuration.from_dict(config_dict)
+        restored_config = Config.from_dict(config_dict)
 
         # Verify data preservation
-        assert restored_config.terminal == original_config.terminal
+        assert restored_config.terminal.mode == original_config.terminal.mode
         assert (
-            restored_config.terminal_always_new == original_config.terminal_always_new
+            restored_config.terminal.always_new == original_config.terminal.always_new
         )
 
     def test_config_partial_data_handling(self):
         """Test config creation with partial data uses defaults."""
         # Test with minimal data
-        config = Configuration.from_dict({})
-        assert config.terminal == TerminalMode.TAB  # default
-        assert config.terminal_always_new is False  # default
+        config = Config.from_dict({})
+        assert config.terminal.mode == TerminalMode.TAB  # default
+        assert config.terminal.always_new is False  # default
 
         # Test with partial data
-        config = Configuration.from_dict({"terminal": "tab"})
-        assert config.terminal == TerminalMode.TAB
-        assert config.terminal_always_new is False  # default
+        config = Config.from_dict({"terminal": {"mode": "tab"}})
+        assert config.terminal.mode == TerminalMode.TAB
+        assert config.terminal.always_new is False  # default
 
 
 class TestStateServicePlatformLogic:

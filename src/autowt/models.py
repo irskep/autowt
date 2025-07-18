@@ -53,35 +53,6 @@ class BranchStatus:
 
 
 @dataclass
-class Configuration:
-    """Application configuration."""
-
-    terminal: TerminalMode = TerminalMode.TAB
-    terminal_always_new: bool = False
-    cleanup_kill_processes: bool = True
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "Configuration":
-        """Create configuration from dictionary."""
-        cleanup = data.get("cleanup", {})
-        return cls(
-            terminal=TerminalMode(data.get("terminal", "tab")),
-            terminal_always_new=data.get("terminal_always_new", False),
-            cleanup_kill_processes=cleanup.get("kill_processes", True),
-        )
-
-    def to_dict(self) -> dict:
-        """Convert configuration to dictionary."""
-        return {
-            "terminal": self.terminal.value,
-            "terminal_always_new": self.terminal_always_new,
-            "cleanup": {
-                "kill_processes": self.cleanup_kill_processes,
-            },
-        }
-
-
-@dataclass
 class ProjectConfig:
     """Project-specific configuration."""
 

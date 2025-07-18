@@ -1,0 +1,130 @@
+# autowt Configuration File
+# 
+# This is a comprehensive example of all configuration options for autowt.
+# Configuration is loaded from multiple sources in this order:
+#   1. Global config: ~/.config/autowt/config.toml (Linux) or ~/Library/Application Support/autowt/config.toml (macOS)
+#   2. Project config: autowt.toml or .autowt.toml in project root
+#   3. Environment variables: AUTOWT_* prefix
+#   4. Command line flags
+#
+# Later sources override earlier ones.
+
+# ============================================================================
+# Terminal Management
+# ============================================================================
+
+[terminal]
+# How autowt opens worktrees in your terminal
+# Options: "tab" (default), "window", "inplace", "echo"
+#   - tab: Open in a new tab
+#   - window: Open in a new window
+#   - inplace: Switch the current terminal to the worktree directory
+#   - echo: Output shell commands (for shell integration)
+# CLI: --terminal=tab
+# ENV: AUTOWT_TERMINAL_MODE=tab
+mode = "tab"
+
+# Always create a new terminal session instead of switching to existing ones
+# Useful if you want to keep multiple terminals open for the same worktree
+# CLI: --ignore-same-session
+# ENV: AUTOWT_TERMINAL_ALWAYS_NEW=true
+always_new = false
+
+# Force a specific terminal program instead of auto-detection
+# Leave commented to use auto-detection
+# ENV: AUTOWT_TERMINAL_PROGRAM=iterm2
+# program = "iterm2"  # Options: iterm2, terminal, tmux, gnome-terminal, konsole, etc.
+
+# ============================================================================
+# Worktree Management
+# ============================================================================
+
+[worktree]
+# Pattern for worktree directory location
+# Variables: {repo_dir}, {repo_name}, {branch}
+# Default: "../{repo_name}-worktrees/{branch}"
+# Can also use environment variables: "$HOME/worktrees/{repo_name}/{branch}"
+# ENV: AUTOWT_WORKTREE_DIRECTORY_PATTERN="../{repo_name}-worktrees/{branch}"
+directory_pattern = "../{repo_name}-worktrees/{branch}"
+
+# Maximum number of worktrees allowed per repository
+# Helps prevent disk space issues in large teams
+# ENV: AUTOWT_WORKTREE_MAX_WORKTREES=20
+# max_worktrees = 20
+
+# Automatically fetch from remote before creating new worktrees
+# CLI: --no-fetch (to disable)
+# ENV: AUTOWT_WORKTREE_AUTO_FETCH=false
+auto_fetch = true
+
+# Default remote to use when multiple remotes exist
+# ENV: AUTOWT_WORKTREE_DEFAULT_REMOTE=origin
+default_remote = "origin"
+
+# Rules for sanitizing branch names into directory names
+# Each rule is applied in order
+[worktree.branch_sanitization]
+# Replace these characters with underscores
+# ENV: AUTOWT_WORKTREE_BRANCH_SANITIZATION_REPLACE_CHARS="/:#@^~"
+replace_chars = "/:#@^~"
+# Maximum directory name length
+# ENV: AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH=255
+max_length = 255
+# Convert to lowercase
+# ENV: AUTOWT_WORKTREE_BRANCH_SANITIZATION_LOWERCASE=true
+lowercase = false
+
+# ============================================================================
+# Cleanup Configuration
+# ============================================================================
+
+[cleanup]
+# Kill processes running in worktrees during cleanup
+# CLI: --kill / --no-kill
+# ENV: AUTOWT_CLEANUP_KILL_PROCESSES=false
+kill_processes = true
+
+# Timeout in seconds when killing processes
+# ENV: AUTOWT_CLEANUP_KILL_PROCESS_TIMEOUT=15
+kill_process_timeout = 10 # seconds
+
+# Default mode for cleanup command
+# Options: "interactive" (default), "merged", "remoteless", "all"
+# CLI: --mode=merged
+# ENV: AUTOWT_CLEANUP_DEFAULT_MODE=merged
+default_mode = "interactive"
+
+# ============================================================================
+# Init Scripts and Hooks
+# ============================================================================
+
+[scripts]
+# Command to run after creating or switching to a worktree
+# CLI: --init="npm install"
+# ENV: AUTOWT_SCRIPTS_INIT="npm install && npm run dev"
+init = "echo 'Always run after creating a new worktree; copy env vars & install dependencies'"
+
+[scripts.custom]
+# Custom scripts for specialized worktree initialization
+# Runs AFTER the standard init script for specific workflows
+# CLI: autowt feature-branch --custom-script="bugfix"
+# Note: For one-time custom scripts, use --after-init="command" instead
+bugfix = 'claude "Fix the bug described in GitHub issue $1"' # arguments are passed to the script
+release = 'claude "/release"' # asks claude to run .claude/commands/release.md
+
+# ============================================================================
+# User Interface
+# ============================================================================
+
+# Confirmation prompts
+[confirmations]
+# Which operations require confirmation
+# CLI: -y / --yes (to skip all confirmations)
+# ENV: AUTOWT_CONFIRMATIONS_CLEANUP_MULTIPLE=false
+cleanup_multiple = true  # When cleaning up multiple worktrees
+
+# ENV: AUTOWT_CONFIRMATIONS_KILL_PROCESS=false
+kill_process = true  # When killing processes
+
+# ENV: AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS=false  
+force_operations = true  # When using --force flag

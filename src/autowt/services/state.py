@@ -7,7 +7,8 @@ from pathlib import Path
 
 import toml
 
-from autowt.models import Configuration, ProjectConfig
+from autowt.config import Config, ConfigLoader
+from autowt.models import ProjectConfig
 
 logger = logging.getLogger(__name__)
 
@@ -43,22 +44,13 @@ class StateService:
             # Windows or other
             return Path.home() / ".autowt"
 
-    def load_config(self) -> Configuration:
-        """Load application configuration."""
-        logger.debug("Loading configuration")
+    def load_config(self) -> Config:
+        """Load application configuration using new config system."""
+        logger.debug("Loading configuration via ConfigLoader")
 
-        if not self.config_file.exists():
-            logger.debug("No config file found, using defaults")
-            return Configuration()
-
-        try:
-            data = toml.load(self.config_file)
-            config = Configuration.from_dict(data)
-            logger.debug("Configuration loaded successfully")
-            return config
-        except Exception as e:
-            logger.error(f"Failed to load configuration: {e}")
-            return Configuration()
+        # Use the new configuration system
+        config_loader = ConfigLoader(app_dir=self.app_dir)
+        return config_loader.load_config()
 
     def load_project_config(self, cwd: Path) -> ProjectConfig:
         """Load project configuration from autowt.toml or .autowt.toml in current directory."""
@@ -84,17 +76,13 @@ class StateService:
         logger.debug("No project config file found, using defaults")
         return ProjectConfig()
 
-    def save_config(self, config: Configuration) -> None:
-        """Save application configuration."""
-        logger.debug("Saving configuration")
+    def save_config(self, config: Config) -> None:
+        """Save application configuration using new config system."""
+        logger.debug("Saving configuration via ConfigLoader")
 
-        try:
-            with open(self.config_file, "w") as f:
-                toml.dump(config.to_dict(), f)
-            logger.debug("Configuration saved successfully")
-        except Exception as e:
-            logger.error(f"Failed to save configuration: {e}")
-            raise
+        # Use the new configuration system
+        config_loader = ConfigLoader(app_dir=self.app_dir)
+        config_loader.save_config(config)
 
     def load_session_ids(self) -> dict[str, str]:
         """Load session ID mappings for branches."""

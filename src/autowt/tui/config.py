@@ -5,6 +5,7 @@ from textual.binding import Binding
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Button, Footer, Header, Label, RadioButton, RadioSet, Switch
 
+from autowt.config import Config, TerminalConfig
 from autowt.models import TerminalMode
 from autowt.services.state import StateService
 
@@ -40,17 +41,17 @@ class ConfigTUI(App):
                 with RadioSet(id="terminal-mode"):
                     yield RadioButton(
                         "tab - Switch to existing session or open new tab",
-                        value=self.config.terminal == TerminalMode.TAB,
+                        value=self.config.terminal.mode == TerminalMode.TAB,
                         id="mode-tab",
                     )
                     yield RadioButton(
                         "window - Switch to existing session or open new window",
-                        value=self.config.terminal == TerminalMode.WINDOW,
+                        value=self.config.terminal.mode == TerminalMode.WINDOW,
                         id="mode-window",
                     )
                     yield RadioButton(
                         "inplace - Change directory in current terminal",
-                        value=self.config.terminal == TerminalMode.INPLACE,
+                        value=self.config.terminal.mode == TerminalMode.INPLACE,
                         id="mode-inplace",
                     )
 
@@ -58,7 +59,7 @@ class ConfigTUI(App):
 
                 yield Label("Terminal Behavior:", classes="section-label")
                 with Horizontal(classes="switch-row"):
-                    yield Switch(value=self.config.terminal_always_new, id="always-new")
+                    yield Switch(value=self.config.terminal.always_new, id="always-new")
                     yield Label(
                         "Always create new terminal (don't switch to existing)",
                         classes="switch-label",
@@ -83,21 +84,36 @@ class ConfigTUI(App):
         radio_set = self.query_one("#terminal-mode", RadioSet)
         pressed_button = radio_set.pressed_button
 
+        terminal_mode = self.config.terminal.mode
         if pressed_button:
             if pressed_button.id == "mode-tab":
-                self.config.terminal = TerminalMode.TAB
+                terminal_mode = TerminalMode.TAB
             elif pressed_button.id == "mode-window":
-                self.config.terminal = TerminalMode.WINDOW
+                terminal_mode = TerminalMode.WINDOW
             elif pressed_button.id == "mode-inplace":
-                self.config.terminal = TerminalMode.INPLACE
+                terminal_mode = TerminalMode.INPLACE
 
         # Get always new setting
         always_new_switch = self.query_one("#always-new", Switch)
-        self.config.terminal_always_new = always_new_switch.value
+        always_new = always_new_switch.value
+
+        # Create new config with updated values (immutable dataclasses)
+
+        new_config = Config(
+            terminal=TerminalConfig(
+                mode=terminal_mode,
+                always_new=always_new,
+                program=self.config.terminal.program,
+            ),
+            worktree=self.config.worktree,
+            cleanup=self.config.cleanup,
+            scripts=self.config.scripts,
+            confirmations=self.config.confirmations,
+        )
 
         # Save configuration
         try:
-            self.state_service.save_config(self.config)
+            self.state_service.save_config(new_config)
             self.saved = True
             self.exit()
         except Exception as e:
