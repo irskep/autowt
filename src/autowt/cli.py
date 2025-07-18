@@ -39,6 +39,45 @@ def create_services() -> Services:
     return Services.create()
 
 
+def _show_shell_config() -> None:
+    """Show shell integration instructions for the current shell."""
+    shell = os.getenv("SHELL", "").split("/")[-1]
+
+    print("# Shell Integration for autowt")
+    print(
+        "# Add this function to your shell configuration for convenient echo mode usage:"
+    )
+    print()
+
+    if shell == "fish":
+        print("# Add to ~/.config/fish/config.fish:")
+        print("function autowt_cd")
+        print("    eval (autowt $argv --terminal=echo)")
+        print("end")
+        print()
+        print("# Then use: autowt_cd branch-name")
+    elif shell in ["bash", "zsh"]:
+        config_file = "~/.bashrc" if shell == "bash" else "~/.zshrc"
+        print(f"# Add to {config_file}:")
+        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
+        print()
+        print("# Then use: autowt_cd branch-name")
+    else:
+        print("# For bash/zsh - add to ~/.bashrc or ~/.zshrc:")
+        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
+        print()
+        print("# For fish - add to ~/.config/fish/config.fish:")
+        print("function autowt_cd")
+        print("    eval (autowt $argv --terminal=echo)")
+        print("end")
+        print()
+        print("# Then use: autowt_cd branch-name")
+
+    print()
+    print("# Alternatively, use --terminal=inplace for direct execution (macOS only):")
+    print("# autowt branch-name --terminal=inplace")
+
+
 # Custom Group class that handles unknown commands as branch names
 class AutowtGroup(click.Group):
     def get_command(self, ctx, cmd_name):
@@ -78,7 +117,7 @@ class AutowtGroup(click.Group):
             params=[
                 click.Option(
                     ["--terminal"],
-                    type=click.Choice(["tab", "window", "inplace"]),
+                    type=click.Choice(["tab", "window", "inplace", "echo"]),
                     help="How to open the worktree terminal",
                 ),
                 click.Option(
@@ -257,10 +296,18 @@ def config(debug: bool) -> None:
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+def shellconfig(debug: bool) -> None:
+    """Show shell integration instructions for your current shell."""
+    setup_logging(debug)
+    _show_shell_config()
+
+
+@main.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("branch")
 @click.option(
     "--terminal",
-    type=click.Choice(["tab", "window", "inplace"]),
+    type=click.Choice(["tab", "window", "inplace", "echo"]),
     help="How to open the worktree terminal",
 )
 @click.option(

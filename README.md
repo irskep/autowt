@@ -96,16 +96,35 @@ Control how autowt opens terminals:
 ```bash
 autowt branch-name --terminal=tab     # Switch to existing session or new tab (default)
 autowt branch-name --terminal=window  # Switch to existing session or new window
-autowt branch-name --terminal=inplace # Change directory in current terminal
+autowt branch-name --terminal=inplace # Change directory directly in current terminal
+autowt branch-name --terminal=echo    # Output commands for manual evaluation
 ```
 
 **Smart terminal switching:** When using `tab` or `window` modes, autowt first checks if the worktree already has a terminal session. If it does, it prompts whether to switch to the existing session or create a new one. Use `--yes` to automatically switch to existing sessions without prompting.
 
-With `--terminal=inplace`, autowt outputs shell commands that can be evaluated:
+**Inplace mode** uses osascript (macOS) to execute directory changes directly in your current terminal session, providing seamless switching without opening new tabs or windows.
+
+**Echo mode** outputs shell commands that can be evaluated manually or through shell functions:
 
 ```bash
-eval "$(autowt branch-name --terminal=inplace)"
+eval "$(autowt branch-name --terminal=echo)"
 ```
+
+### Shell Integration for Echo Mode
+
+Create a convenient shell function for echo mode:
+
+```bash
+# bash/zsh - add to ~/.bashrc or ~/.zshrc
+autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
+
+# fish - add to ~/.config/fish/config.fish
+function autowt_cd
+    eval (autowt $argv --terminal=echo)
+end
+```
+
+Then use: `autowt_cd branch-name`
 
 Configure the default behavior:
 
@@ -154,6 +173,7 @@ The state includes worktree locations, current branch tracking, and terminal ses
 - `autowt ls` - List all worktrees and current location  
 - `autowt cleanup` - Remove merged, identical, or remoteless worktrees
 - `autowt config` - Configure terminal behavior using interactive TUI
+- `autowt shellconfig` - Show shell integration instructions for your current shell
 
 All commands support `-h` for help, `-y/--yes` for auto-confirmation, and `--debug` for verbose logging.
 

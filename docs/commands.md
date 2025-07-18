@@ -88,7 +88,7 @@ Usage: autowt switch [OPTIONS] BRANCH
   Switch to or create a worktree for the specified branch.
 
 Options:
-  --terminal [tab|window|inplace]
+  --terminal [tab|window|inplace|echo]
                                   How to open the worktree terminal
   --init TEXT                     Init script to run in the new terminal
   --debug                         Enable debug logging
