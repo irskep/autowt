@@ -4,6 +4,7 @@ python.uv_venv_auto = true
 [tools]
 python = "3.12"
 uv = "latest"
+jq = "latest"
 
 [env]
 _.python.venv = { path = ".venv" }
@@ -15,6 +16,7 @@ test = "uv run pytest"
 lint = "uv run ruff check"
 format = "uv run ruff format"
 format-check = "uv run ruff format --check"
+claude-hook-lint = "./scripts/claude-hook-lint.sh"
 docs-install = "uv sync --extra docs"
 docs-serve = "uv run mkdocs serve"
 docs-build = "uv run mkdocs build"

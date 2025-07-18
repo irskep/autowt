@@ -7,5 +7,18 @@
     "deny": [
       "Bash(python:*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mise claude-hook-lint"
+          }
+        ]
+      }
+    ]
   }
 }
