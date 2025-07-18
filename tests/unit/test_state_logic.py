@@ -4,36 +4,12 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from autowt.models import ApplicationState, Configuration, TerminalMode, WorktreeInfo
+from autowt.models import Configuration, TerminalMode
 from autowt.services.state import StateService
 
 
 class TestStateServiceLogic:
     """Tests for StateService business logic (not file I/O)."""
-
-    def test_state_round_trip_conversion(self, temp_repo_path, sample_worktrees):
-        """Test converting state to dict and back preserves data."""
-        # Create original state
-        original_state = ApplicationState(
-            primary_clone=temp_repo_path,
-            worktrees=sample_worktrees,
-            current_worktree="feature1",
-        )
-
-        # Convert to dict and back
-        state_dict = original_state.to_dict()
-        restored_state = ApplicationState.from_dict(state_dict, temp_repo_path)
-
-        # Verify data preservation
-        assert restored_state.primary_clone == original_state.primary_clone
-        assert restored_state.current_worktree == original_state.current_worktree
-        assert len(restored_state.worktrees) == len(original_state.worktrees)
-
-        for orig, restored in zip(original_state.worktrees, restored_state.worktrees):
-            assert orig.branch == restored.branch
-            assert orig.path == restored.path
-            assert orig.is_current == restored.is_current
-            assert orig.session_id == restored.session_id
 
     def test_config_round_trip_conversion(self):
         """Test converting config to dict and back preserves data."""
@@ -63,33 +39,6 @@ class TestStateServiceLogic:
         config = Configuration.from_dict({"terminal": "tab"})
         assert config.terminal == TerminalMode.TAB
         assert config.terminal_always_new is False  # default
-
-    def test_state_empty_data_handling(self, temp_repo_path):
-        """Test state creation with empty data."""
-        state = ApplicationState.from_dict({}, temp_repo_path)
-        assert state.primary_clone == temp_repo_path
-        assert state.worktrees == []
-        assert state.current_worktree is None
-
-    def test_state_worktree_data_conversion(self, temp_repo_path):
-        """Test worktree data conversion edge cases."""
-        data = {
-            "worktrees": [
-                {
-                    "branch": "test",
-                    "path": "/test/path",
-                    # Missing optional fields
-                }
-            ]
-        }
-
-        state = ApplicationState.from_dict(data, temp_repo_path)
-        worktree = state.worktrees[0]
-
-        assert worktree.branch == "test"
-        assert worktree.path == Path("/test/path")
-        assert worktree.is_current is False  # default
-        assert worktree.session_id is None  # default
 
 
 class TestStateServicePlatformLogic:
@@ -146,65 +95,6 @@ class TestStateServicePlatformLogic:
                 service = StateService()
                 expected = temp_home / ".autowt"
                 assert service.app_dir == expected
-
-
-class TestStateUpdateLogic:
-    """Tests for state update business logic."""
-
-    def test_add_worktree_to_state(self, sample_app_state):
-        """Test adding a new worktree to existing state."""
-        new_worktree = WorktreeInfo(
-            branch="new-feature",
-            path=Path("/path/to/new-feature"),
-            is_current=False,
-            session_id="new-session",
-        )
-
-        # Add worktree
-        original_count = len(sample_app_state.worktrees)
-        sample_app_state.worktrees.append(new_worktree)
-
-        # Verify addition
-        assert len(sample_app_state.worktrees) == original_count + 1
-        assert new_worktree in sample_app_state.worktrees
-
-    def test_remove_worktree_from_state(self, sample_app_state):
-        """Test removing a worktree from state."""
-        # Get initial state
-        original_count = len(sample_app_state.worktrees)
-        branch_to_remove = "feature1"
-
-        # Remove worktree
-        sample_app_state.worktrees = [
-            wt for wt in sample_app_state.worktrees if wt.branch != branch_to_remove
-        ]
-
-        # Verify removal
-        assert len(sample_app_state.worktrees) == original_count - 1
-        remaining_branches = [wt.branch for wt in sample_app_state.worktrees]
-        assert branch_to_remove not in remaining_branches
-
-    def test_update_current_worktree(self, sample_app_state):
-        """Test updating current worktree in state."""
-        original_current = sample_app_state.current_worktree
-        new_current = "feature1"
-
-        # Update current worktree
-        sample_app_state.current_worktree = new_current
-
-        # Verify change
-        assert sample_app_state.current_worktree == new_current
-        assert sample_app_state.current_worktree != original_current
-
-    def test_clear_current_worktree(self, sample_app_state):
-        """Test clearing current worktree."""
-        assert sample_app_state.current_worktree is not None
-
-        # Clear current worktree
-        sample_app_state.current_worktree = None
-
-        # Verify cleared
-        assert sample_app_state.current_worktree is None
 
 
 class TestSessionIdLogic:

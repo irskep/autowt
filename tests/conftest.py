@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 import pytest
 
 from autowt.models import (
-    ApplicationState,
     BranchStatus,
     Configuration,
     ProcessInfo,
@@ -37,31 +36,18 @@ def sample_worktrees(temp_repo_path):
             branch="feature1",
             path=temp_repo_path.parent / "test-repo-worktrees" / "feature1",
             is_current=False,
-            session_id="session1",
         ),
         WorktreeInfo(
             branch="feature2",
             path=temp_repo_path.parent / "test-repo-worktrees" / "feature2",
             is_current=True,
-            session_id="session2",
         ),
         WorktreeInfo(
             branch="bugfix",
             path=temp_repo_path.parent / "test-repo-worktrees" / "bugfix",
             is_current=False,
-            session_id=None,
         ),
     ]
-
-
-@pytest.fixture
-def sample_app_state(temp_repo_path, sample_worktrees):
-    """Sample application state for testing."""
-    return ApplicationState(
-        primary_clone=temp_repo_path,
-        worktrees=sample_worktrees,
-        current_worktree="feature2",
-    )
 
 
 @pytest.fixture

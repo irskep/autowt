@@ -54,6 +54,10 @@ class Terminal(ABC):
         """Check if a session exists in the terminal."""
         return False
 
+    def session_in_directory(self, session_id: str, directory: Path) -> bool:
+        """Check if a session exists and is currently in the specified directory."""
+        return False
+
     def _escape_for_applescript(self, text: str) -> str:
         """Escape text for use in AppleScript strings."""
         return text.replace("\\", "\\\\").replace('"', '\\"')
@@ -149,6 +153,37 @@ class ITerm2Terminal(Terminal):
                     repeat with theSession in sessions of theTab
                         if id of theSession is "{session_uuid}" then
                             return true
+                        end if
+                    end repeat
+                end repeat
+            end repeat
+            return false
+        end tell
+        '''
+
+        return self._run_applescript_with_result(applescript)
+
+    def session_in_directory(self, session_id: str, directory: Path) -> bool:
+        """Check if iTerm2 session exists and is in the specified directory."""
+        if not session_id:
+            return False
+
+        # Extract UUID part from session ID (format: w0t0p2:UUID)
+        session_uuid = session_id.split(":")[-1] if ":" in session_id else session_id
+        logger.debug(f"Checking if session {session_uuid} is in directory {directory}")
+
+        applescript = f'''
+        tell application "iTerm2"
+            repeat with theWindow in windows
+                repeat with theTab in tabs of theWindow
+                    repeat with theSession in sessions of theTab
+                        if id of theSession is "{session_uuid}" then
+                            set currentDirectory to get variable named "PWD" of theSession
+                            if currentDirectory starts with "{self._escape_for_applescript(str(directory))}" then
+                                return true
+                            else
+                                return false
+                            end if
                         end if
                     end repeat
                 end repeat
@@ -1721,17 +1756,42 @@ class TerminalService:
                 else:
                     effective_session_id = session_id
 
-                # First try: Check if the stored session ID exists
+                # First try: Check if the stored session ID exists and is in correct directory
                 if effective_session_id and self.terminal.session_exists(
                     effective_session_id
                 ):
-                    if auto_confirm or self._should_switch_to_existing(branch_name):
-                        # Try to switch to existing session (no init script - session already exists)
-                        if self.terminal.switch_to_session(effective_session_id, None):
-                            print(
-                                f"Switched to existing {branch_name or 'worktree'} session"
+                    # For iTerm2, verify the session is still in the correct directory
+                    if isinstance(self.terminal, ITerm2Terminal):
+                        if not self.terminal.session_in_directory(
+                            effective_session_id, worktree_path
+                        ):
+                            logger.debug(
+                                f"Session {effective_session_id} no longer in directory {worktree_path}, discarding"
                             )
-                            return True
+                            # Skip using this session ID and fall through to create new tab
+                        else:
+                            if auto_confirm or self._should_switch_to_existing(
+                                branch_name
+                            ):
+                                # Try to switch to existing session (no init script - session already exists)
+                                if self.terminal.switch_to_session(
+                                    effective_session_id, None
+                                ):
+                                    print(
+                                        f"Switched to existing {branch_name or 'worktree'} session"
+                                    )
+                                    return True
+                    else:
+                        # For other terminals, use existing logic
+                        if auto_confirm or self._should_switch_to_existing(branch_name):
+                            # Try to switch to existing session (no init script - session already exists)
+                            if self.terminal.switch_to_session(
+                                effective_session_id, None
+                            ):
+                                print(
+                                    f"Switched to existing {branch_name or 'worktree'} session"
+                                )
+                                return True
 
                 # Second try: For iTerm2, check if there's a session in the worktree directory
                 if isinstance(self.terminal, ITerm2Terminal) and hasattr(
@@ -1780,17 +1840,42 @@ class TerminalService:
                 else:
                     effective_session_id = session_id
 
-                # First try: Check if the stored session ID exists
+                # First try: Check if the stored session ID exists and is in correct directory
                 if effective_session_id and self.terminal.session_exists(
                     effective_session_id
                 ):
-                    if auto_confirm or self._should_switch_to_existing(branch_name):
-                        # Try to switch to existing session (no init script - session already exists)
-                        if self.terminal.switch_to_session(effective_session_id, None):
-                            print(
-                                f"Switched to existing {branch_name or 'worktree'} session"
+                    # For iTerm2, verify the session is still in the correct directory
+                    if isinstance(self.terminal, ITerm2Terminal):
+                        if not self.terminal.session_in_directory(
+                            effective_session_id, worktree_path
+                        ):
+                            logger.debug(
+                                f"Session {effective_session_id} no longer in directory {worktree_path}, discarding"
                             )
-                            return True
+                            # Skip using this session ID and fall through to create new window
+                        else:
+                            if auto_confirm or self._should_switch_to_existing(
+                                branch_name
+                            ):
+                                # Try to switch to existing session (no init script - session already exists)
+                                if self.terminal.switch_to_session(
+                                    effective_session_id, None
+                                ):
+                                    print(
+                                        f"Switched to existing {branch_name or 'worktree'} session"
+                                    )
+                                    return True
+                    else:
+                        # For other terminals, use existing logic
+                        if auto_confirm or self._should_switch_to_existing(branch_name):
+                            # Try to switch to existing session (no init script - session already exists)
+                            if self.terminal.switch_to_session(
+                                effective_session_id, None
+                            ):
+                                print(
+                                    f"Switched to existing {branch_name or 'worktree'} session"
+                                )
+                                return True
 
                 # Second try: For iTerm2, check if there's a session in the worktree directory
                 if isinstance(self.terminal, ITerm2Terminal) and hasattr(

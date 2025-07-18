@@ -7,7 +7,7 @@ from pathlib import Path
 
 import toml
 
-from autowt.models import ApplicationState, Configuration, ProjectConfig
+from autowt.models import Configuration, ProjectConfig
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,6 @@ class StateService:
             app_dir = self._get_default_app_dir()
 
         self.app_dir = app_dir
-        self.state_file = app_dir / "state.toml"
         self.config_file = app_dir / "config.toml"
         self.session_file = app_dir / "sessionids.toml"
 
@@ -43,47 +42,6 @@ class StateService:
         else:
             # Windows or other
             return Path.home() / ".autowt"
-
-    def load_state(self, repo_path: Path) -> ApplicationState:
-        """Load application state for the given repository."""
-        logger.debug(f"Loading state for repo: {repo_path}")
-
-        if not self.state_file.exists():
-            logger.debug("No state file found, creating empty state")
-            return ApplicationState(primary_clone=repo_path, worktrees=[])
-
-        try:
-            data = toml.load(self.state_file)
-            repo_data = data.get(str(repo_path), {})
-            state = ApplicationState.from_dict(repo_data, repo_path)
-            logger.debug(f"Loaded state with {len(state.worktrees)} worktrees")
-            return state
-        except Exception as e:
-            logger.error(f"Failed to load state: {e}")
-            return ApplicationState(primary_clone=repo_path, worktrees=[])
-
-    def save_state(self, state: ApplicationState) -> None:
-        """Save application state."""
-        logger.debug(f"Saving state for repo: {state.primary_clone}")
-
-        # Load existing data to preserve other repos
-        data = {}
-        if self.state_file.exists():
-            try:
-                data = toml.load(self.state_file)
-            except Exception as e:
-                logger.warning(f"Failed to load existing state file: {e}")
-
-        # Update data for this repository
-        data[str(state.primary_clone)] = state.to_dict()
-
-        try:
-            with open(self.state_file, "w") as f:
-                toml.dump(data, f)
-            logger.debug("State saved successfully")
-        except Exception as e:
-            logger.error(f"Failed to save state: {e}")
-            raise
 
     def load_config(self) -> Configuration:
         """Load application configuration."""
