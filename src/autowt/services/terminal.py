@@ -91,11 +91,11 @@ class Terminal(ABC):
             logger.error(f"Failed to run AppleScript: {e}")
             return False
 
-    def _run_applescript_with_result(self, script: str) -> bool:
-        """Execute AppleScript and return success status based on output."""
+    def _run_applescript_with_result(self, script: str) -> str | None:
+        """Execute AppleScript and return the output string."""
         if not self.is_macos:
             logger.warning("AppleScript not available on this platform")
-            return False
+            return None
 
         try:
             result = run_command(
@@ -106,22 +106,13 @@ class Terminal(ABC):
 
             if result.returncode != 0:
                 logger.error(f"AppleScript failed: {result.stderr}")
-                return False
+                return None
 
-            # Check if the output indicates success
-            output = result.stdout.strip().lower()
-            success = output == "true"
-
-            if success:
-                logger.debug("AppleScript executed successfully and returned true")
-            else:
-                logger.debug(f"AppleScript executed but returned: {output}")
-
-            return success
+            return result.stdout.strip()
 
         except Exception as e:
             logger.error(f"Failed to run AppleScript: {e}")
-            return False
+            return None
 
 
 class ITerm2Terminal(Terminal):
@@ -161,7 +152,8 @@ class ITerm2Terminal(Terminal):
         end tell
         '''
 
-        return self._run_applescript_with_result(applescript)
+        result = self._run_applescript_with_result(applescript)
+        return result == "true" if result else False
 
     def session_in_directory(self, session_id: str, directory: Path) -> bool:
         """Check if iTerm2 session exists and is in the specified directory."""
@@ -192,7 +184,8 @@ class ITerm2Terminal(Terminal):
         end tell
         '''
 
-        return self._run_applescript_with_result(applescript)
+        result = self._run_applescript_with_result(applescript)
+        return result == "true" if result else False
 
     def switch_to_session(
         self, session_id: str, init_script: str | None = None
@@ -444,7 +437,8 @@ class TerminalAppTerminal(Terminal):
         end tell
         '''
 
-        return self._run_applescript_with_result(applescript)
+        result = self._run_applescript_with_result(applescript)
+        return result == "true" if result else False
 
     def _get_working_directory_from_tty(self, tty: str) -> str | None:
         """Get working directory of shell process using the given TTY."""
@@ -483,46 +477,70 @@ class TerminalAppTerminal(Terminal):
         self, session_id: str, init_script: str | None = None
     ) -> bool:
         """Switch to existing Terminal.app session by working directory."""
-        logger.debug(f"Searching for Terminal.app tab in directory: {session_id}")
-
-        applescript = f'''
+        # Find the window title that contains our target directory
+        find_window_script = f'''
         tell application "Terminal"
             repeat with theWindow in windows
                 repeat with theTab in tabs of theWindow
                     try
                         set tabTTY to tty of theTab
-                        set applescriptShellCmd to "lsof " & tabTTY & " | grep -E '(zsh|bash|sh)' | head -1 | awk '{{print $2}}'"
-                        set shellPid to do shell script applescriptShellCmd
+                        set shellCmd to "lsof " & tabTTY & " | grep -E '(zsh|bash|sh)' | head -1 | awk '{{print $2}}'"
+                        set shellPid to do shell script shellCmd
                         if shellPid is not "" then
                             set cwdCmd to "lsof -p " & shellPid & " | grep cwd | awk '{{print $9}}'"
                             set workingDir to do shell script cwdCmd
-                            if workingDir starts with "{self._escape_for_applescript(session_id)}" then
-                                select theTab
-                                set frontmost of theWindow to true
-                                set index of theWindow to 1'''
-
-        if init_script:
-            applescript += f'''
-                                do script "{self._escape_for_applescript(init_script)}" in theTab'''
-
-        applescript += """
-                                return true
+                            if workingDir is "{self._escape_for_applescript(session_id)}" then
+                                -- Return the window name for menu matching
+                                return name of theWindow
                             end if
                         end if
                     end try
                 end repeat
             end repeat
-            return false
+            return ""
         end tell
-        """
+        '''
 
-        return self._run_applescript(applescript)
+        window_name = self._run_applescript_with_result(find_window_script)
+        if not window_name:
+            return False
+
+        # Use System Events to click the exact menu item
+        switch_script = f'''
+        tell application "System Events"
+            tell process "Terminal"
+                try
+                    -- Click the menu item with the exact window name
+                    click menu item "{self._escape_for_applescript(window_name)}" of menu "Window" of menu bar 1
+                    return "success"
+                on error errMsg
+                    -- Try with localized menu name
+                    try
+                        click menu item "{self._escape_for_applescript(window_name)}" of menu "窗口" of menu bar 1
+                        return "success"
+                    on error
+                        return "error: " & errMsg
+                    end try
+                end try
+            end tell
+        end tell
+        '''
+
+        # Run init script if provided
+        if init_script:
+            init_result = self._run_applescript(f'''
+            tell application "Terminal"
+                do script "{self._escape_for_applescript(init_script)}" in front window
+            end tell
+            ''')
+            if not init_result:
+                logger.warning("Failed to run init script")
+
+        switch_result = self._run_applescript_with_result(switch_script)
+        return switch_result and switch_result.startswith("success")
 
     def session_in_directory(self, session_id: str, directory: Path) -> bool:
         """Check if Terminal.app session exists and is in the specified directory or subdirectory."""
-        logger.debug(
-            f"Checking if Terminal.app session in directory: {session_id} -> {directory}"
-        )
 
         applescript = f'''
         tell application "Terminal"
@@ -546,7 +564,8 @@ class TerminalAppTerminal(Terminal):
         end tell
         '''
 
-        return self._run_applescript_with_result(applescript)
+        result = self._run_applescript_with_result(applescript)
+        return result == "true" if result else False
 
     def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
         """Open a new Terminal.app tab.
@@ -1875,6 +1894,19 @@ class TerminalService:
                                 )
                                 return True
 
+                # Second try: For Terminal.app, always scan for existing tabs in target directory
+                elif isinstance(self.terminal, TerminalAppTerminal):
+                    # Always scan for tabs in the worktree directory (Terminal.app should use workdir matching every time)
+                    logger.debug(
+                        f"Scanning Terminal.app tabs for directory: {worktree_path}"
+                    )
+                    if auto_confirm or self._should_switch_to_existing(branch_name):
+                        if self.terminal.switch_to_session(str(worktree_path), None):
+                            print(
+                                f"Switched to existing {branch_name or 'worktree'} session (found by directory scan)"
+                            )
+                            return True
+
         # Fall back to creating new tab (or forced by ignore_same_session)
         combined_script = self._combine_scripts(init_script, after_init)
         return self.terminal.open_new_tab(worktree_path, combined_script)
@@ -1958,6 +1990,19 @@ class TerminalService:
                                     f"Switched to existing {branch_name or 'worktree'} session (found by directory)"
                                 )
                                 return True
+
+                # Second try: For Terminal.app, always scan for existing tabs in target directory
+                elif isinstance(self.terminal, TerminalAppTerminal):
+                    # Always scan for tabs in the worktree directory (Terminal.app should use workdir matching every time)
+                    logger.debug(
+                        f"Scanning Terminal.app tabs for directory: {worktree_path}"
+                    )
+                    if auto_confirm or self._should_switch_to_existing(branch_name):
+                        if self.terminal.switch_to_session(str(worktree_path), None):
+                            print(
+                                f"Switched to existing {branch_name or 'worktree'} session (found by directory scan)"
+                            )
+                            return True
 
         # Fall back to creating new window (or forced by ignore_same_session)
         combined_script = self._combine_scripts(init_script, after_init)

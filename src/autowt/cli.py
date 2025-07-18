@@ -166,7 +166,7 @@ class AutowtGroup(ClickAliasedGroup):
         # If command not found, create a dynamic command that treats it as a branch name
         def branch_command(**kwargs):
             # Set global options for dynamic branch commands
-            options.auto_confirm = kwargs.get("auto_confirm", False)
+            options.auto_confirm = kwargs.get("auto_confirm", kwargs.get("yes", False))
             options.debug = kwargs.get("debug", False)
 
             setup_logging(kwargs.get("debug", False))
@@ -201,7 +201,7 @@ class AutowtGroup(ClickAliasedGroup):
                 after_init=kwargs.get("after_init"),
                 ignore_same_session=config.terminal.always_new
                 or kwargs.get("ignore_same_session", False),
-                auto_confirm=kwargs.get("auto_confirm", False),
+                auto_confirm=kwargs.get("auto_confirm", kwargs.get("yes", False)),
                 debug=kwargs.get("debug", False),
             )
             checkout_branch(switch_cmd, services)
