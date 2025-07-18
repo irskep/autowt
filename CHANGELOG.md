@@ -4,9 +4,7 @@
 
 ## Unreleased
 
-### Added
-
-## 0.1.0 - TBD
+## 0.1.0 - 2025-07-18
 
 ### Added
 - Initial release of autowt
