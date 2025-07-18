@@ -98,6 +98,29 @@ class TestConsoleFunctions(unittest.TestCase):
         print_plain("Plain text")
         mock_console.print.assert_called_once_with("Plain text")
 
+    @patch("autowt.console.console")
+    def test_output_suppression_when_enabled(self, mock_console):
+        """Test that rich output can be suppressed via global option."""
+        from autowt.global_config import options
+        from autowt.console import print_info
+
+        # Test normal output first
+        print_info("Test info message")
+        mock_console.print.assert_called_with("Test info message", style="info")
+        mock_console.reset_mock()
+
+        # Test suppressed output
+        original_suppress = options.suppress_rich_output
+        options.suppress_rich_output = True
+        try:
+            print_info("Suppressed info")
+            print_success("Suppressed success")
+            print_error("Suppressed error")
+            # Should have no console.print calls when suppressed
+            mock_console.print.assert_not_called()
+        finally:
+            options.suppress_rich_output = original_suppress
+
 
 class TestConsoleIntegration(unittest.TestCase):
     """Test console integration with rich."""

@@ -112,10 +112,26 @@ eval "$(autowt branch-name --terminal=echo)"
 
 ### Shell Integration for Echo Mode
 
-Create a convenient shell function for echo mode:
+Get shell-specific integration instructions:
 
 ```bash
-# bash/zsh - add to ~/.bashrc or ~/.zshrc
+autowt shellconfig                    # Auto-detect current shell
+autowt shellconfig --shell bash      # Get bash instructions
+autowt shellconfig --shell zsh       # Get zsh instructions  
+autowt shellconfig --shell fish      # Get fish instructions
+autowt shellconfig --shell tcsh      # Get tcsh instructions
+autowt shellconfig --shell nu        # Get nushell instructions
+autowt shellconfig --shell oil       # Get oil shell instructions
+autowt shellconfig --shell elvish    # Get elvish instructions
+```
+
+Or manually add these functions:
+
+```bash
+# bash - add to ~/.bashrc
+autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
+
+# zsh - add to ~/.zshrc  
 autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
 
 # fish - add to ~/.config/fish/config.fish
@@ -125,6 +141,8 @@ end
 ```
 
 Then use: `autowt_cd branch-name`
+
+**Note:** The `shellconfig` command supports bash, zsh, fish, tcsh/csh, nushell, oil shell, and elvish. For unsupported shells, it provides comprehensive fallback instructions covering common shell families.
 
 Configure the default behavior:
 
@@ -173,7 +191,7 @@ The state includes worktree locations, current branch tracking, and terminal ses
 - `autowt ls` - List all worktrees and current location  
 - `autowt cleanup` - Remove merged, identical, or remoteless worktrees
 - `autowt config` - Configure terminal behavior using interactive TUI
-- `autowt shellconfig` - Show shell integration instructions for your current shell
+- `autowt shellconfig` - Show shell integration instructions for your current shell (use `--shell` to override detection)
 
 All commands support `-h` for help, `-y/--yes` for auto-confirmation, and `--debug` for verbose logging.
 

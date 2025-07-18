@@ -5,7 +5,7 @@ from pathlib import Path
 
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
-from autowt.models import Services, SwitchCommand, WorktreeInfo
+from autowt.models import Services, SwitchCommand, TerminalMode, WorktreeInfo
 from autowt.utils import sanitize_branch_name
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,11 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     if terminal_mode is None:
         terminal_mode = config.terminal
 
+    # Enable output suppression for echo mode
+    original_suppress = options.suppress_rich_output
+    if terminal_mode == TerminalMode.ECHO:
+        options.suppress_rich_output = True
+
     # Get current worktrees
     git_worktrees = services.git.list_worktrees(repo_path)
 
@@ -50,34 +55,41 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     if existing_worktree:
         # Switch to existing worktree - no init script needed (worktree already set up)
         session_id = session_ids.get(switch_cmd.branch)
-        success = services.terminal.switch_to_worktree(
-            existing_worktree.path,
-            terminal_mode,
-            session_id,
-            None,  # No init script for existing worktrees
-            branch_name=switch_cmd.branch,
-            auto_confirm=options.auto_confirm,
-            ignore_same_session=switch_cmd.ignore_same_session,
-        )
+        try:
+            success = services.terminal.switch_to_worktree(
+                existing_worktree.path,
+                terminal_mode,
+                session_id,
+                None,  # No init script for existing worktrees
+                branch_name=switch_cmd.branch,
+                auto_confirm=options.auto_confirm,
+                ignore_same_session=switch_cmd.ignore_same_session,
+            )
 
-        if not success:
-            print_error(f"Failed to switch to {switch_cmd.branch} worktree")
+            if not success:
+                print_error(f"Failed to switch to {switch_cmd.branch} worktree")
+                return
+
+            # Session ID will be registered by the new tab itself
             return
-
-        # Session ID will be registered by the new tab itself
-
-        return
+        finally:
+            # Restore original suppression setting
+            options.suppress_rich_output = original_suppress
 
     # Create new worktree
-    _create_new_worktree(
-        services,
-        switch_cmd,
-        repo_path,
-        terminal_mode,
-        state,
-        session_ids,
-        init_script,
-    )
+    try:
+        _create_new_worktree(
+            services,
+            switch_cmd,
+            repo_path,
+            terminal_mode,
+            state,
+            session_ids,
+            init_script,
+        )
+    finally:
+        # Restore original suppression setting
+        options.suppress_rich_output = original_suppress
 
 
 def _create_new_worktree(

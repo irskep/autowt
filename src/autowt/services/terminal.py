@@ -1594,9 +1594,15 @@ class TerminalService:
             # Usage: eval "$(autowt ci --terminal=echo)"
             commands = [f"cd {shlex.quote(str(worktree_path))}"]
             if init_script:
-                commands.append(init_script)
+                # Handle multi-line scripts by replacing newlines with semicolons
+                normalized_script = init_script.replace("\n", "; ").strip()
+                if normalized_script:
+                    commands.append(normalized_script)
             if after_init:
-                commands.append(after_init)
+                # Handle multi-line scripts by replacing newlines with semicolons
+                normalized_after = after_init.replace("\n", "; ").strip()
+                if normalized_after:
+                    commands.append(normalized_after)
             print("; ".join(commands))
             return True
         except Exception as e:
