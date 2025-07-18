@@ -40,6 +40,36 @@ def create_services() -> Services:
     return Services.create()
 
 
+def auto_register_session(services: Services) -> None:
+    """Automatically register the current terminal session if possible."""
+    try:
+        # Only register if we're in a git repository
+        repo_path = services.git.find_repo_root()
+        if not repo_path:
+            return
+
+        # Get current session ID
+        session_id = services.terminal.get_current_session_id()
+        if not session_id:
+            return
+
+        # Extract branch name from current working directory
+        worktree_path = Path(os.getcwd())
+        branch_name = worktree_path.name
+
+        # Load existing session IDs to check if already registered
+        session_ids = services.state.load_session_ids()
+
+        # Only register if not already registered for this branch
+        if branch_name not in session_ids or session_ids[branch_name] != session_id:
+            session_ids[branch_name] = session_id
+            services.state.save_session_ids(session_ids)
+
+    except Exception:
+        # Silently fail - session registration should never break the main command
+        pass
+
+
 def is_interactive_terminal() -> bool:
     """Check if running in an interactive terminal.
 
@@ -150,6 +180,7 @@ class AutowtGroup(ClickAliasedGroup):
                 TerminalMode(kwargs["terminal"]) if kwargs.get("terminal") else None
             )
             services = create_services()
+            auto_register_session(services)
 
             # Create and execute SwitchCommand
             switch_cmd = SwitchCommand(
@@ -228,6 +259,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # If no subcommand was invoked, show list
     if ctx.invoked_subcommand is None:
         services = create_services()
+        auto_register_session(services)
         list_worktrees(services)
 
 
@@ -267,6 +299,7 @@ def ls(debug: bool) -> None:
     """List all worktrees and their status."""
     setup_logging(debug)
     services = create_services()
+    auto_register_session(services)
     list_worktrees(services)
 
 
@@ -322,6 +355,7 @@ def cleanup(
 
     setup_logging(debug)
     services = create_services()
+    auto_register_session(services)
 
     # Determine kill_processes override
     kill_processes = None
@@ -350,6 +384,7 @@ def config(debug: bool) -> None:
     """Configure autowt settings using interactive TUI."""
     setup_logging(debug)
     services = create_services()
+    auto_register_session(services)
     configure_settings(services)
 
 
@@ -383,6 +418,7 @@ def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> 
     setup_logging(debug)
     terminal_mode = TerminalMode(terminal) if terminal else None
     services = create_services()
+    auto_register_session(services)
 
     # Create and execute SwitchCommand
     switch_cmd = SwitchCommand(
