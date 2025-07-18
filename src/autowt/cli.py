@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from pathlib import Path
 
 import click
@@ -294,8 +295,8 @@ def ls(debug: bool) -> None:
 @click.option(
     "--mode",
     type=click.Choice(["all", "remoteless", "merged", "interactive"]),
-    default="all",
-    help="Cleanup mode",
+    default=None,
+    help="Cleanup mode (default: interactive in TTY, required otherwise)",
 )
 @click.option(
     "--dry-run",
@@ -316,7 +317,7 @@ def ls(debug: bool) -> None:
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def cleanup(
-    mode: str,
+    mode: str | None,
     dry_run: bool,
     yes: bool,
     force: bool,
@@ -328,6 +329,17 @@ def cleanup(
     # Validate mutually exclusive options
     if kill and no_kill:
         raise click.UsageError("Cannot specify both --kill and --no-kill")
+
+    # Default to interactive mode if no mode specified and we're in a TTY
+    if mode is None:
+        if sys.stdin.isatty():
+            mode = "interactive"
+        else:
+            # Non-interactive environment (script, CI, etc.) - require explicit mode
+            raise click.UsageError(
+                "No TTY detected. Please specify --mode explicitly when running in scripts or CI. "
+                "Available modes: all, remoteless, merged, interactive"
+            )
 
     setup_logging(debug)
     services = create_services()
