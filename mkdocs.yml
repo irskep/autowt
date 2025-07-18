@@ -75,6 +75,7 @@ plugins:
   - search
   - help-output:
       command_prefix: "uv run"
+  - changelog-insert
   - mkdocstrings:
       handlers:
         python:

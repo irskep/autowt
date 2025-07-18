@@ -52,6 +52,7 @@ autowt = "autowt.cli:main"
 
 [project.entry-points."mkdocs.plugins"]
 help-output = "autowt.mkdocs_plugins.help_output:HelpOutputPlugin"
+changelog-insert = "autowt.mkdocs_plugins.changelog_insert:ChangelogInsertPlugin"
 
 [tool.ruff]
 line-length = 88
