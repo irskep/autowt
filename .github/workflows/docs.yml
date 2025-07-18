@@ -8,7 +8,7 @@ on:
       - 'README.md'
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
-      - 'scripts/prepare-docs.sh'
+      - 'src/autowt/mkdocs_plugins/**'
       - '.github/**/*.yml'
   pull_request:
     paths:
@@ -17,7 +17,7 @@ on:
       - 'mkdocs.yml'
       - 'mkdocs-local.yml'
       - 'requirements-docs.txt'
-      - 'scripts/prepare-docs.sh'
+      - 'src/autowt/mkdocs_plugins/**'
     branches-ignore:
       - 'dependabot/**'
 
@@ -46,11 +46,6 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --extra docs --extra dev
-          
-      - name: Prepare documentation
-        run: |
-          chmod +x scripts/prepare-docs.sh
-          ./scripts/prepare-docs.sh
           
       - name: Build documentation
         run: |
