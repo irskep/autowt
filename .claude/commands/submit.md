@@ -48,9 +48,8 @@ Follow these steps to format, lint, commit, push, create a PR, and monitor CI:
    )"
    ```
 
-6. **Monitor CI (after brief delay):**
+6. **Monitor CI:**
    ```bash
-   sleep 10
    uv run cimonitor watch --pr [PR-NUMBER]
    ```
 

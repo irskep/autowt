@@ -16,30 +16,26 @@ class TestTerminalServiceInitScripts:
         self.test_path = Path("/test/worktree")
         self.init_script = "setup.sh"
 
-    def test_change_directory_inplace_without_init_script(self, capsys):
-        """Test inplace mode without init script."""
-        success = self.terminal_service._change_directory_inplace(self.test_path)
+    def test_echo_commands_without_init_script(self, capsys):
+        """Test echo mode without init script."""
+        success = self.terminal_service._echo_commands(self.test_path)
 
         captured = capsys.readouterr()
         assert success
         assert captured.out.strip() == "cd /test/worktree"
 
-    def test_change_directory_inplace_with_init_script(self, capsys):
-        """Test inplace mode with init script."""
-        success = self.terminal_service._change_directory_inplace(
-            self.test_path, self.init_script
-        )
+    def test_echo_commands_with_init_script(self, capsys):
+        """Test echo mode with init script."""
+        success = self.terminal_service._echo_commands(self.test_path, self.init_script)
 
         captured = capsys.readouterr()
         assert success
         assert captured.out.strip() == "cd /test/worktree; setup.sh"
 
-    def test_change_directory_inplace_with_complex_script(self, capsys):
-        """Test inplace mode with complex init script."""
+    def test_echo_commands_with_complex_script(self, capsys):
+        """Test echo mode with complex init script."""
         complex_script = "mise install && uv sync --extra=dev"
-        success = self.terminal_service._change_directory_inplace(
-            self.test_path, complex_script
-        )
+        success = self.terminal_service._echo_commands(self.test_path, complex_script)
 
         captured = capsys.readouterr()
         assert success
@@ -47,6 +43,38 @@ class TestTerminalServiceInitScripts:
             captured.out.strip()
             == "cd /test/worktree; mise install && uv sync --extra=dev"
         )
+
+    def test_change_directory_inplace_with_mock_terminal(self):
+        """Test new inplace mode with mocked terminal execution."""
+        # Mock terminal with execute_in_current_session method
+        mock_terminal = Mock()
+        mock_terminal.execute_in_current_session.return_value = True
+        self.terminal_service.terminal = mock_terminal
+
+        success = self.terminal_service._change_directory_inplace(
+            self.test_path, self.init_script
+        )
+
+        assert success
+        mock_terminal.execute_in_current_session.assert_called_once_with(
+            "cd /test/worktree; setup.sh"
+        )
+
+    def test_change_directory_inplace_fallback_to_echo(self, capsys):
+        """Test inplace mode falls back to echo when terminal doesn't support it."""
+        # Mock terminal without execute_in_current_session method
+        mock_terminal = Mock()
+        # Explicitly set the method to not exist by using spec
+        mock_terminal = Mock(spec=[])  # Empty spec means no methods/attributes
+        self.terminal_service.terminal = mock_terminal
+
+        success = self.terminal_service._change_directory_inplace(
+            self.test_path, self.init_script
+        )
+
+        captured = capsys.readouterr()
+        assert success
+        assert captured.out.strip() == "cd /test/worktree; setup.sh"
 
     def test_terminal_implementation_delegation(self):
         """Test that TerminalService properly delegates to terminal implementations."""
@@ -94,6 +122,17 @@ class TestTerminalServiceInitScripts:
 
             assert success
             mock_inplace.assert_called_once_with(self.test_path, self.init_script, None)
+
+        # Test ECHO mode delegation
+        with patch.object(self.terminal_service, "_echo_commands") as mock_echo:
+            mock_echo.return_value = True
+
+            success = self.terminal_service.switch_to_worktree(
+                self.test_path, TerminalMode.ECHO, None, self.init_script
+            )
+
+            assert success
+            mock_echo.assert_called_once_with(self.test_path, self.init_script, None)
 
         # Mock the terminal implementation to test delegation
         mock_terminal = Mock()
@@ -169,32 +208,40 @@ class TestInitScriptEdgeCases:
         self.test_path = Path("/test/worktree")
 
     def test_empty_init_script_treated_as_none(self, capsys):
-        """Test that empty string init script is handled gracefully."""
-        success = self.terminal_service._change_directory_inplace(self.test_path, "")
+        """Test that empty string init script is handled gracefully in echo mode."""
+        success = self.terminal_service._echo_commands(self.test_path, "")
 
         captured = capsys.readouterr()
         assert success
         assert captured.out.strip() == "cd /test/worktree"
 
     def test_whitespace_only_init_script(self, capsys):
-        """Test init script with only whitespace."""
-        success = self.terminal_service._change_directory_inplace(self.test_path, "   ")
+        """Test init script with only whitespace in echo mode."""
+        success = self.terminal_service._echo_commands(self.test_path, "   ")
 
         captured = capsys.readouterr()
         assert success
-        # The whitespace gets trimmed when joining commands
-        assert captured.out.strip() == "cd /test/worktree;"
+        # The whitespace gets trimmed and filtered out, leaving only the cd command
+        assert captured.out.strip() == "cd /test/worktree"
 
     def test_init_script_with_special_characters(self, capsys):
-        """Test init script with special shell characters."""
+        """Test init script with special shell characters in echo mode."""
         special_script = "echo 'test'; ls | grep '*.py' && echo $HOME"
-        success = self.terminal_service._change_directory_inplace(
-            self.test_path, special_script
-        )
+        success = self.terminal_service._echo_commands(self.test_path, special_script)
 
         captured = capsys.readouterr()
         assert success
         expected = f"cd /test/worktree; {special_script}"
+        assert captured.out.strip() == expected
+
+    def test_multiline_init_script(self, capsys):
+        """Test multi-line init script gets normalized to single line in echo mode."""
+        multiline_script = "echo 'line1'\necho 'line2'\necho 'line3'"
+        success = self.terminal_service._echo_commands(self.test_path, multiline_script)
+
+        captured = capsys.readouterr()
+        assert success
+        expected = "cd /test/worktree; echo 'line1'; echo 'line2'; echo 'line3'"
         assert captured.out.strip() == expected
 
     def test_terminal_implementation_applescript_failure(
@@ -217,11 +264,9 @@ class TestInitScriptEdgeCases:
         mock_terminal.open_new_tab.assert_called_once_with(self.test_path, "setup.sh")
 
     def test_path_with_spaces_and_init_script(self, capsys):
-        """Test handling paths with spaces combined with init scripts."""
+        """Test handling paths with spaces combined with init scripts in echo mode."""
         path_with_spaces = Path("/test/my worktree/branch")
-        success = self.terminal_service._change_directory_inplace(
-            path_with_spaces, "setup.sh"
-        )
+        success = self.terminal_service._echo_commands(path_with_spaces, "setup.sh")
 
         captured = capsys.readouterr()
         assert success

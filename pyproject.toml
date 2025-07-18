@@ -74,7 +74,7 @@ norecursedirs = ["scratch"]
 dev = [
     "pytest>=8.4.1",
     "ruff>=0.12.3",
-    "cimonitor>=0.1.4",
+    "cimonitor>=0.1.5",
     "pytest-cov>=6.2.1",
     "pre-commit>=3.0.0",
 ]

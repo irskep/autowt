@@ -39,6 +39,88 @@ def create_services() -> Services:
     return Services.create()
 
 
+def _show_shell_config(shell_override: str | None = None) -> None:
+    """Show shell integration instructions for the current shell."""
+    shell = shell_override or os.getenv("SHELL", "").split("/")[-1]
+
+    print("# Shell Integration for autowt")
+    print(
+        "# Add this function to your shell configuration for convenient echo mode usage:"
+    )
+    print()
+
+    if shell == "fish":
+        print("# Add to ~/.config/fish/config.fish:")
+        print("function autowt_cd")
+        print("    eval (autowt $argv --terminal=echo)")
+        print("end")
+        print()
+        print("# Then use: autowt_cd branch-name")
+    elif shell in ["bash", "zsh"]:
+        config_file = "~/.bashrc" if shell == "bash" else "~/.zshrc"
+        print(f"# Add to {config_file}:")
+        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
+        print()
+        print("# Then use: autowt_cd branch-name")
+    elif shell in ["tcsh", "csh"]:
+        config_file = "~/.tcshrc" if shell == "tcsh" else "~/.cshrc"
+        print(f"# Add to {config_file}:")
+        print("alias autowt_cd 'eval `autowt \\!* --terminal=echo`'")
+        print()
+        print("# Then use: autowt_cd branch-name")
+    elif shell == "nu":
+        print("# Add to ~/.config/nushell/config.nu:")
+        print("def autowt_cd [...args] {")
+        print(
+            "    load-env (autowt ...$args --terminal=echo | parse 'export {name}={value}' | transpose -r)"
+        )
+        print("}")
+        print()
+        print(
+            "# Note: nushell requires different syntax. You may need to adjust based on output format."
+        )
+        print("# Alternatively, use: ^autowt branch-name --terminal=inplace (macOS)")
+        print("# Then use: autowt_cd branch-name")
+    elif shell in ["oil", "osh"]:
+        print("# Add to ~/.config/oil/oshrc:")
+        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
+        print()
+        print("# Then use: autowt_cd branch-name")
+    elif shell == "elvish":
+        print("# Add to ~/.config/elvish/rc.elv:")
+        print("fn autowt_cd {|@args|")
+        print("    eval (autowt $@args --terminal=echo)")
+        print("}")
+        print()
+        print("# Then use: autowt_cd branch-name")
+    else:
+        # Comprehensive fallback for unknown shells
+        print(
+            f"# Shell '{shell}' not specifically supported. Here are options for common shells:"
+        )
+        print()
+        print("# POSIX-compatible shells (bash, zsh, dash, ash, etc.):")
+        print("# Add to your shell's config file (e.g., ~/.bashrc, ~/.zshrc):")
+        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
+        print()
+        print("# Fish shell - add to ~/.config/fish/config.fish:")
+        print("function autowt_cd")
+        print("    eval (autowt $argv --terminal=echo)")
+        print("end")
+        print()
+        print("# C shell variants (csh, tcsh) - add to ~/.cshrc or ~/.tcshrc:")
+        print("alias autowt_cd 'eval `autowt \\!* --terminal=echo`'")
+        print()
+        print("# For other shells, adapt the above patterns or use manual eval:")
+        print('# eval "$(autowt branch-name --terminal=echo)"')
+        print()
+        print("# Then use: autowt_cd branch-name")
+
+    print()
+    print("# Alternatively, use --terminal=inplace for direct execution (macOS only):")
+    print("# autowt branch-name --terminal=inplace")
+
+
 # Custom Group class that handles unknown commands as branch names and supports aliases
 class AutowtGroup(ClickAliasedGroup):
     def get_command(self, ctx, cmd_name):
@@ -78,7 +160,7 @@ class AutowtGroup(ClickAliasedGroup):
             params=[
                 click.Option(
                     ["--terminal"],
-                    type=click.Choice(["tab", "window", "inplace"]),
+                    type=click.Choice(["tab", "window", "inplace", "echo"]),
                     help="How to open the worktree terminal",
                 ),
                 click.Option(
@@ -281,10 +363,23 @@ def config(debug: bool) -> None:
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+@click.option(
+    "--shell",
+    type=click.Choice(["bash", "zsh", "fish", "tcsh", "csh", "nu", "oil", "elvish"]),
+    help="Override shell detection (useful for generating docs)",
+)
+def shellconfig(debug: bool, shell: str | None) -> None:
+    """Show shell integration instructions for your current shell."""
+    setup_logging(debug)
+    _show_shell_config(shell)
+
+
+@main.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("branch")
 @click.option(
     "--terminal",
-    type=click.Choice(["tab", "window", "inplace"]),
+    type=click.Choice(["tab", "window", "inplace", "echo"]),
     help="How to open the worktree terminal",
 )
 @click.option(

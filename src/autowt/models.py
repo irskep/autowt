@@ -18,6 +18,7 @@ class TerminalMode(Enum):
     TAB = "tab"
     WINDOW = "window"
     INPLACE = "inplace"
+    ECHO = "echo"
 
 
 class CleanupMode(Enum):
