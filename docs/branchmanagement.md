@@ -1,12 +1,12 @@
-# Branch Management and Cleanup
+# Branch management and cleanup
 
 `autowt` simplifies the entire lifecycle of your git branches, from creation to cleanup. This guide covers how `autowt` manages worktrees and how to use its powerful cleanup features to maintain a tidy repository.
 
-## How `autowt` Organizes Your Worktrees
+## How `autowt` organizes your worktrees
 
 When you create a worktree with `autowt`, it follows a consistent and predictable organizational strategy.
 
-### Automatic Branch Resolution
+### Automatic branch resolution
 
 When you run `autowt <branch-name>`, it intelligently determines the best way to create the worktree:
 
@@ -14,13 +14,13 @@ When you run `autowt <branch-name>`, it intelligently determines the best way to
 2.  **Existing Remote Branch**: If the branch exists on your remote (e.g., `origin/branch-name`), `autowt` will check it out for you.
 3.  **New Branch**: If the branch doesn't exist anywhere, `autowt` will create it from your repository's main branch (`main` or `master`).
 
-### Directory Structure
+### Directory structure
 
 All worktrees are created in a dedicated directory adjacent to your main project folder, keeping your primary project directory clean. For example, if your project is in `~/dev/my-project`, `autowt` will create a `~/dev/my-project-worktrees/` directory to house all its worktrees.
 
 Branch names are sanitized for the filesystem. A branch named `feature/user-auth` will be created in the directory `~/dev/my-project-worktrees/feature-user-auth/`.
 
-## Cleaning Up Worktrees
+## Cleaning up worktrees
 
 `autowt cleanup` is a powerful command designed to safely remove all traces of stale worktrees from your system. When you run it, `autowt` identifies branches that are good candidates for removal and, with your confirmation, cleans up:
 
@@ -28,17 +28,17 @@ Branch names are sanitized for the filesystem. A branch named `feature/user-auth
 *   The local git branch associated with the worktree.
 *   Any processes (like dev servers or shells) running within the worktree's directory.
 
-### Interactive Cleanup
+### Interactive cleanup
 
 By default, running `autowt cleanup` in a terminal launches an interactive TUI (Text-based User Interface) that lists all potential worktrees to be removed.
 
 This interface allows you to review each branch, see its status (e.g., merged, no remote), and select exactly which ones you want to remove. This is the safest and most recommended way to use the cleanup feature.
 
-### Cleanup Modes
+### Cleanup modes
 
 For non-interactive environments like scripts or CI/CD pipelines, you must specify a `--mode`. You can find more details on these modes in the [CLI Reference](clireference.md).
 
-### Process Killing
+### Process killing
 
 One of the most common reasons a `git worktree remove` command fails is because a process (like a shell or a development server) is still running in that worktree's directory.
 

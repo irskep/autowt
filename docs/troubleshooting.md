@@ -7,9 +7,9 @@
     autowt --debug <command-that-is-failing>
     ```
 
-## Common Issues
+## Common issues
 
-### Terminal Control on macOS
+### Terminal control on macOS
 
 **Symptom**: `autowt` doesn't open a new terminal tab/window, or it fails to switch to an existing session on macOS.
 

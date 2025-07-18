@@ -1,4 +1,4 @@
-# Project Conventions
+# Project conventions
 
 - Python 3.10+ project using uv for dependency management
 - Setup: `mise install && uv sync`
@@ -7,13 +7,13 @@
 - Test: `mise run test` (pytest)
 - Install pre-commit: `uv run pre-commit install`
 
-## Environment Setup
+## Environment setup
 
 - Create `.env` file with `GITHUB_TOKEN=your_token` for cimonitor
 - mise automatically loads .env file (already configured)
 - Use `uv run cimonitor status --pr <number>` to check CI status
 
-## Code Organization
+## Code organization
 
 - `src/autowt/cli.py` - Main CLI entry point with command definitions
 - `src/autowt/commands/` - Command implementations (checkout, cleanup, etc.)

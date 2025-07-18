@@ -1,4 +1,4 @@
-# Submit Changes
+# Submit changes
 
 1. `mise run format && mise run lint`, then fix issues
 2. `mise run tests`, then fix issues

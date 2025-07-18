@@ -1,10 +1,10 @@
-# autowt: Supercharge Your Git Workflow
+# autowt: Supercharge your git workflow
 
 **autowt** is a git worktree manager designed for developers who juggle multiple tasks. It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal session. This eliminates context-switching friction, letting you focus on your code.
 
 While powerful for any developer, `autowt` is a game-changer for those working with command-line AI agents like Claude Code, Gemini CLI, or Codex. It provides the perfect environment for running multiple agents in parallel without interference.
 
-## Core Features
+## Core features
 
 **Automated Worktree Management**
 
@@ -22,7 +22,7 @@ Isolate your AI agents in their own worktrees. Run multiple agents on different 
 
 Keep your repository clean with `autowt cleanup`. It identifies and removes branches that are merged or have no remote counterpart, ensuring your workspace remains clutter-free.
 
-## Getting Started
+## Getting started
 
 You'll need Python 3.10+ and a version of `git` released in the last decade (2.5+).
 
@@ -40,7 +40,7 @@ autowt my-new-feature
 
 Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window, ready for you to start coding.
 
-## A Typical Workflow
+## A typical workflow
 
 1.  **Start a new feature**: Run `autowt new-feature`. A new terminal tab opens in an isolated directory for that branch.
 2.  **Get an urgent request**: Don't stash! Just run `autowt hotfix/urgent-bug`. A different terminal tab opens for the hotfix.
@@ -48,7 +48,7 @@ Watch as `autowt` creates a new worktree and opens it in a new terminal tab or w
 4.  **Return to your feature**: Run `autowt new-feature` again, and `autowt` will switch you right back to the existing terminal tab for that feature.
 5.  **Clean up**: Once the hotfix branch is merged, run `autowt cleanup` to remove the old worktree and local branch.
 
-## Dive Deeper
+## Dive deeper
 
 For detailed guides on commands, configuration, and advanced workflows, check out the [**full documentation**](https://irskep.github.io/autowt/).
 

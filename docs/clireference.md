@@ -1,4 +1,4 @@
-# CLI Reference
+# CLI reference
 
 This page provides a comprehensive reference for all `autowt` commands, their options, and usage patterns. For a hands-on introduction, check out the [Getting Started](gettingstarted.md) guide.
 
@@ -68,7 +68,7 @@ autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
 
 Once added to your shell's config, you can run `autowt_cd my-branch` to change the directory of your *current* terminal session, which is useful in terminals that don't support advanced control.
 
-### Global Options
+### Global options
 
 These options can be used with any `autowt` command.
 

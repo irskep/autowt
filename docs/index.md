@@ -1,10 +1,10 @@
-# autowt: Supercharge Your Git Workflow
+# autowt: Supercharge your git workflow
 
 **autowt** is a git worktree manager designed for developers who juggle multiple tasks. It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal tab or window. This eliminates context-switching friction, letting you focus on your code.
 
 While powerful for any developer, `autowt` is a game-changer for those working with command-line AI agents like Claude Code, Gemini CLI, or Codex. It provides the perfect environment for running multiple agents in parallel without interference.
 
-## Core Features
+## Core features
 
 <div class="grid cards" markdown>
 
@@ -34,7 +34,7 @@ While powerful for any developer, `autowt` is a game-changer for those working w
 
 </div>
 
-## Getting Started
+## Getting started
 
 You'll need Python 3.10+ and a version of `git` released less than ten years ago (2.5+).
 
@@ -52,7 +52,7 @@ autowt my-new-feature
 
 Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window.
 
-## Dive Deeper
+## Dive deeper
 
 <div class="grid cards" markdown>
 

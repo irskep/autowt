@@ -2,7 +2,7 @@
 
 `autowt` is designed to work out of the box with sensible defaults, but you can customize its behavior to perfectly match your workflow. This guide covers the different ways you can configure `autowt`, from global settings to project-specific rules and one-time command-line overrides.
 
-## Configuration Layers
+## Configuration layers
 
 `autowt` uses a hierarchical configuration system. Settings are loaded from multiple sources, and later sources override earlier ones. The order of precedence is:
 
@@ -12,9 +12,9 @@
 4.  **Environment Variables**: System-wide overrides, prefixed with `AUTOWT_`.
 5.  **Command-Line Flags**: The highest priority, for on-the-fly adjustments.
 
-## Configuration Files
+## Configuration files
 
-### Global Configuration
+### Global configuration
 
 Your global settings are stored in a `config.toml` file in a platform-appropriate directory:
 
@@ -24,17 +24,17 @@ Your global settings are stored in a `config.toml` file in a platform-appropriat
 
 The easiest way to manage these settings is with the `autowt config` command, which launches an interactive TUI (Text-based User Interface).
 
-### Project-Specific Configuration
+### Project-specific configuration
 
 For settings that should apply only to a specific project, create an `autowt.toml` or `.autowt.toml` file in the root of your repository. This is the ideal place to define project-wide init scripts or worktree settings.
 
-## All Configuration Options
+## All configuration options
 
 This section provides a comprehensive reference for all available configuration options, organized by section. Each option includes its TOML key, the corresponding environment variable, and any command-line flags.
 
 ---
 
-### `[terminal]` - Terminal Management
+### `[terminal]` - Terminal management
 
 Controls how `autowt` interacts with your terminal.
 
@@ -46,7 +46,7 @@ Controls how `autowt` interacts with your terminal.
 
 ---
 
-### `[worktree]` - Worktree Management
+### `[worktree]` - Worktree management
 
 Defines how worktrees are created and managed.
 
@@ -69,7 +69,7 @@ Rules for converting git branch names into safe directory names.
 
 ---
 
-### `[cleanup]` - Cleanup Behavior
+### `[cleanup]` - Cleanup behavior
 
 Configures the `autowt cleanup` command.
 
@@ -81,7 +81,7 @@ Configures the `autowt cleanup` command.
 
 ---
 
-### `[scripts]` - Init Scripts and Hooks
+### `[scripts]` - Init scripts and hooks
 
 Automate setup tasks with scripts.
 
@@ -106,7 +106,7 @@ These are run *after* the standard `init` script. You can invoke them with the `
 
 ---
 
-### `[confirmations]` - User Interface
+### `[confirmations]` - User interface
 
 Manage which operations require a confirmation prompt.
 

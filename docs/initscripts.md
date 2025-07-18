@@ -1,8 +1,8 @@
-# Automating Setup with Init Scripts
+# Automating setup with init scripts
 
 `autowt` allows you to run custom commands every time you create or switch to a worktree. This is useful for automating repetitive setup tasks like installing dependencies or copying configuration files.
 
-## How it Works
+## How it works
 
 You can specify an "init script" in two ways:
 
@@ -11,7 +11,7 @@ You can specify an "init script" in two ways:
 
 The init script is executed in the worktree's directory *after* `autowt` has switched to it, but *before* any `--after-init` script is run.
 
-## Use Case 1: Installing Dependencies
+## Use case 1: Installing dependencies
 
 The most common use case for init scripts is to ensure dependencies are always up-to-date when you switch to a worktree.
 
@@ -37,7 +37,7 @@ init = "npm install"
 
 Now, `npm install` will run automatically every time you use `autowt` to switch to any worktree in this project, ensuring your dependencies are always in sync.
 
-## Use Case 2: Copying `.env` Files
+## Use case 2: Copying `.env` files
 
 Worktrees start as clean checkouts, which means untracked files like `.env` are not automatically carried over. You can use an init script to copy these files from your main worktree.
 
@@ -59,7 +59,7 @@ fi
 """
 ```
 
-#### Combining Commands
+#### Combining commands
 
 You can combine this with other commands. For example, to copy the `.env` file *and* install dependencies:
 
