@@ -53,23 +53,58 @@ class BranchStatus:
 
 
 @dataclass
+class ProjectScriptsConfig:
+    """Project-specific scripts configuration."""
+
+    init: str | None = None
+    custom: dict[str, str] | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ProjectScriptsConfig":
+        """Create project scripts configuration from dictionary."""
+        return cls(
+            init=data.get("init"),
+            custom=data.get("custom"),
+        )
+
+    def to_dict(self) -> dict:
+        """Convert project scripts configuration to dictionary."""
+        result = {}
+        if self.init is not None:
+            result["init"] = self.init
+        if self.custom is not None:
+            result["custom"] = self.custom
+        return result
+
+
+@dataclass
 class ProjectConfig:
     """Project-specific configuration."""
 
-    init: str | None = None
+    scripts: ProjectScriptsConfig | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjectConfig":
         """Create project configuration from dictionary."""
+        scripts_data = data.get("scripts", {})
+        scripts = ProjectScriptsConfig.from_dict(scripts_data) if scripts_data else None
         return cls(
-            init=data.get("init"),
+            scripts=scripts,
         )
 
     def to_dict(self) -> dict:
         """Convert project configuration to dictionary."""
-        return {
-            "init": self.init,
-        }
+        result = {}
+        if self.scripts is not None:
+            scripts_dict = self.scripts.to_dict()
+            if scripts_dict:
+                result["scripts"] = scripts_dict
+        return result
+
+    @property
+    def init(self) -> str | None:
+        """Get init script from scripts configuration."""
+        return self.scripts.init if self.scripts else None
 
 
 @dataclass
