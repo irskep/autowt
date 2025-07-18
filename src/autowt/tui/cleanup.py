@@ -10,6 +10,19 @@ from textual.widgets import Button, Footer, Header, ListItem, ListView, Static
 from autowt.models import BranchStatus
 
 
+class ClickableStatic(Static):
+    """A Static widget that can handle clicks."""
+
+    def __init__(self, *args, on_click_callback=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.on_click_callback = on_click_callback
+
+    def on_click(self) -> None:
+        """Handle click events on this widget."""
+        if self.on_click_callback:
+            self.on_click_callback()
+
+
 class CleanupTUI(App):
     """Interactive cleanup interface using Textual."""
 
@@ -79,11 +92,32 @@ class CleanupTUI(App):
             status_parts.append("[yellow]no remote[/]")
         status_text = ", ".join(status_parts) if status_parts else "[dim]active[/]"
 
-        # Create horizontal layout with fixed-width sections
+        # Create clickable selection widget
+        def handle_selection_click():
+            # Toggle selection for this index
+            if index in self.selected_rows:
+                self.selected_rows.remove(index)
+            else:
+                self.selected_rows.add(index)
+
+            # Update ListView cursor to this row
+            if self.list_view:
+                self.list_view.index = index
+
+            self.update_status_bar()
+            self._update_selection_display()
+
+        selection_widget = ClickableStatic(
+            "[dim][ ][/]",
+            id=f"sel-{index}",
+            classes="selection-indicator",
+            on_click_callback=handle_selection_click,
+        )
+
         content = Horizontal(
             Static(f"{branch_status.branch}\n{relative_path}", classes="branch-info"),
             Static(status_text, classes="status-info"),
-            Static("[dim][ ][/]", id=f"sel-{index}", classes="selection-indicator"),
+            selection_widget,
             classes="branch-row",
         )
 

@@ -74,12 +74,21 @@ ListItem {
     padding: 0 1;
 }
 
-/* Selection indicator (right column) - very narrow */
+/* Selection indicator (right column) - very narrow and clickable */
 .selection-indicator {
     width: 5;
     max-width: 5;
     text-align: center;
     padding-left: 1;
+}
+
+.selection-indicator:hover {
+    background: $primary 20%;
+    text-style: bold;
+}
+
+.selection-indicator:focus {
+    background: $primary 30%;
 }
 
 /* ListView cursor highlighting */
