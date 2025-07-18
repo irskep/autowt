@@ -6,6 +6,8 @@
 
 ### Added
 
+- Added `--version` flag to CLI to display current version
+
 ### Changed
 
 ### Fixed
