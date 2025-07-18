@@ -356,13 +356,14 @@ class ITerm2Terminal(Terminal):
         return sessions
 
     def find_session_by_working_directory(self, target_path: str) -> str | None:
-        """Find a session ID that matches the given working directory."""
+        """Find a session ID that matches the given working directory or is within it."""
         sessions = self.list_sessions_with_directories()
         target_path = str(Path(target_path).resolve())  # Normalize path
 
         for session in sessions:
             session_path = str(Path(session["working_directory"]).resolve())
-            if session_path == target_path:
+            # Check if the session is in the target directory or any subdirectory
+            if session_path.startswith(target_path):
                 return session["session_id"]
 
         return None
@@ -416,6 +417,35 @@ class TerminalAppTerminal(Terminal):
         """Terminal.app supports session management via working directory detection."""
         return True
 
+    def session_exists(self, session_id: str) -> bool:
+        """Check if a session exists in Terminal.app by working directory."""
+        if not session_id:
+            return False
+
+        applescript = f'''
+        tell application "Terminal"
+            repeat with theWindow in windows
+                repeat with theTab in tabs of theWindow
+                    try
+                        set tabTTY to tty of theTab
+                        set applescriptShellCmd to "lsof " & tabTTY & " | grep -E '(zsh|bash|sh)' | head -1 | awk '{{print $2}}'"
+                        set shellPid to do shell script applescriptShellCmd
+                        if shellPid is not "" then
+                            set cwdCmd to "lsof -p " & shellPid & " | grep cwd | awk '{{print $9}}'"
+                            set workingDir to do shell script cwdCmd
+                            if workingDir is "{self._escape_for_applescript(session_id)}" then
+                                return true
+                            end if
+                        end if
+                    end try
+                end repeat
+            end repeat
+            return false
+        end tell
+        '''
+
+        return self._run_applescript_with_result(applescript)
+
     def _get_working_directory_from_tty(self, tty: str) -> str | None:
         """Get working directory of shell process using the given TTY."""
         try:
@@ -466,7 +496,7 @@ class TerminalAppTerminal(Terminal):
                         if shellPid is not "" then
                             set cwdCmd to "lsof -p " & shellPid & " | grep cwd | awk '{{print $9}}'"
                             set workingDir to do shell script cwdCmd
-                            if workingDir is "{self._escape_for_applescript(session_id)}" then
+                            if workingDir starts with "{self._escape_for_applescript(session_id)}" then
                                 select theTab
                                 set frontmost of theWindow to true
                                 set index of theWindow to 1'''
@@ -487,6 +517,36 @@ class TerminalAppTerminal(Terminal):
         """
 
         return self._run_applescript(applescript)
+
+    def session_in_directory(self, session_id: str, directory: Path) -> bool:
+        """Check if Terminal.app session exists and is in the specified directory or subdirectory."""
+        logger.debug(
+            f"Checking if Terminal.app session in directory: {session_id} -> {directory}"
+        )
+
+        applescript = f'''
+        tell application "Terminal"
+            repeat with theWindow in windows
+                repeat with theTab in tabs of theWindow
+                    try
+                        set tabTTY to tty of theTab
+                        set applescriptShellCmd to "lsof " & tabTTY & " | grep -E '(zsh|bash|sh)' | head -1 | awk '{{print $2}}'"
+                        set shellPid to do shell script applescriptShellCmd
+                        if shellPid is not "" then
+                            set cwdCmd to "lsof -p " & shellPid & " | grep cwd | awk '{{print $9}}'"
+                            set workingDir to do shell script cwdCmd
+                            if workingDir starts with "{self._escape_for_applescript(str(directory))}" then
+                                return true
+                            end if
+                        end if
+                    end try
+                end repeat
+            end repeat
+            return false
+        end tell
+        '''
+
+        return self._run_applescript_with_result(applescript)
 
     def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
         """Open a new Terminal.app tab.
