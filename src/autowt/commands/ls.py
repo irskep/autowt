@@ -76,7 +76,7 @@ def list_worktrees(services: Services) -> None:
         # Check if this branch has a session ID
         session_indicator = ""
         if branch in session_ids:
-            session_indicator = " 💻"  # Laptop icon to indicate active session
+            session_indicator = "@"  # @ symbol to indicate active session
 
         # Calculate base left part without main worktree indicator
         base_left_part = f"{current_indicator}{display_path}{session_indicator}"
@@ -87,18 +87,30 @@ def list_worktrees(services: Services) -> None:
 
         # Calculate space needed for right alignment
         branch_with_indicator = f"{branch}{branch_indicator}"
-        if total_left_length + len(branch_with_indicator) + 2 < terminal_width:
+
+        # Add extra space padding when there's no left arrow for better alignment
+        extra_padding = 0 if current_worktree_path == worktree.path else 1
+
+        if (
+            total_left_length + len(branch_with_indicator) + extra_padding + 2
+            < terminal_width
+        ):
             spaces_needed = (
-                terminal_width - total_left_length - len(branch_with_indicator)
+                terminal_width
+                - total_left_length
+                - len(branch_with_indicator)
+                - extra_padding
             )
+            # Ensure we have at least 1 space
+            spaces_needed = max(1, spaces_needed)
             # Print with styled main worktree indicator
             if worktree.is_primary:
                 console.print(
-                    f"{base_left_part}[dim grey50] (main worktree)[/dim grey50]{' ' * spaces_needed}{branch_with_indicator}"
+                    f"{base_left_part}[dim grey50] (main worktree)[/dim grey50]{' ' * spaces_needed}{branch_with_indicator}{' ' * extra_padding}"
                 )
             else:
                 print_plain(
-                    f"{base_left_part}{' ' * spaces_needed}{branch_with_indicator}"
+                    f"{base_left_part}{' ' * spaces_needed}{branch_with_indicator}{' ' * extra_padding}"
                 )
         else:
             # If line would be too long, just put branch on same line with minimal spacing
