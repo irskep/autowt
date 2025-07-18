@@ -50,12 +50,12 @@ Watch as `autowt` creates a new worktree and opens it in a new terminal tab or w
 
 ## Dive deeper
 
-For detailed guides on commands, configuration, and advanced workflows, check out the [**full documentation**](https://irskep.github.io/autowt/).
+For detailed guides on commands, configuration, and advanced workflows, check out the [**full documentation**](https://steveasleep.com/autowt/).
 
--   [**Getting Started Guide**](https://irskep.github.io/autowt/gettingstarted/)
--   [**AI Agent Workflows**](https://irskep.github.io/autowt/aiagentworkflows/)
--   [**CLI Reference**](https://irskep.github.io/autowt/clireference/)
--   [**Configuration**](https://irskep.github.io/autowt/configuration/)
+-   [**Getting Started Guide**](https://steveasleep.com/autowt/gettingstarted/)
+-   [**AI Agent Workflows**](https://steveasleep.com/autowt/aiagentworkflows/)
+-   [**CLI Reference**](https://steveasleep.com/autowt/clireference/)
+-   [**Configuration**](https://steveasleep.com/autowt/configuration/)
 
 ## Contributing
 
