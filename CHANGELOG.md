@@ -12,6 +12,9 @@
 
 ### Fixed
 
+- Fixed Terminal.app session switching that was inconsistently working
+- Fixed `-y`/`--yes` flag not working with dynamic branch commands
+
 ## 0.2.0 - 2025-07-18
 
 ### Added
