@@ -10,7 +10,7 @@ from autowt.models import Services
 logger = logging.getLogger(__name__)
 
 
-def list_worktrees(services: Services) -> None:
+def list_worktrees(services: Services, debug: bool = False) -> None:
     """List all worktrees and their status."""
     logger.debug("Listing worktrees")
 
@@ -23,9 +23,29 @@ def list_worktrees(services: Services) -> None:
     # Get current directory to determine which worktree we're in
     current_path = Path.cwd()
 
-    # Load state and get worktrees from git
-    services.state.load_state(repo_path)  # Ensure state file exists
+    # Get worktrees from git
     git_worktrees = services.git.list_worktrees(repo_path)
+
+    # Show debug information about paths if requested
+    if debug:
+        print_section("  Debug Information:")
+        print_plain(f"    State directory: {services.state.app_dir}")
+        print_plain(f"    State file: {services.state.state_file}")
+        print_plain(f"    Config file: {services.state.config_file}")
+        print_plain(f"    Session file: {services.state.session_file}")
+        print_plain(f"    Git repository root: {repo_path}")
+
+        # Check for project config files
+        current_dir = Path.cwd()
+        project_config_files = [
+            current_dir / "autowt.toml",
+            current_dir / ".autowt.toml",
+        ]
+        for config_file in project_config_files:
+            if config_file.exists():
+                print_plain(f"    Project config: {config_file}")
+
+        print_plain("")
 
     # Load session IDs
     session_ids = services.state.load_session_ids()

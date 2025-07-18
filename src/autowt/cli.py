@@ -256,6 +256,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
 
 @main.command(
     "register-session-for-path",
+    hidden=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
@@ -291,7 +292,7 @@ def ls(debug: bool) -> None:
     setup_logging(debug)
     services = create_services()
     auto_register_session(services)
-    list_worktrees(services)
+    list_worktrees(services, debug=debug)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
