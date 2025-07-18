@@ -11,8 +11,6 @@ You can specify an "init script" in two ways:
 
 The init script is executed in the worktree's directory *after* `autowt` has switched to it, but *before* any `--after-init` script is run.
 
----
-
 ## Use Case 1: Installing Dependencies
 
 The most common use case for init scripts is to ensure dependencies are always up-to-date when you switch to a worktree.
@@ -37,8 +35,6 @@ init = "npm install"
 ```
 
 Now, `npm install` will run automatically every time you use `autowt` to switch to any worktree in this project, ensuring your dependencies are always in sync.
-
----
 
 ## Use Case 2: Copying `.env` Files
 

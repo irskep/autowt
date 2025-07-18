@@ -20,8 +20,6 @@ All worktrees are created in a dedicated directory adjacent to your main project
 
 Branch names are sanitized for the filesystem. A branch named `feature/user-auth` will be created in the directory `~/dev/my-project-worktrees/feature-user-auth/`.
 
----
-
 ## Cleaning Up Worktrees
 
 `autowt cleanup` is a powerful command designed to safely remove all traces of stale worktrees from your system. When you run it, `autowt` identifies branches that are good candidates for removal and, with your confirmation, cleans up:

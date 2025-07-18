@@ -39,8 +39,6 @@ If you have [uv](https://docs.astral.sh/uv/) installed, you can invoke autowt wi
 uvx autowt
 ```
 
----
-
 ## Your First Worktree
 
 Let's dive in and see `autowt` in action.
@@ -91,8 +89,6 @@ The output will look something like this, with an arrow `→` indicating your cu
 !!! tip "Additional worktree setup"
 
     If you want dependencies to be installed automatically, or need to copy over git-ignored files like `.env` from the main worktree, you can learn how to configure a setup script in the [Init Scripts guide](initscripts.md).
-
----
 
 ## A Typical Workflow
 

@@ -4,8 +4,6 @@
 
 While powerful for any developer, `autowt` is a game-changer for those working with command-line AI agents like Claude Code, Gemini CLI, or Codex. It provides the perfect environment for running multiple agents in parallel without interference.
 
----
-
 ## Core Features
 
 <div class="grid cards" markdown>
@@ -36,8 +34,6 @@ While powerful for any developer, `autowt` is a game-changer for those working w
 
 </div>
 
----
-
 ## Getting Started
 
 You'll need Python 3.10+ and a version of `git` released less than ten years ago (2.5+).
@@ -55,8 +51,6 @@ autowt my-new-feature
 ```
 
 Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window.
-
----
 
 ## Dive Deeper
 
@@ -88,6 +82,5 @@ Watch as `autowt` creates a new worktree and opens it in a new terminal tab or w
 
 </div>
 
----
 *[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
 *[main worktree]: The original repository directory, as opposed to the worktree directories managed by `autowt`.

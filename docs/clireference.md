@@ -2,8 +2,6 @@
 
 This page provides a comprehensive reference for all `autowt` commands, their options, and usage patterns. For a hands-on introduction, check out the [Getting Started](gettingstarted.md) guide.
 
----
-
 ### `autowt <branch-name>`
 *(Alias: `autowt switch <branch-name>`)*
 
@@ -21,23 +19,21 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 | `--ignore-same-session` | Forces `autowt` to create a new terminal, even if a session for that worktree already exists. |
 | `-y`, `--yes` | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session. |
 
----
-
 ### `autowt ls`
 *(Alias: `list`)*
 
 Lists all worktrees for the current project, indicating the main worktree, your current location, and any active terminal sessions. Running `autowt` with no arguments is equivalent to `autowt ls`.
 
+The laptop emoji indicates that there is an active terminal session for a worktree.
+
 ```txt
 > autowt ls
 
   Worktrees:
+→ ~/dev/my-project (main worktree)                         main ←
   ~/dev/my-project-worktrees/feature-new-ui 💻   feature-new-ui
-  ~/dev/my-project-worktrees/hotfix-bug          hotfix-bug
-→ ~/dev/my-project (main worktree)               main ←
+  ~/dev/my-project-worktrees/hotfix-bug              hotfix-bug
 ```
-
----
 
 ### `autowt cleanup`
 
@@ -52,38 +48,25 @@ Safely removes worktrees, their directories, and associated local git branches. 
 | `--force` | **Use with caution.** Force-removes worktrees even if they have uncommitted changes. |
 | `--kill` / `--no-kill` | Overrides the configured behavior for terminating processes running in a worktree's directory before removal. |
 
----
-
 ### `autowt config`
 *(Aliases: `configure`, `settings`)*
 
 Opens an interactive TUI to configure global `autowt` settings, such as the default terminal mode. Learn more in the [Configuration](configuration.md) guide.
 
----
-
 ### `autowt shellconfig`
 
-Displays shell functions to enable deeper integration with your shell, particularly for the `--terminal=echo` mode. For example, it can generate a function like this for your `.zshrc` or `.bashrc`:
+Displays a function you could choose to add to your shell config to cd to worktrees without needing autowt to control your terminal program. For example, if you use zsh, you'd see this:
 
-```bash
+```zsh
+# Shell Integration for autowt
+# Add this function to your shell configuration for convenient worktree switching:
+
+# Add to ~/.zshrc:
+# Example usage: autowt_cd feature-branch
 autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
 ```
 
 Once added to your shell's config, you can run `autowt_cd my-branch` to change the directory of your *current* terminal session, which is useful in terminals that don't support advanced control.
-
----
-
-### `autowt register-session-for-path`
-
-Manually registers the current terminal session with the current directory. This is an advanced command useful for troubleshooting if session tracking becomes out of sync. See the [Troubleshooting](troubleshooting.md) guide for more help.
-
----
-
-### `autowt list-sessions`
-
-Lists all active terminal sessions and their working directories that `autowt` can detect. This is an advanced command useful for debugging terminal integration issues.
-
----
 
 ### Global Options
 

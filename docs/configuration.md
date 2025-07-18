@@ -11,8 +11,6 @@
 3.  **Environment Variables**: System-wide overrides for specific settings.
 4.  **Command-Line Flags**: The highest priority, for on-the-fly adjustments.
 
----
-
 ## Global Configuration
 
 Global settings apply to all your projects. The easiest way to manage them is with the `autowt config` command, which launches an interactive TUI (Text-based User Interface).
@@ -32,8 +30,6 @@ Your global settings are stored in a `config.toml` file in a platform-appropriat
 *   **macOS**: `~/Library/Application Support/autowt/config.toml`
 *   **Linux**: `~/.local/share/autowt/config.toml`
 *   **Windows**: `~/.autowt/config.toml`
-
----
 
 ## Project-Specific Configuration
 
@@ -58,25 +54,3 @@ Now, every time you run `autowt <branch-name>` in this project, `autowt` will au
     ```bash
     autowt <branch-name> --init "npm test"
     ```
-
----
-
-## Environment Variables
-
-You can also configure `autowt` using environment variables. These are useful for CI/CD environments or for making system-wide changes.
-
-*   `AUTOWT_DEBUG=1`: Enables debug logging, equivalent to the `--debug` flag.
-*   `AUTOWT_TERMINAL=window`: Overrides the default terminal mode.
-*   `AUTOWT_FORCE_TERMINAL=iTerm2`: Forces `autowt` to use a specific terminal integration.
-
----
-
-## Command-Line Flags
-
-For the ultimate level of control, you can use command-line flags to override any other configuration. For example, even if your global setting is to open new tabs, you can force `autowt` to open a new window:
-
-```bash
-autowt <branch-name> --terminal=window
-```
-
-For a complete list of all available commands and flags, see the [CLI Reference](clireference.md).

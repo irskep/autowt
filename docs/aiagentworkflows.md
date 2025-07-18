@@ -11,8 +11,6 @@ Running multiple AI agents in a single directory can lead to chaos. One agent mi
 *   **Effortless Context Switching**: Jump between agent tasks without needing to stash changes. `autowt` preserves the state of each worktree, so you can pick up exactly where you left off.
 *   **Simplified Cleanup**: Once an agent has completed its task, you can easily clean up its worktree, keeping your project organized.
 
----
-
 ## Core Workflow: Parallel Feature Development
 
 The most common use case for `autowt` with AI agents is developing multiple features in parallel. The `--after-init` flag is perfect for this, as it can launch your AI agent right after the worktree is ready.
