@@ -332,6 +332,20 @@ class ITerm2Terminal(Terminal):
 
         return None
 
+    def execute_in_current_session(self, command: str) -> bool:
+        """Execute a command in the current iTerm2 session."""
+        logger.debug(f"Executing command in current iTerm2 session: {command}")
+
+        applescript = f'''
+        tell application "iTerm2"
+            tell current session of current window
+                write text "{self._escape_for_applescript(command)}"
+            end tell
+        end tell
+        '''
+
+        return self._run_applescript(applescript)
+
 
 class TerminalAppTerminal(Terminal):
     """Terminal.app implementation."""
@@ -527,6 +541,18 @@ class TerminalAppTerminal(Terminal):
             do script "{command_string}"
         end tell
         """
+
+        return self._run_applescript(applescript)
+
+    def execute_in_current_session(self, command: str) -> bool:
+        """Execute a command in the current Terminal.app session."""
+        logger.debug(f"Executing command in current Terminal.app session: {command}")
+
+        applescript = f'''
+        tell application "Terminal"
+            do script "{self._escape_for_applescript(command)}" in selected tab of front window
+        end tell
+        '''
 
         return self._run_applescript(applescript)
 
@@ -1528,6 +1554,8 @@ class TerminalService:
             return self._change_directory_inplace(
                 worktree_path, init_script, after_init
             )
+        elif mode == TerminalMode.ECHO:
+            return self._echo_commands(worktree_path, init_script, after_init)
         elif mode == TerminalMode.TAB:
             return self._switch_to_existing_or_new_tab(
                 worktree_path,
@@ -1552,18 +1580,18 @@ class TerminalService:
             logger.error(f"Unknown terminal mode: {mode}")
             return False
 
-    def _change_directory_inplace(
+    def _echo_commands(
         self,
         worktree_path: Path,
         init_script: str | None = None,
         after_init: str | None = None,
     ) -> bool:
-        """Output shell command to change directory in the current shell."""
+        """Output shell command to change directory for eval usage."""
         logger.debug(f"Outputting cd command for {worktree_path}")
 
         try:
             # Output the cd command that the user can evaluate
-            # Usage: eval "$(autowt ci --terminal=inplace)"
+            # Usage: eval "$(autowt ci --terminal=echo)"
             commands = [f"cd {shlex.quote(str(worktree_path))}"]
             if init_script:
                 commands.append(init_script)
@@ -1573,6 +1601,40 @@ class TerminalService:
             return True
         except Exception as e:
             logger.error(f"Failed to output cd command: {e}")
+            return False
+
+    def _change_directory_inplace(
+        self,
+        worktree_path: Path,
+        init_script: str | None = None,
+        after_init: str | None = None,
+    ) -> bool:
+        """Execute directory change and commands directly in current terminal session."""
+        logger.debug(f"Executing cd command in current session for {worktree_path}")
+
+        try:
+            # Build command list
+            commands = [f"cd {shlex.quote(str(worktree_path))}"]
+            if init_script:
+                commands.append(init_script)
+            if after_init:
+                commands.append(after_init)
+
+            combined_command = "; ".join(commands)
+
+            # Try to execute in current terminal session using osascript
+            if hasattr(self.terminal, "execute_in_current_session"):
+                return self.terminal.execute_in_current_session(combined_command)
+            else:
+                # Fallback to echo behavior for unsupported terminals
+                logger.warning(
+                    "Current terminal doesn't support inplace execution, falling back to echo"
+                )
+                print(combined_command)
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to execute cd command in current session: {e}")
             return False
 
     def _switch_to_existing_or_new_tab(
