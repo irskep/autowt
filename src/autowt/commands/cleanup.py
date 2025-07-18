@@ -10,7 +10,6 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
-from autowt.console import print_info
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
 
@@ -39,13 +38,8 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     """Clean up worktrees based on the specified mode."""
     logger.debug(f"Cleaning up worktrees with mode: {cleanup_cmd.mode}")
 
-    # Load config to determine process killing behavior
+    # Load config (still needed for other settings)
     config = services.state.load_config()
-    should_kill_processes = (
-        cleanup_cmd.kill_processes
-        if cleanup_cmd.kill_processes is not None
-        else config.cleanup_kill_processes
-    )
 
     # Find git repository
     repo_path = services.git.find_repo_root()
@@ -99,34 +93,29 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         print("Cleanup cancelled.")
         return
 
-    dry_run_prefix = "[DRY RUN] " if cleanup_cmd.dry_run else ""
+    # Check for running processes in all worktrees to be removed
+    all_processes = []
+    for branch_status in to_cleanup:
+        processes = services.process.find_processes_in_directory(branch_status.path)
+        all_processes.extend(processes)
 
-    print_info(
-        f"{dry_run_prefix}Process killing {'enabled' if should_kill_processes else 'disabled'}. "
-        f"To override: use --kill/--no-kill flags. To change default: 'autowt config'"
-    )
+    # Handle running processes if any are found
+    if all_processes:
+        # Determine auto_kill value based on CLI flags and config
+        if cleanup_cmd.kill_processes is not None:
+            # CLI flag specified: --kill (True) or --no-kill (False)
+            auto_kill = cleanup_cmd.kill_processes
+        else:
+            # No CLI flag specified: use config default, but still prompt if config says kill
+            # If config says don't kill processes, auto-decline (like --no-kill)
+            # If config says kill processes, prompt user (None)
+            auto_kill = None if config.cleanup_kill_processes else False
 
-    # Handle running processes (only if configured to do so)
-    if should_kill_processes:
         if not _handle_running_processes(
-            to_cleanup, services.process, cleanup_cmd.dry_run
+            to_cleanup, services.process, cleanup_cmd.dry_run, auto_kill
         ):
             print("Cleanup cancelled.")
             return
-    else:
-        # Check for running processes but don't kill them
-        all_processes = []
-        for branch_status in to_cleanup:
-            processes = services.process.find_processes_in_directory(branch_status.path)
-            all_processes.extend(processes)
-
-        if all_processes:
-            print(
-                f"{dry_run_prefix}Warning: Found {len(all_processes)} running processes in worktrees to be removed."
-            )
-            print(
-                f"{dry_run_prefix}Process killing is disabled. These processes will continue running."
-            )
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
@@ -234,7 +223,10 @@ def _confirm_cleanup(
 
 
 def _handle_running_processes(
-    to_cleanup: list[BranchStatus], process_service, dry_run: bool = False
+    to_cleanup: list[BranchStatus],
+    process_service,
+    dry_run: bool = False,
+    auto_kill: bool | None = None,
 ) -> bool:
     """Handle processes running in worktrees to be removed."""
     all_processes = []
@@ -259,10 +251,32 @@ def _handle_running_processes(
         print(f"  PID {process.pid}: {command}")
         print(f"    Working directory: {process.working_dir}")
 
-    # Ask user for confirmation before killing processes (even in dry-run)
-    if not confirm_default_yes(f"\nTerminate these {len(all_processes)} processes?"):
-        print(f"{dry_run_prefix}Process termination cancelled.")
-        return False
+    # Determine whether to terminate processes based on auto_kill parameter
+    if auto_kill is True:
+        # --kill flag: automatically proceed with termination
+        proceed_with_termination = True
+        print(f"\n{dry_run_prefix}Terminating processes (--kill flag specified)...")
+    elif auto_kill is False:
+        # --no-kill flag: automatically skip termination
+        proceed_with_termination = False
+        print(
+            f"{dry_run_prefix}Skipping process termination (--no-kill flag specified)."
+        )
+    else:
+        # No flag: ask user for confirmation before killing processes (even in dry-run)
+        proceed_with_termination = confirm_default_yes(
+            f"\nTerminate these {len(all_processes)} processes?"
+        )
+        if not proceed_with_termination:
+            print(f"{dry_run_prefix}Process termination cancelled.")
+
+    if not proceed_with_termination:
+        # For --no-kill case or user declining termination, ask if they want to continue anyway
+        if auto_kill is False:
+            print("Warning: Processes are still running in worktrees to be removed")
+            return confirm_default_no("Continue with cleanup anyway?")
+        else:
+            return False
 
     if dry_run:
         # In dry-run mode, simulate the termination
