@@ -18,7 +18,7 @@ HOOKS_CONFIG = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'echo "STOP hook - pwd: $(pwd), shell: $0, date: $(date)" >> hooktest.txt && ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && echo "STOP hook - ROOT: $ROOT" >> hooktest.txt && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"waiting\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status" && echo "STOP hook - status file created" >> hooktest.txt',
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"waiting\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
                     }
                 ],
                 "autowt_hook_id": "agent_status_stop",
@@ -29,7 +29,7 @@ HOOKS_CONFIG = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'echo "PRETOOLUSE hook - pwd: $(pwd), shell: $0, date: $(date)" >> hooktest.txt && ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && echo "PRETOOLUSE hook - ROOT: $ROOT" >> hooktest.txt && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"working\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status" && echo "PRETOOLUSE hook - status file created" >> hooktest.txt',
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"working\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
                     }
                 ],
                 "autowt_hook_id": "agent_status_pretooluse",
@@ -40,7 +40,7 @@ HOOKS_CONFIG = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'echo "POSTTOOLUSE hook - pwd: $(pwd), shell: $0, date: $(date)" >> hooktest.txt && ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && echo "POSTTOOLUSE hook - ROOT: $ROOT" >> hooktest.txt && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"idle\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status" && echo "POSTTOOLUSE hook - status file created" >> hooktest.txt',
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"idle\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
                     }
                 ],
                 "autowt_hook_id": "agent_status_posttooluse",
@@ -51,7 +51,7 @@ HOOKS_CONFIG = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'echo "NOTIFICATION hook - pwd: $(pwd), shell: $0, date: $(date)" >> hooktest.txt && ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && echo "NOTIFICATION hook - ROOT: $ROOT" >> hooktest.txt && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"notification\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status" && echo "NOTIFICATION hook - status file created" >> hooktest.txt',
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"notification\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
                     }
                 ],
                 "autowt_hook_id": "agent_status_notification",
@@ -62,7 +62,7 @@ HOOKS_CONFIG = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'echo "SUBAGENTSTOP hook - pwd: $(pwd), shell: $0, date: $(date)" >> hooktest.txt && ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && echo "SUBAGENTSTOP hook - ROOT: $ROOT" >> hooktest.txt && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"subagent_complete\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status" && echo "SUBAGENTSTOP hook - status file created" >> hooktest.txt',
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"subagent_complete\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
                     }
                 ],
                 "autowt_hook_id": "agent_status_subagent_stop",
@@ -160,10 +160,17 @@ def install_hooks_command(
                 ),
                 None,
             )
-            if (
-                not matching_hook
-                or matching_hook.get("command") != desired_hook["command"]
-            ):
+            if not matching_hook:
+                hooks_need_update = True
+                break
+
+            # Compare the nested hooks content
+            desired_commands = [h.get("command") for h in desired_hook.get("hooks", [])]
+            existing_commands = [
+                h.get("command") for h in matching_hook.get("hooks", [])
+            ]
+
+            if desired_commands != existing_commands:
                 hooks_need_update = True
                 break
 
