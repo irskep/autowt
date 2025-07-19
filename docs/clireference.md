@@ -90,7 +90,7 @@ Press `q` to quit, arrow keys to navigate, Enter to switch worktrees, `w` to jum
 
 ### `autowt hooks-install`
 
-Installs Claude Code hooks for agent monitoring. Hooks track agent status and create status files.
+Installs Claude Code hooks for agent monitoring. Hooks track agent status and create status files. Only available when Claude CLI is installed.
 
 <div class="autowt-clitable-wrapper"></div>
 
@@ -100,6 +100,7 @@ Installs Claude Code hooks for agent monitoring. Hooks track agent status and cr
 | `--project` | Install hooks at project level (current project only). |
 | `--dry-run` | Show what would be installed without making changes. |
 | `--show` | Display currently installed autowt hooks. |
+| `--remove` | Remove autowt hooks (requires --user or --project). |
 
 ### Global options
 
