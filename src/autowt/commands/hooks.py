@@ -258,17 +258,9 @@ def _show_hooks_for_level(settings_path: Path) -> None:
             installed_hooks = _extract_autowt_hooks(existing_settings)
 
             if installed_hooks:
-                # Check if hooks match expected configuration
-                hooks_up_to_date = _check_hooks_current(existing_settings)
-                status_indicator = "✓" if hooks_up_to_date else "⚠"
-                status_text = "up to date" if hooks_up_to_date else "needs update"
-
-                click.echo(f"  {status_indicator} Hooks installed ({status_text}):")
+                click.echo(f"  ✓ Hooks installed:")
                 for hook_type, hooks in installed_hooks.items():
                     click.echo(f"    {hook_type}: {len(hooks)} autowt hook(s)")
-
-                if not hooks_up_to_date:
-                    click.echo("    Run 'autowt hooks-install' to update hooks")
             else:
                 click.echo("  No autowt hooks installed")
         except json.JSONDecodeError:
@@ -277,51 +269,6 @@ def _show_hooks_for_level(settings_path: Path) -> None:
             print_error(f"  Error reading file: {e}")
     else:
         click.echo("  No settings file found")
-
-
-def _check_hooks_current(existing_settings: dict) -> bool:
-    """Check if existing autowt hooks match current expected configuration."""
-    if "hooks" not in existing_settings:
-        return False
-
-    # Check if current autowt hooks match what we want to install
-    for hook_type, hook_configs in HOOKS_CONFIG["hooks"].items():
-        if hook_type not in existing_settings["hooks"]:
-            return False
-
-        # Get existing autowt hooks for this type
-        existing_autowt_hooks = [
-            hook
-            for hook in existing_settings["hooks"][hook_type]
-            if hook.get("autowt_hook_id", "").startswith("agent_status_")
-        ]
-
-        # Compare with desired hooks
-        desired_hook_ids = {hook["autowt_hook_id"] for hook in hook_configs}
-        existing_hook_ids = {
-            hook.get("autowt_hook_id") for hook in existing_autowt_hooks
-        }
-
-        if desired_hook_ids != existing_hook_ids:
-            return False
-
-        # Also check if hook content changed
-        for desired_hook in hook_configs:
-            matching_hook = next(
-                (
-                    h
-                    for h in existing_autowt_hooks
-                    if h.get("autowt_hook_id") == desired_hook["autowt_hook_id"]
-                ),
-                None,
-            )
-            if (
-                not matching_hook
-                or matching_hook.get("command") != desired_hook["command"]
-            ):
-                return False
-
-    return True
 
 
 def _extract_autowt_hooks(settings: dict) -> dict:
