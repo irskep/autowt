@@ -99,7 +99,15 @@ def install_hooks_command(
         else:
             print_info(f"Installing hooks to user settings: {settings_path}")
     else:  # project
-        settings_path = Path.cwd() / ".claude" / "settings.json"
+        # Ask user whether to use settings.json (tracked by git) or settings.local.json (local only)
+        click.echo("\nChoose project settings file:")
+        click.echo("1. settings.json (shared with team, tracked by git)")
+        click.echo("2. settings.local.json (local only, not tracked by git)")
+
+        file_choice = click.prompt("Enter choice", type=click.Choice(["1", "2"]))
+        filename = "settings.json" if file_choice == "1" else "settings.local.json"
+
+        settings_path = Path.cwd() / ".claude" / filename
         if dry_run:
             print_info(f"Would install hooks to project settings: {settings_path}")
         else:
@@ -250,6 +258,7 @@ def show_installed_hooks(services: Services) -> None:
 
     user_settings_path = Path.home() / ".claude" / "settings.json"
     project_settings_path = Path.cwd() / ".claude" / "settings.json"
+    project_local_settings_path = Path.cwd() / ".claude" / "settings.local.json"
 
     click.echo("Autowt Hooks Status:")
     click.echo("=" * 40)
@@ -261,6 +270,10 @@ def show_installed_hooks(services: Services) -> None:
     # Check project level
     click.echo("\nProject Level (./.claude/settings.json):")
     _show_hooks_for_level(project_settings_path)
+
+    # Check project local level
+    click.echo("\nProject Local Level (./.claude/settings.local.json):")
+    _show_hooks_for_level(project_local_settings_path)
 
 
 def _show_hooks_for_level(settings_path: Path) -> None:
