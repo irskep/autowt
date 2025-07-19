@@ -62,7 +62,7 @@ Watch as `autowt` creates a new worktree and opens it in a new terminal tab or w
 
     A step-by-step tutorial to get you up and running with `autowt`.
 
--   [**AI Agent Workflows**](aiagentworkflows.md)
+-   [**AI Agents**](agents.md)
 
     ---
 

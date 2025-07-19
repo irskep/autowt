@@ -15,7 +15,7 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 |---|---|
 | `--terminal <mode>` | Overrides the default terminal behavior. Modes include `tab`, `window`, `inplace`, and `echo`. See [Terminal Support](terminalsupport.md) for details. |
 | `--init <script>` | Runs a setup script in the new terminal session. Ideal for installing dependencies or copying config files. See [Init Scripts](initscripts.md). |
-| `--after-init <script>` | Runs a command *after* the `init` script completes. Perfect for starting a dev server or an [AI agent](aiagentworkflows.md). |
+| `--after-init <script>` | Runs a command *after* the `init` script completes. Perfect for starting a dev server or an [AI agent](agents.md). |
 | `--ignore-same-session` | Forces `autowt` to create a new terminal, even if a session for that worktree already exists. |
 | `-y`, `--yes` | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session. |
 
@@ -67,6 +67,42 @@ autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
 ```
 
 Once added to your shell's config, you can run `autowt_cd my-branch` to change the directory of your *current* terminal session, which is useful in terminals that don't support advanced control.
+
+### `autowt agents`
+
+Shows a live dashboard of Claude Code agent status across worktrees. Auto-refreshes every few seconds and provides keyboard navigation.
+
+<div class="autowt-clitable-wrapper"></div>
+
+| Option | Description |
+|---|---|
+| `--debug` | Enables verbose debug logging. |
+
+Press `q` to quit, arrow keys to navigate, Enter to switch worktrees, `w` to jump to waiting agents.
+
+### `autowt hooks-install`
+
+Installs Claude Code hooks for agent monitoring. Hooks track agent status and create status files.
+
+<div class="autowt-clitable-wrapper"></div>
+
+| Option | Description |
+|---|---|
+| `--user` | Install hooks at user level (affects all projects). |
+| `--project` | Install hooks at project level (current project only). |
+| `--dry-run` | Show what would be installed without making changes. |
+| `--show` | Display currently installed autowt hooks. |
+
+### `autowt switch`
+
+Enhanced switching with agent-aware options.
+
+<div class="autowt-clitable-wrapper"></div>
+
+| Option | Description |
+|---|---|
+| `--waiting` | Switch to first agent waiting for input. |
+| `--latest` | Switch to most recently active agent. |
 
 ### Global options
 
