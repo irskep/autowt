@@ -18,8 +18,8 @@ class HooksApp(App):
     TITLE = "Autowt - Hook Installation"
     CSS_PATH = "hooks.css"
     BINDINGS = [
-        Binding("ctrl+s", "install", "Install & Exit"),
-        Binding("enter", "install", "Install & Exit"),
+        Binding("ctrl+s", "install", "Continue & Exit"),
+        Binding("enter", "confirm_install", "Continue & Exit"),
         Binding("escape", "cancel", "Cancel & Exit"),
         Binding("q", "cancel", "Quit"),
     ]
@@ -80,12 +80,12 @@ class HooksApp(App):
 
             # Action buttons
             with Horizontal(classes="buttons"):
-                yield Button("Install", id="install", variant="primary")
+                yield Button("Continue", id="install", variant="primary")
                 yield Button("Cancel", id="cancel")
 
             yield Label("")
             yield Label(
-                "Navigation: Tab to move around • Space to select • Enter/Ctrl+S to install • Esc/Q to cancel",
+                "Navigation: Tab to move around • Space to select • Enter/Ctrl+S to continue • Esc/Q to cancel",
                 classes="help",
             )
 
@@ -153,17 +153,59 @@ class HooksApp(App):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
         if event.button.id == "install":
-            self._install_hooks()
+            self._confirm_selections()
         elif event.button.id == "cancel":
             self.exit()
 
     def action_install(self) -> None:
-        """Install hooks via keyboard shortcut."""
-        self._install_hooks()
+        """Confirm selections via keyboard shortcut."""
+        self._confirm_selections()
 
     def action_cancel(self) -> None:
         """Cancel installation via keyboard shortcut."""
         self.exit()
+
+    def action_confirm_install(self) -> None:
+        """Confirm selections via Enter key."""
+        self._confirm_selections()
+
+    def _confirm_selections(self) -> None:
+        """Return user selections to main command for final confirmation."""
+        # Get installation level
+        level_radio = self.query_one("#installation-level", RadioSet)
+        level_button = level_radio.pressed_button
+
+        if level_button.id == "level-console":
+            # Exit with console instruction
+            self.exit(result="console")
+            return
+
+        # Determine settings path and description
+        if level_button.id == "level-user":
+            settings_path = Path.home() / ".claude" / "settings.json"
+            description = "User level (affects all projects)"
+        else:  # project level
+            project_radio = self.query_one("#project-file", RadioSet)
+            project_button = project_radio.pressed_button
+            filename = (
+                "settings.json"
+                if project_button.id == "file-shared"
+                else "settings.local.json"
+            )
+            settings_path = Path.cwd() / ".claude" / filename
+
+            if project_button.id == "file-shared":
+                description = "Project level (shared with team, tracked by git)"
+            else:
+                description = "Project level (local only, not tracked by git)"
+
+        # Exit with installation plan
+        result = {
+            "action": "install",
+            "path": settings_path,
+            "description": description,
+        }
+        self.exit(result=result)
 
     def _install_hooks(self) -> None:
         """Install hooks based on user selections."""

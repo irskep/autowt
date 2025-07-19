@@ -83,12 +83,39 @@ def install_hooks_command(
 
         app = HooksApp(services)
         result = app.run()
-        if (
-            result
-            and hasattr(result, "startswith")
-            and result.startswith("Hooks installed")
-        ):
-            click.echo(result)
+
+        if not result:
+            # User cancelled
+            return
+
+        if result == "console":
+            # Print configuration to console
+            print_info("Add this to your Claude Code settings:")
+            print(json.dumps(HOOKS_CONFIG, indent=2))
+            return
+
+        # Handle installation plan
+        if isinstance(result, dict) and result.get("action") == "install":
+            settings_path = result["path"]
+            description = result["description"]
+
+            # Show what will be installed
+            click.echo("\nReady to install hooks:")
+            click.echo(f"  Location: {settings_path}")
+            click.echo(f"  Level: {description}")
+            click.echo(
+                "  Hooks: UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStop"
+            )
+
+            # Final confirmation
+            if click.confirm("Install hooks to this location?", default=True):
+                try:
+                    _install_hooks_to_path(settings_path)
+                    print_success(f"Hooks installed successfully to {settings_path}")
+                except Exception as e:
+                    print_error(f"Error installing hooks: {e}")
+            else:
+                click.echo("Installation cancelled.")
         return
 
     if level == "console":
@@ -318,3 +345,40 @@ def _extract_autowt_hooks(settings: dict) -> dict:
             autowt_hooks[hook_type] = autowt_hooks_for_type
 
     return autowt_hooks
+
+
+def _install_hooks_to_path(settings_path: Path) -> None:
+    """Install hooks to a specific settings file."""
+    # Ensure directory exists
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Load existing settings
+    existing_settings = {}
+    if settings_path.exists():
+        try:
+            existing_settings = json.loads(settings_path.read_text())
+        except json.JSONDecodeError:
+            pass
+
+    # Initialize hooks section
+    if "hooks" not in existing_settings:
+        existing_settings["hooks"] = {}
+
+    # Remove existing autowt hooks
+    for hook_type in existing_settings["hooks"]:
+        existing_settings["hooks"][hook_type] = [
+            hook
+            for hook in existing_settings["hooks"][hook_type]
+            if not hook.get("autowt_hook_id", "").startswith("agent_status_")
+        ]
+
+    # Add current autowt hooks
+    for hook_type, hook_configs in HOOKS_CONFIG["hooks"].items():
+        if hook_type not in existing_settings["hooks"]:
+            existing_settings["hooks"][hook_type] = []
+
+        for new_hook in hook_configs:
+            existing_settings["hooks"][hook_type].append(new_hook)
+
+    # Write updated settings
+    settings_path.write_text(json.dumps(existing_settings, indent=2))
