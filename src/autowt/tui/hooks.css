@@ -1,0 +1,74 @@
+/* Styling for hooks installation TUI */
+
+.title {
+    text-style: bold;
+    color: $accent;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+.section-header {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+.status {
+    border: solid $primary;
+    padding: 1;
+    margin-bottom: 1;
+    background: $surface;
+    color: $text;
+    max-height: 12;
+    overflow-y: auto;
+}
+
+.hidden {
+    display: none;
+}
+
+.buttons {
+    layout: horizontal;
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+.buttons Button {
+    margin: 0 2;
+    min-width: 16;
+}
+
+Button#install {
+    text-style: bold;
+}
+
+Button#cancel {
+    text-style: bold;
+}
+
+.help {
+    text-style: italic;
+    color: $text-muted;
+    text-align: center;
+    margin-top: 1;
+}
+
+RadioSet {
+    margin: 0 2;
+    padding: 1;
+}
+
+RadioButton {
+    margin: 0 0 1 0;
+}
+
+RadioButton:focus {
+    background: $primary 20%;
+}
+
+#project-settings {
+    margin-left: 2;
+    padding: 1;
+    border-left: solid $primary;
+}

@@ -77,19 +77,19 @@ def install_hooks_command(
 ) -> None:
     """Install Claude Code hooks for agent monitoring."""
 
-    # Always show current status first
-    show_installed_hooks(services)
-    click.echo()  # Add blank line for spacing
-
     if level is None:
-        # Interactive prompt
-        click.echo("Choose hook installation level:")
-        click.echo("1. User level (affects all projects)")
-        click.echo("2. Project level (this project only)")
-        click.echo("3. Print to console (manual installation)")
+        # Launch TUI for interactive installation
+        from autowt.tui.hooks import HooksApp  # noqa: PLC0415
 
-        choice = click.prompt("Enter choice", type=click.Choice(["1", "2", "3"]))
-        level = {"1": "user", "2": "project", "3": "console"}[choice]
+        app = HooksApp(services)
+        result = app.run()
+        if (
+            result
+            and hasattr(result, "startswith")
+            and result.startswith("Hooks installed")
+        ):
+            click.echo(result)
+        return
 
     if level == "console":
         print_info("Add this to your Claude Code settings:")
