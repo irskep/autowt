@@ -77,6 +77,10 @@ def install_hooks_command(
 ) -> None:
     """Install Claude Code hooks for agent monitoring."""
 
+    # Always show current status first
+    show_installed_hooks(services)
+    click.echo()  # Add blank line for spacing
+
     if level is None:
         # Interactive prompt
         click.echo("Choose hook installation level:")
