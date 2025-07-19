@@ -55,6 +55,12 @@ Safely removes worktrees, their directories, and associated local git branches. 
 
 Opens an interactive TUI to configure global `autowt` settings, such as the default terminal mode. Learn more in the [Configuration](configuration.md) guide.
 
+<div class="autowt-clitable-wrapper"></div>
+
+| Option | Description |
+|---|---|
+| `--show` | Display current configuration values from all sources (global and project). Useful for debugging configuration issues. |
+
 ### `autowt shellconfig`
 
 Displays a function you could choose to add to your shell config to cd to worktrees without needing autowt to control your terminal program. For example, if you use zsh, you'd see this:
