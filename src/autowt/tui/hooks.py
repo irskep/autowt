@@ -19,6 +19,7 @@ class HooksApp(App):
     CSS_PATH = "hooks.css"
     BINDINGS = [
         Binding("ctrl+s", "install", "Install & Exit"),
+        Binding("enter", "install", "Install & Exit"),
         Binding("escape", "cancel", "Cancel & Exit"),
         Binding("q", "cancel", "Quit"),
     ]
@@ -84,7 +85,7 @@ class HooksApp(App):
 
             yield Label("")
             yield Label(
-                "Navigation: Tab to move around • Space to select • Ctrl+S to install • Esc/Q to cancel",
+                "Navigation: Tab to move around • Space to select • Enter/Ctrl+S to install • Esc/Q to cancel",
                 classes="help",
             )
 
