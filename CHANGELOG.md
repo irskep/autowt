@@ -2,9 +2,16 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.2.2 - Unreleased
+## 0.3.0 - Unreleased
 
 ### Added
+
+- Added agent monitoring system with Claude Code hooks integration
+- Added `autowt agents` command for live agent status dashboard
+- Added `autowt hooks-install` command to install Claude Code hooks
+- Added `--show` flag to `hooks-install` to display current hook status
+- Added `--waiting` and `--latest` flags to `autowt switch` for agent-aware navigation
+- Enhanced `autowt ls` to display agent status indicators alongside terminal sessions
 
 ### Changed
 

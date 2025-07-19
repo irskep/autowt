@@ -1,0 +1,21 @@
+#main-container {
+    padding: 1;
+}
+
+#status {
+    margin: 1 0;
+    color: $text-muted;
+}
+
+#agents-table {
+    height: 100%;
+}
+
+DataTable > .datatable--header {
+    background: $primary;
+    color: $text;
+}
+
+DataTable > .datatable--cursor {
+    background: $accent;
+}

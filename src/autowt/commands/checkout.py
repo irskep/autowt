@@ -3,6 +3,9 @@
 import logging
 from pathlib import Path
 
+import click
+
+from autowt.config import get_config
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
 from autowt.models import Services, SwitchCommand, TerminalMode
@@ -248,3 +251,81 @@ def _generate_worktree_path(repo_path: Path, branch: str) -> Path:
     worktrees_dir.mkdir(exist_ok=True)
 
     return worktrees_dir / safe_branch
+
+
+def switch_to_waiting_agent(services: Services) -> None:
+    """Switch to an agent waiting for input."""
+    repo_path = services.git.find_repo_root()
+    if not repo_path:
+        print_error("Error: Not in a git repository")
+        return
+
+    git_worktrees = services.git.list_worktrees(repo_path)
+    session_ids = services.state.load_session_ids()
+    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
+        git_worktrees, session_ids
+    )
+
+    waiting_agents = services.agent.find_waiting_agents(enhanced_worktrees)
+
+    if not waiting_agents:
+        print_info("No agents are currently waiting for input")
+        return
+
+    if len(waiting_agents) == 1:
+        # Switch directly to the only waiting agent
+        target_branch = waiting_agents[0].branch
+    else:
+        # Show interactive choice
+        print_info("Multiple agents waiting for input:")
+        for i, agent in enumerate(waiting_agents, 1):
+            print_info(
+                f"{i}. {agent.branch} (waiting since {agent.agent_status.last_activity})"
+            )
+
+        choice = click.prompt(
+            "Choose agent", type=click.IntRange(1, len(waiting_agents))
+        )
+        target_branch = waiting_agents[choice - 1].branch
+
+    # Execute switch
+    config = get_config()
+
+    switch_cmd = SwitchCommand(
+        branch=target_branch,
+        terminal_mode=config.terminal.mode,
+        init_script=config.scripts.init,
+    )
+    checkout_branch(switch_cmd, services)
+
+
+def switch_to_latest_agent(services: Services) -> None:
+    """Switch to the most recently active agent."""
+    repo_path = services.git.find_repo_root()
+    if not repo_path:
+        print_error("Error: Not in a git repository")
+        return
+
+    git_worktrees = services.git.list_worktrees(repo_path)
+    session_ids = services.state.load_session_ids()
+    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
+        git_worktrees, session_ids
+    )
+
+    latest_agent = services.agent.find_latest_active_agent(enhanced_worktrees)
+
+    if not latest_agent:
+        print_info("No recently active agents found")
+        return
+
+    print_info(f"Switching to most recent agent: {latest_agent.branch}")
+
+    # Execute switch
+    config = get_config()
+
+    switch_cmd = SwitchCommand(
+        branch=latest_agent.branch,
+        terminal_mode=config.terminal.mode,
+        init_script=config.scripts.init,
+    )
+    checkout_branch(switch_cmd, services)
