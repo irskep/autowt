@@ -13,6 +13,17 @@ logger = logging.getLogger(__name__)
 
 HOOKS_CONFIG = {
     "hooks": {
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"processing\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
+                    }
+                ],
+                "autowt_hook_id": "agent_status_userpromptsubmit",
+            }
+        ],
         "Stop": [
             {
                 "hooks": [
@@ -40,7 +51,7 @@ HOOKS_CONFIG = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"idle\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
+                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"processing\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
                     }
                 ],
                 "autowt_hook_id": "agent_status_posttooluse",

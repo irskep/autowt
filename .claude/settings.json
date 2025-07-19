@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"idle\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"processing\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
           }
         ],
         "autowt_hook_id": "agent_status_posttooluse"
@@ -60,6 +60,17 @@
           }
         ],
         "autowt_hook_id": "agent_status_subagent_stop"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"processing\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+          }
+        ],
+        "autowt_hook_id": "agent_status_userpromptsubmit"
       }
     ]
   }

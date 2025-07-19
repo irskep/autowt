@@ -70,8 +70,8 @@ class AgentStatus:
         """Get single-character status indicator for display."""
         return {
             "waiting": "C?",
+            "processing": "C~",
             "working": "C…",
-            "idle": "C.",
             "subagent_complete": "C*",
         }.get(self.status, "C?")
 
