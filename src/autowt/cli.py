@@ -62,9 +62,9 @@ def auto_register_session(services: Services) -> None:
         if not session_id:
             return
 
-        # Extract branch name from current working directory
+        # Get actual git branch name instead of directory name
         worktree_path = Path(os.getcwd())
-        branch_name = worktree_path.name
+        branch_name = services.git.get_current_branch(repo_path) or worktree_path.name
 
         # Load existing session IDs to check if already registered
         session_ids = services.state.load_session_ids()
@@ -309,9 +309,14 @@ def register_session_for_path(debug: bool) -> None:
     # Get current session ID
     session_id = services.terminal.get_current_session_id()
     if session_id:
-        # Extract branch name from current working directory
+        # Get actual git branch name instead of directory name
         worktree_path = Path(os.getcwd())
-        branch_name = worktree_path.name
+        repo_path = services.git.find_repo_root()
+        branch_name = (
+            services.git.get_current_branch(repo_path) or worktree_path.name
+            if repo_path
+            else worktree_path.name
+        )
 
         # Load and update session IDs
         session_ids = services.state.load_session_ids()

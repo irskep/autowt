@@ -2,12 +2,96 @@
 
 import logging
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from autowt.console import console, print_error, print_plain, print_section
 from autowt.models import Services
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class WorktreeSegments:
+    """Segments for formatting a worktree display line."""
+
+    left: str  # Current indicator + path
+    middle: str  # Session and agent indicators
+    main_indicator: str  # "(main worktree)" with styling
+    right: str  # Branch + current indicator
+
+
+def _format_worktree_line(worktree, current_worktree_path, terminal_width: int) -> str:
+    """Format a single worktree line with proper spacing and alignment."""
+    # Build display path
+    try:
+        relative_path = worktree.path.relative_to(Path.home())
+        display_path = f"~/{relative_path}"
+    except ValueError:
+        display_path = str(worktree.path)
+
+    # Build segments
+    segments = _build_worktree_segments(worktree, display_path, current_worktree_path)
+
+    # Combine segments with intelligent spacing
+    return _combine_segments(segments, terminal_width)
+
+
+def _build_worktree_segments(
+    worktree, display_path: str, current_worktree_path
+) -> WorktreeSegments:
+    """Build the individual segments for a worktree line."""
+    # Left segment: current indicator + path
+    current_indicator = "→ " if current_worktree_path == worktree.path else "  "
+    left = f"{current_indicator}{display_path}"
+
+    # Middle segment: session and agent indicators with proper spacing
+    indicators = []
+    if worktree.has_active_session:
+        indicators.append("@")
+    if worktree.agent_status:
+        indicators.append(worktree.agent_status.status_indicator)
+
+    middle = " " + "".join(indicators) if indicators else ""
+
+    # Main worktree indicator (styled)
+    main_indicator = (
+        "[dim grey50] (main worktree)[/dim grey50]" if worktree.is_primary else ""
+    )
+
+    # Right segment: branch + current indicator + padding for alignment
+    branch_indicator = " ←" if current_worktree_path == worktree.path else ""
+    padding = "" if current_worktree_path == worktree.path else "  "
+    right = f"{worktree.branch}{branch_indicator}{padding}"
+
+    return WorktreeSegments(
+        left=left, middle=middle, main_indicator=main_indicator, right=right
+    )
+
+
+def _combine_segments(segments: WorktreeSegments, terminal_width: int) -> str:
+    """Combine worktree segments with intelligent spacing."""
+    # Calculate content length (without styling tags for main indicator)
+    main_indicator_text = (
+        " (main worktree)" if "main worktree" in segments.main_indicator else ""
+    )
+    content_length = (
+        len(segments.left)
+        + len(segments.middle)
+        + len(main_indicator_text)
+        + len(segments.right)
+    )
+
+    # Determine spacing
+    min_spacing = 2  # Minimum space between left content and right branch
+
+    if content_length + min_spacing <= terminal_width:
+        # We have room - distribute remaining space
+        padding = terminal_width - content_length
+        return f"{segments.left}{segments.middle}{segments.main_indicator}{' ' * padding}{segments.right}"
+    else:
+        # Tight fit - use minimal spacing
+        return f"{segments.left}{segments.middle}{segments.main_indicator}  {segments.right}"
 
 
 def list_worktrees(services: Services, debug: bool = False) -> None:
@@ -85,76 +169,11 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         pass
 
     for worktree in sorted_worktrees:
-        branch = worktree.branch
-        path = worktree.path
-
-        # Shorten path for display
-        try:
-            # Try to make it relative to home directory
-            relative_path = path.relative_to(Path.home())
-            display_path = f"~/{relative_path}"
-        except ValueError:
-            display_path = str(path)
-
-        # Check if this is the current worktree
-        current_indicator = "→ " if current_worktree_path == worktree.path else "  "
-        branch_indicator = " ←" if current_worktree_path == worktree.path else "  "
-
-        # Check if this branch has a session ID and agent status
-        session_indicator = ""
-        if worktree.has_active_session:
-            session_indicator = "@"  # @ symbol to indicate active session
-
-        # Add agent status indicator
-        agent_indicator = ""
-        if worktree.agent_status:
-            agent_indicator = worktree.agent_status.status_indicator
-
-        # Combine session and agent indicators
-        combined_indicator = session_indicator + agent_indicator
-
-        # Calculate base left part without main worktree indicator
-        base_left_part = f"{current_indicator}{display_path}{combined_indicator}"
-
-        # Calculate length including main worktree indicator for alignment
-        main_indicator_text = " (main worktree)" if worktree.is_primary else ""
-        total_left_length = len(base_left_part) + len(main_indicator_text)
-
-        # Calculate space needed for right alignment
-        branch_with_indicator = f"{branch}{branch_indicator}"
-
-        # Add extra space padding when there's no left arrow for better alignment
-        extra_padding = 0 if current_worktree_path == worktree.path else 1
-
-        if (
-            total_left_length + len(branch_with_indicator) + extra_padding + 2
-            < terminal_width
-        ):
-            spaces_needed = (
-                terminal_width
-                - total_left_length
-                - len(branch_with_indicator)
-                - extra_padding
-            )
-            # Ensure we have at least 1 space
-            spaces_needed = max(1, spaces_needed)
-            # Print with styled main worktree indicator
-            if worktree.is_primary:
-                console.print(
-                    f"{base_left_part}[dim grey50] (main worktree)[/dim grey50]{' ' * spaces_needed}{branch_with_indicator}{' ' * extra_padding}"
-                )
-            else:
-                print_plain(
-                    f"{base_left_part}{' ' * spaces_needed}{branch_with_indicator}{' ' * extra_padding}"
-                )
+        line = _format_worktree_line(worktree, current_worktree_path, terminal_width)
+        if worktree.is_primary and "[dim grey50]" in line:
+            console.print(line)
         else:
-            # If line would be too long, just put branch on same line with minimal spacing
-            if worktree.is_primary:
-                console.print(
-                    f"{base_left_part}[dim grey50] (main worktree)[/dim grey50]  {branch_with_indicator}"
-                )
-            else:
-                print_plain(f"{base_left_part}  {branch_with_indicator}")
+            print_plain(line)
 
     print_plain("")
     print_plain("Use 'autowt <branch>' to switch to a worktree or create a new one.")
