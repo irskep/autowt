@@ -179,6 +179,56 @@ class ConfigApp(App):
             self.exit()
 
 
+def show_config(services: Services) -> None:
+    """Show current configuration values."""
+    config = services.state.load_config()
+    config_loader = ConfigLoader(app_dir=services.state.app_dir)
+
+    print("Current Configuration:")
+    print("=" * 50)
+    print()
+
+    print("Terminal:")
+    print(f"  mode: {config.terminal.mode.value}")
+    print(f"  always_new: {config.terminal.always_new}")
+    print(f"  program: {config.terminal.program}")
+    print()
+
+    print("Worktree:")
+    print(f"  directory_pattern: {config.worktree.directory_pattern}")
+    print(f"  max_worktrees: {config.worktree.max_worktrees}")
+    print(f"  auto_fetch: {config.worktree.auto_fetch}")
+    print(f"  default_remote: {config.worktree.default_remote}")
+    print(f"  branch_sanitization: {config.worktree.branch_sanitization}")
+    print()
+
+    print("Cleanup:")
+    print(f"  kill_processes: {config.cleanup.kill_processes}")
+    print(f"  kill_process_timeout: {config.cleanup.kill_process_timeout}")
+    print(f"  default_mode: {config.cleanup.default_mode.value}")
+    print()
+
+    print("Scripts:")
+    print(f"  init: {config.scripts.init}")
+    if config.scripts.custom:
+        print("  custom:")
+        for name, script in config.scripts.custom.items():
+            print(f"    {name}: {script}")
+    else:
+        print("  custom: {}")
+    print()
+
+    print("Confirmations:")
+    print(f"  cleanup_multiple: {config.confirmations.cleanup_multiple}")
+    print(f"  kill_process: {config.confirmations.kill_process}")
+    print(f"  force_operations: {config.confirmations.force_operations}")
+    print()
+
+    print("Config Files:")
+    print(f"  Global: {config_loader.global_config_file}")
+    print("  Project: autowt.toml or .autowt.toml in repository root")
+
+
 def configure_settings(services: Services) -> None:
     """Configure autowt settings interactively."""
     logger.debug("Configuring settings")

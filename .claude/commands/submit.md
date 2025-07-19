@@ -2,7 +2,7 @@
 
 1. `mise run format && mise run lint`, then fix issues
 2. `mise run tests`, then fix issues
-3. Review changes with `git status` and `git diff`, checking for commits vs the merge-base of origin/main, as well as unstaged cahnges, and staged changes
+3. Review changes with `git status` and `git --no-pager diff`, checking for commits vs the merge-base of origin/main, as well as unstaged cahnges, and staged changes
 4. Stage and commit changes:
 
    ```bash

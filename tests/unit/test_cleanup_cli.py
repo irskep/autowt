@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from autowt.cli import main
+from autowt.config import CleanupConfig, Config
 from autowt.models import CleanupMode, Services
 
 
@@ -27,9 +28,11 @@ class TestCleanupCLI:
         mock_services.git.list_worktrees.return_value = []
 
         # Mock state service methods
-        mock_services.state.load_config.return_value = Mock(
-            cleanup_kill_processes=False
-        )
+        mock_config = Mock(spec=Config)
+        mock_config.cleanup = Mock(spec=CleanupConfig)
+        mock_config.cleanup.kill_processes = False
+        mock_config.cleanup.default_mode = CleanupMode.INTERACTIVE
+        mock_services.state.load_config.return_value = mock_config
 
         return mock_services
 
@@ -185,3 +188,64 @@ class TestCleanupCLI:
 
         assert result.exit_code != 0
         assert "Cannot specify both --kill and --no-kill" in result.output
+
+    def test_kill_processes_flag_handling(self):
+        """Test that kill_processes flag is handled correctly based on CLI args and config."""
+        runner = CliRunner()
+
+        # Test --kill flag sets kill_processes=True
+        with (
+            patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
+            patch(
+                "autowt.cli.create_services", return_value=self._create_mock_services()
+            ),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_config = Mock()
+            mock_config.cleanup.kill_processes = False  # Config says don't kill
+            mock_config.cleanup.default_mode = CleanupMode.INTERACTIVE
+            mock_get_config.return_value = mock_config
+
+            result = runner.invoke(main, ["cleanup", "--mode", "merged", "--kill"])
+
+            assert result.exit_code == 0
+            cleanup_cmd = mock_cleanup.call_args[0][0]
+            assert cleanup_cmd.kill_processes is True  # --kill overrides config
+
+        # Test --no-kill flag sets kill_processes=False
+        with (
+            patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
+            patch(
+                "autowt.cli.create_services", return_value=self._create_mock_services()
+            ),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_config = Mock()
+            mock_config.cleanup.kill_processes = True  # Config says kill
+            mock_config.cleanup.default_mode = CleanupMode.INTERACTIVE
+            mock_get_config.return_value = mock_config
+
+            result = runner.invoke(main, ["cleanup", "--mode", "merged", "--no-kill"])
+
+            assert result.exit_code == 0
+            cleanup_cmd = mock_cleanup.call_args[0][0]
+            assert cleanup_cmd.kill_processes is False  # --no-kill overrides config
+
+        # Test no flags means kill_processes=None (allows prompting)
+        with (
+            patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
+            patch(
+                "autowt.cli.create_services", return_value=self._create_mock_services()
+            ),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_config = Mock()
+            mock_config.cleanup.kill_processes = True  # Config says kill
+            mock_config.cleanup.default_mode = CleanupMode.INTERACTIVE
+            mock_get_config.return_value = mock_config
+
+            result = runner.invoke(main, ["cleanup", "--mode", "merged"])
+
+            assert result.exit_code == 0
+            cleanup_cmd = mock_cleanup.call_args[0][0]
+            assert cleanup_cmd.kill_processes is None  # None allows prompting
