@@ -2,6 +2,7 @@
 
 import json
 import logging
+import sys
 from pathlib import Path
 
 import click
@@ -10,6 +11,12 @@ from autowt.console import print_error, print_info, print_success
 from autowt.models import Services
 
 logger = logging.getLogger(__name__)
+
+
+def _is_interactive_terminal() -> bool:
+    """Check if running in an interactive terminal (same as cli.py pattern)."""
+    return sys.stdin.isatty()
+
 
 HOOKS_CONFIG = {
     "hooks": {
@@ -78,6 +85,13 @@ def install_hooks_command(
     """Install Claude Code hooks for agent monitoring."""
 
     if level is None:
+        # Check if we're in a TTY before launching TUI
+        if not _is_interactive_terminal():
+            print_error(
+                "Interactive TUI requires a terminal. Use --user or --project flags."
+            )
+            return
+
         # Launch TUI for interactive installation
         from autowt.tui.hooks import HooksApp  # noqa: PLC0415
 
@@ -382,3 +396,130 @@ def _install_hooks_to_path(settings_path: Path) -> None:
 
     # Write updated settings
     settings_path.write_text(json.dumps(existing_settings, indent=2))
+
+
+def remove_hooks_command(level: str, services: Services, dry_run: bool = False) -> None:
+    """Remove autowt hooks from Claude Code settings."""
+    if level == "user":
+        settings_path = Path.home() / ".claude" / "settings.json"
+        if dry_run:
+            print_info(f"Would remove hooks from user settings: {settings_path}")
+        else:
+            print_info(f"Removing hooks from user settings: {settings_path}")
+    else:  # project
+        settings_path = Path.cwd() / ".claude" / "settings.json"
+        project_local_path = Path.cwd() / ".claude" / "settings.local.json"
+
+        # Check both project files and prompt user which to clean
+        project_has_hooks = _has_autowt_hooks_in_file(settings_path)
+        local_has_hooks = _has_autowt_hooks_in_file(project_local_path)
+
+        if project_has_hooks and local_has_hooks:
+            click.echo("Found autowt hooks in both project settings files:")
+            click.echo("1. settings.json (shared)")
+            click.echo("2. settings.local.json (local)")
+            click.echo("3. Both")
+
+            choice = click.prompt(
+                "Remove hooks from which file?", type=click.Choice(["1", "2", "3"])
+            )
+            if choice == "1":
+                settings_path = settings_path
+            elif choice == "2":
+                settings_path = project_local_path
+            else:  # choice == "3"
+                # Remove from both files
+                _remove_hooks_from_file(settings_path, dry_run)
+                _remove_hooks_from_file(project_local_path, dry_run)
+                return
+        elif project_has_hooks:
+            settings_path = settings_path
+        elif local_has_hooks:
+            settings_path = project_local_path
+        else:
+            print_info("No autowt hooks found in project settings files")
+            return
+
+        if dry_run:
+            print_info(f"Would remove hooks from project settings: {settings_path}")
+        else:
+            print_info(f"Removing hooks from project settings: {settings_path}")
+
+    _remove_hooks_from_file(settings_path, dry_run)
+
+
+def _remove_hooks_from_file(settings_path: Path, dry_run: bool = False) -> None:
+    """Remove autowt hooks from a specific settings file."""
+    if not settings_path.exists():
+        print_info(f"Settings file not found: {settings_path}")
+        return
+
+    try:
+        existing_settings = json.loads(settings_path.read_text())
+    except json.JSONDecodeError:
+        print_error(f"Error: Invalid JSON in {settings_path}")
+        return
+
+    if "hooks" not in existing_settings:
+        print_info(f"No hooks section found in {settings_path}")
+        return
+
+    # Count autowt hooks before removal
+    hooks_removed = 0
+    for hook_type in existing_settings["hooks"]:
+        original_count = len(existing_settings["hooks"][hook_type])
+        existing_settings["hooks"][hook_type] = [
+            hook
+            for hook in existing_settings["hooks"][hook_type]
+            if not hook.get("autowt_hook_id", "").startswith("agent_status_")
+        ]
+        hooks_removed += original_count - len(existing_settings["hooks"][hook_type])
+
+    if hooks_removed == 0:
+        print_info(f"No autowt hooks found in {settings_path}")
+        return
+
+    if dry_run:
+        print_info(f"Would remove {hooks_removed} autowt hooks from {settings_path}")
+    else:
+        try:
+            settings_path.write_text(json.dumps(existing_settings, indent=2))
+            print_success(f"Removed {hooks_removed} autowt hooks from {settings_path}")
+        except Exception as e:
+            print_error(f"Error writing settings: {e}")
+
+
+def _has_autowt_hooks_in_file(settings_path: Path) -> bool:
+    """Check if a specific settings file contains autowt hooks."""
+    if not settings_path.exists():
+        return False
+
+    try:
+        with open(settings_path) as f:
+            settings = json.load(f)
+
+        autowt_hooks = _extract_autowt_hooks(settings)
+        return len(autowt_hooks) > 0
+
+    except (json.JSONDecodeError, Exception) as e:
+        logger.debug(f"Error reading {settings_path}: {e}")
+        return False
+
+
+def _extract_autowt_hooks(settings: dict) -> dict:
+    """Extract autowt hooks from settings, grouped by hook type."""
+    autowt_hooks = {}
+
+    if "hooks" not in settings:
+        return autowt_hooks
+
+    for hook_type, hooks in settings["hooks"].items():
+        autowt_hooks_for_type = [
+            hook
+            for hook in hooks
+            if hook.get("autowt_hook_id", "").startswith("agent_status_")
+        ]
+        if autowt_hooks_for_type:
+            autowt_hooks[hook_type] = autowt_hooks_for_type
+
+    return autowt_hooks

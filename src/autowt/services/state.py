@@ -4,6 +4,7 @@ import logging
 import os
 import platform
 from pathlib import Path
+from typing import Any
 
 import toml
 
@@ -24,6 +25,7 @@ class StateService:
         self.app_dir = app_dir
         self.config_file = app_dir / "config.toml"
         self.session_file = app_dir / "sessionids.toml"
+        self.state_file = app_dir / "state.toml"
 
         # Ensure app directory exists
         self.app_dir.mkdir(parents=True, exist_ok=True)
@@ -111,3 +113,42 @@ class StateService:
         except Exception as e:
             logger.error(f"Failed to save session IDs: {e}")
             raise
+
+    def load_app_state(self) -> dict[str, Any]:
+        """Load application state including UI preferences and prompt tracking."""
+        logger.debug("Loading application state")
+
+        if not self.state_file.exists():
+            logger.debug("No state file found")
+            return {}
+
+        try:
+            data = toml.load(self.state_file)
+            logger.debug("Application state loaded successfully")
+            return data
+        except Exception as e:
+            logger.error(f"Failed to load application state: {e}")
+            return {}
+
+    def save_app_state(self, state: dict[str, Any]) -> None:
+        """Save application state including UI preferences and prompt tracking."""
+        logger.debug("Saving application state")
+
+        try:
+            with open(self.state_file, "w") as f:
+                toml.dump(state, f)
+            logger.debug("Application state saved successfully")
+        except Exception as e:
+            logger.error(f"Failed to save application state: {e}")
+            raise
+
+    def has_shown_hooks_prompt(self) -> bool:
+        """Check if we have already shown the hooks installation prompt."""
+        state = self.load_app_state()
+        return state.get("hooks_prompt_shown", False)
+
+    def mark_hooks_prompt_shown(self) -> None:
+        """Mark that we have shown the hooks installation prompt."""
+        state = self.load_app_state()
+        state["hooks_prompt_shown"] = True
+        self.save_app_state(state)

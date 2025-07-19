@@ -7,6 +7,7 @@ from pathlib import Path
 
 from autowt.console import console, print_error, print_plain, print_section
 from autowt.models import Services
+from autowt.services.hooks import check_and_prompt_hooks_installation
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,9 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
     if not repo_path:
         print_error("Error: Not in a git repository")
         return
+
+    # Check if we should prompt for hooks installation (first-run experience)
+    check_and_prompt_hooks_installation(services)
 
     # Get current directory to determine which worktree we're in
     current_path = Path.cwd()

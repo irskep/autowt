@@ -18,7 +18,11 @@ from autowt.commands.checkout import (
 )
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
-from autowt.commands.hooks import install_hooks_command, show_installed_hooks
+from autowt.commands.hooks import (
+    install_hooks_command,
+    remove_hooks_command,
+    show_installed_hooks,
+)
 from autowt.commands.ls import list_worktrees
 from autowt.config import get_config
 from autowt.global_config import options
@@ -597,16 +601,24 @@ def agents(debug: bool) -> None:
     is_flag=True,
     help="Show currently installed autowt hooks at user and project levels",
 )
+@click.option(
+    "--remove",
+    is_flag=True,
+    help="Remove autowt hooks instead of installing them",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def hooks_install(
-    user: bool, project: bool, dry_run: bool, show: bool, debug: bool
+    user: bool, project: bool, dry_run: bool, show: bool, remove: bool, debug: bool
 ) -> None:
     """Install Claude Code hooks for agent monitoring."""
     if user and project:
         raise click.UsageError("Cannot specify both --user and --project")
 
-    if show and (user or project or dry_run):
+    if show and (user or project or dry_run or remove):
         raise click.UsageError("--show cannot be combined with other options")
+
+    if remove and not (user or project):
+        raise click.UsageError("--remove requires either --user or --project")
 
     level = None
     if user:
@@ -619,6 +631,8 @@ def hooks_install(
 
     if show:
         show_installed_hooks(services)
+    elif remove:
+        remove_hooks_command(level, services, dry_run=dry_run)
     else:
         install_hooks_command(level, services, dry_run=dry_run)
 

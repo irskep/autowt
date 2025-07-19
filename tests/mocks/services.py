@@ -1,6 +1,7 @@
 """Mock services for testing business logic."""
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock
 
 from autowt.config import Config
@@ -22,6 +23,7 @@ class MockStateService:
         self.configs: dict[str, Config] = {}
         self.project_configs: dict[str, ProjectConfig] = {}
         self.session_ids: dict[str, str] = {}
+        self.app_state: dict[str, Any] = {}
 
     def load_config(self) -> Config:
         return self.configs.get("default", Config())
@@ -41,6 +43,18 @@ class MockStateService:
 
     def save_session_ids(self, session_ids: dict[str, str]) -> None:
         self.session_ids = session_ids.copy()
+
+    def load_app_state(self) -> dict[str, Any]:
+        return self.app_state.copy()
+
+    def save_app_state(self, state: dict[str, Any]) -> None:
+        self.app_state = state.copy()
+
+    def has_shown_hooks_prompt(self) -> bool:
+        return self.app_state.get("hooks_prompt_shown", False)
+
+    def mark_hooks_prompt_shown(self) -> None:
+        self.app_state["hooks_prompt_shown"] = True
 
 
 class MockGitService:
