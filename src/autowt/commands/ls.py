@@ -50,6 +50,11 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
     # Load session IDs
     session_ids = services.state.load_session_ids()
 
+    # Enhance worktrees with agent status
+    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
+        git_worktrees, session_ids
+    )
+
     # Determine which worktree we're currently in
     current_worktree_path = None
     for worktree in git_worktrees:
@@ -61,14 +66,16 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
             # is_relative_to raises ValueError if not relative
             continue
 
-    if not git_worktrees:
+    if not enhanced_worktrees:
         print_plain("  No worktrees found.")
         return
 
     print_section("  Worktrees:")
 
     # Sort worktrees: primary first, then by branch name
-    sorted_worktrees = sorted(git_worktrees, key=lambda w: (not w.is_primary, w.branch))
+    sorted_worktrees = sorted(
+        enhanced_worktrees, key=lambda w: (not w.is_primary, w.branch)
+    )
 
     # Calculate the maximum terminal width to align branch names
     terminal_width = 80  # Default fallback
@@ -93,13 +100,21 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         current_indicator = "→ " if current_worktree_path == worktree.path else "  "
         branch_indicator = " ←" if current_worktree_path == worktree.path else "  "
 
-        # Check if this branch has a session ID
+        # Check if this branch has a session ID and agent status
         session_indicator = ""
-        if branch in session_ids:
+        if worktree.has_active_session:
             session_indicator = "@"  # @ symbol to indicate active session
 
+        # Add agent status indicator
+        agent_indicator = ""
+        if worktree.agent_status:
+            agent_indicator = worktree.agent_status.status_indicator
+
+        # Combine session and agent indicators
+        combined_indicator = session_indicator + agent_indicator
+
         # Calculate base left part without main worktree indicator
-        base_left_part = f"{current_indicator}{display_path}{session_indicator}"
+        base_left_part = f"{current_indicator}{display_path}{combined_indicator}"
 
         # Calculate length including main worktree indicator for alignment
         main_indicator_text = " (main worktree)" if worktree.is_primary else ""

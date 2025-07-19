@@ -10,7 +10,7 @@ nav:
   - User Guide:
     - Branch Management: branchmanagement.md
     - Init Scripts: initscripts.md
-    - AI Agent Workflows: aiagentworkflows.md
+    - AI Agents: agents.md
   - Reference:
     - CLI Reference: clireference.md
     - Configuration: configuration.md

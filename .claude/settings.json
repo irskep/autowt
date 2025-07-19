@@ -18,6 +18,59 @@
             "command": "mise claude-hook-lint"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"idle\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+          }
+        ],
+        "autowt_hook_id": "agent_status_posttooluse"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"waiting\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+          }
+        ],
+        "autowt_hook_id": "agent_status_stop"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"working\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+          }
+        ],
+        "autowt_hook_id": "agent_status_pretooluse"
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"notification\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+          }
+        ],
+        "autowt_hook_id": "agent_status_notification"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"subagent_complete\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
+          }
+        ],
+        "autowt_hook_id": "agent_status_subagent_stop"
       }
     ]
   }

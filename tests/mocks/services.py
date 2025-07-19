@@ -5,11 +5,13 @@ from unittest.mock import Mock
 
 from autowt.config import Config
 from autowt.models import (
+    AgentStatus,
     BranchStatus,
     ProcessInfo,
     ProjectConfig,
     TerminalMode,
     WorktreeInfo,
+    WorktreeWithAgent,
 )
 
 
@@ -183,6 +185,63 @@ class MockProcessService:
         pass
 
 
+class MockAgentService:
+    """Mock agent service for testing."""
+
+    def __init__(self):
+        self.agent_statuses: dict[Path, AgentStatus | None] = {}
+        self.process_running_results: dict[Path, bool] = {}
+
+    def detect_agent_status(self, worktree_path: Path) -> AgentStatus | None:
+        return self.agent_statuses.get(worktree_path)
+
+    def enhance_worktrees_with_agent_status(
+        self, worktrees: list[WorktreeInfo], session_ids: dict[str, str]
+    ) -> list[WorktreeWithAgent]:
+        """Add agent status to worktree information."""
+        enhanced = []
+        for worktree in worktrees:
+            agent_status = self.detect_agent_status(worktree.path)
+            has_session = worktree.branch in session_ids
+            enhanced.append(
+                WorktreeWithAgent(
+                    branch=worktree.branch,
+                    path=worktree.path,
+                    is_current=worktree.is_current,
+                    is_primary=worktree.is_primary,
+                    agent_status=agent_status,
+                    has_active_session=has_session,
+                )
+            )
+        return enhanced
+
+    def find_waiting_agents(
+        self, enhanced_worktrees: list[WorktreeWithAgent]
+    ) -> list[WorktreeWithAgent]:
+        """Find worktrees with agents waiting for input."""
+        return [
+            wt
+            for wt in enhanced_worktrees
+            if wt.agent_status and wt.agent_status.status == "waiting"
+        ]
+
+    def find_latest_active_agent(
+        self, enhanced_worktrees: list[WorktreeWithAgent]
+    ) -> WorktreeWithAgent | None:
+        """Find the most recently active agent."""
+        active_agents = [
+            wt
+            for wt in enhanced_worktrees
+            if wt.agent_status
+            and wt.agent_status.status in ["working", "idle", "waiting"]
+        ]
+        if not active_agents:
+            return None
+        return sorted(
+            active_agents, key=lambda w: w.agent_status.last_activity, reverse=True
+        )[0]
+
+
 class MockServices:
     """Mock Services container for testing."""
 
@@ -191,3 +250,4 @@ class MockServices:
         self.git = MockGitService()
         self.terminal = MockTerminalService()
         self.process = MockProcessService()
+        self.agent = MockAgentService()

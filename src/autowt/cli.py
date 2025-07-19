@@ -10,9 +10,15 @@ import click
 from click_aliases import ClickAliasedGroup
 
 from autowt.cli_config import create_cli_config_overrides, initialize_config
-from autowt.commands.checkout import checkout_branch
+from autowt.commands.agents import show_agent_dashboard
+from autowt.commands.checkout import (
+    checkout_branch,
+    find_latest_agent_branch,
+    find_waiting_agent_branch,
+)
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings
+from autowt.commands.hooks import install_hooks_command, show_installed_hooks
 from autowt.commands.ls import list_worktrees
 from autowt.config import get_config
 from autowt.global_config import options
@@ -445,7 +451,7 @@ def shellconfig(debug: bool, shell: str | None) -> None:
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.argument("branch")
+@click.argument("branch", required=False)
 @click.option(
     "--terminal",
     type=click.Choice(["tab", "window", "inplace", "echo"]),
@@ -455,15 +461,70 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     "--init",
     help="Init script to run in the new terminal",
 )
+@click.option(
+    "--after-init",
+    help="Command to run after init script completes",
+)
+@click.option(
+    "--ignore-same-session",
+    is_flag=True,
+    help="Always create new terminal, ignore existing sessions",
+)
+@click.option(
+    "-y", "--yes", "auto_confirm", is_flag=True, help="Auto-confirm all prompts"
+)
+@click.option(
+    "--waiting",
+    is_flag=True,
+    help="Switch to first agent waiting for input",
+)
+@click.option(
+    "--latest",
+    is_flag=True,
+    help="Switch to most recently active agent",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
-def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> None:
+def switch(
+    branch: str | None,
+    terminal: str | None,
+    init: str | None,
+    after_init: str | None,
+    ignore_same_session: bool,
+    auto_confirm: bool,
+    waiting: bool,
+    latest: bool,
+    debug: bool,
+) -> None:
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
 
-    # Create CLI overrides for switch command
+    # Validate mutually exclusive options
+    option_count = sum([bool(branch), waiting, latest])
+    if option_count != 1:
+        raise click.UsageError(
+            "Must specify exactly one of: branch name, --waiting, or --latest"
+        )
+
+    services = create_services()
+    auto_register_session(services)
+
+    # Determine target branch
+    target_branch = branch
+    if waiting:
+        target_branch = find_waiting_agent_branch(services)
+        if not target_branch:
+            return
+    elif latest:
+        target_branch = find_latest_agent_branch(services)
+        if not target_branch:
+            return
+
+    # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
         terminal=terminal,
         init=init,
+        after_init=after_init,
+        ignore_same_session=ignore_same_session,
     )
 
     # Initialize configuration with CLI overrides
@@ -473,17 +534,83 @@ def switch(branch: str, terminal: str | None, init: str | None, debug: bool) -> 
     config = get_config()
     terminal_mode = config.terminal.mode if not terminal else TerminalMode(terminal)
 
-    services = create_services()
-    auto_register_session(services)
-
-    # Create and execute SwitchCommand
+    # Create and execute SwitchCommand with full option support
     switch_cmd = SwitchCommand(
-        branch=branch,
+        branch=target_branch,
         terminal_mode=terminal_mode,
         init_script=config.scripts.init,
+        after_init=after_init,
+        ignore_same_session=config.terminal.always_new or ignore_same_session,
+        auto_confirm=auto_confirm,
         debug=debug,
     )
     checkout_branch(switch_cmd, services)
+
+
+@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+def agents(debug: bool) -> None:
+    """Show live agent monitoring dashboard."""
+    setup_logging(debug)
+    services = create_services()
+    auto_register_session(services)
+
+    result = show_agent_dashboard(services)
+
+    # Handle dashboard exit actions
+    if result and result.get("action") == "switch":
+        branch = result.get("branch")
+        if branch:
+            config = get_config()
+            switch_cmd = SwitchCommand(
+                branch=branch,
+                terminal_mode=config.terminal.mode,
+                init_script=config.scripts.init,
+            )
+            checkout_branch(switch_cmd, services)
+
+
+@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option(
+    "--user", is_flag=True, help="Install hooks at user level (affects all projects)"
+)
+@click.option(
+    "--project", is_flag=True, help="Install hooks at project level (this project only)"
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be installed without making changes",
+)
+@click.option(
+    "--show",
+    is_flag=True,
+    help="Show currently installed autowt hooks at user and project levels",
+)
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+def hooks_install(
+    user: bool, project: bool, dry_run: bool, show: bool, debug: bool
+) -> None:
+    """Install Claude Code hooks for agent monitoring."""
+    if user and project:
+        raise click.UsageError("Cannot specify both --user and --project")
+
+    if show and (user or project or dry_run):
+        raise click.UsageError("--show cannot be combined with other options")
+
+    level = None
+    if user:
+        level = "user"
+    elif project:
+        level = "project"
+
+    setup_logging(debug)
+    services = create_services()
+
+    if show:
+        show_installed_hooks(services)
+    else:
+        install_hooks_command(level, services, dry_run=dry_run)
 
 
 if __name__ == "__main__":
