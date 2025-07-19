@@ -109,7 +109,7 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
             # No CLI flag specified: use config default, but still prompt if config says kill
             # If config says don't kill processes, auto-decline (like --no-kill)
             # If config says kill processes, prompt user (None)
-            auto_kill = None if config.cleanup_kill_processes else False
+            auto_kill = None if config.cleanup.kill_processes else False
 
         if not _handle_running_processes(
             to_cleanup, services.process, cleanup_cmd.dry_run, auto_kill

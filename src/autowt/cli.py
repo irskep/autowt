@@ -17,7 +17,7 @@ from autowt.commands.checkout import (
     find_waiting_agent_branch,
 )
 from autowt.commands.cleanup import cleanup_worktrees
-from autowt.commands.config import configure_settings
+from autowt.commands.config import configure_settings, show_config
 from autowt.commands.hooks import install_hooks_command, show_installed_hooks
 from autowt.commands.ls import list_worktrees
 from autowt.config import get_config
@@ -410,8 +410,8 @@ def cleanup(
         kill_processes = True
     elif no_kill:
         kill_processes = False
-    else:
-        kill_processes = config.cleanup.kill_processes
+    # Note: When no CLI flags are specified, pass None to allow prompting
+    # The cleanup logic will use config.cleanup.kill_processes for the default
 
     cleanup_cmd = CleanupCommand(
         mode=CleanupMode(mode),
@@ -429,12 +429,17 @@ def cleanup(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
-def config(debug: bool) -> None:
+@click.option("--show", is_flag=True, help="Show current configuration values")
+def config(debug: bool, show: bool) -> None:
     """Configure autowt settings using interactive TUI."""
     setup_logging(debug)
     services = create_services()
     auto_register_session(services)
-    configure_settings(services)
+
+    if show:
+        show_config(services)
+    else:
+        configure_settings(services)
 
 
 @main.command(context_settings={"help_option_names": ["-h", "--help"]})
