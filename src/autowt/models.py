@@ -72,7 +72,6 @@ class AgentStatus:
             "waiting": "C?",
             "working": "C…",
             "idle": "C.",
-            "notification": "C!",
             "subagent_complete": "C*",
         }.get(self.status, "C?")
 

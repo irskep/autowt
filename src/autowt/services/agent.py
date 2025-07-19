@@ -22,10 +22,35 @@ class AgentService:
                 timeout=5,
             )
 
-            if result.returncode != 0:
+            # lsof can return exit code 1 but still produce valid output
+            # Check output regardless of return code if stdout is not empty
+            if not result.stdout.strip():
                 return False
 
-            return any("claude" in line.lower() for line in result.stdout.splitlines())
+            # Look for node processes and verify they're actually Claude
+            for line in result.stdout.splitlines():
+                if "node" in line.lower():
+                    # Extract PID from lsof output
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        try:
+                            pid = int(parts[1])
+                            # Check if this PID is actually a Claude process
+                            ps_result = subprocess.run(
+                                ["ps", "-p", str(pid), "-o", "command="],
+                                capture_output=True,
+                                text=True,
+                                timeout=2,
+                            )
+                            if (
+                                ps_result.returncode == 0
+                                and "claude" in ps_result.stdout.strip()
+                            ):
+                                return True
+                        except (ValueError, subprocess.TimeoutExpired):
+                            continue
+
+            return False
 
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             # lsof unavailable or failed - can't determine process status

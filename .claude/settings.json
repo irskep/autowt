@@ -51,17 +51,6 @@
         "autowt_hook_id": "agent_status_pretooluse"
       }
     ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"notification\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
-          }
-        ],
-        "autowt_hook_id": "agent_status_notification"
-      }
-    ],
     "SubagentStop": [
       {
         "hooks": [

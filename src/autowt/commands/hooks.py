@@ -46,17 +46,6 @@ HOOKS_CONFIG = {
                 "autowt_hook_id": "agent_status_posttooluse",
             }
         ],
-        "Notification": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p "$ROOT/.claude/autowt" && echo "{\\"status\\":\\"notification\\",\\"last_activity\\":\\"$(date -Iseconds)\\"}" > "$ROOT/.claude/autowt/status"',
-                    }
-                ],
-                "autowt_hook_id": "agent_status_notification",
-            }
-        ],
         "SubagentStop": [
             {
                 "hooks": [
@@ -126,6 +115,19 @@ def install_hooks_command(
     hooks_need_update = False
     hooks_added = 0
     hooks_removed = 0
+
+    # Check for hook types that should be removed (exist in settings but not in HOOKS_CONFIG)
+    for hook_type in existing_settings["hooks"]:
+        if hook_type not in HOOKS_CONFIG["hooks"]:
+            # Check if this hook type has autowt hooks that should be removed
+            existing_autowt_hooks = [
+                hook
+                for hook in existing_settings["hooks"][hook_type]
+                if hook.get("autowt_hook_id", "").startswith("agent_status_")
+            ]
+            if existing_autowt_hooks:
+                hooks_need_update = True
+                break
 
     # Check if current autowt hooks match what we want to install
     for hook_type, hook_configs in HOOKS_CONFIG["hooks"].items():
