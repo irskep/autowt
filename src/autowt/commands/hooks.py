@@ -258,7 +258,7 @@ def _show_hooks_for_level(settings_path: Path) -> None:
             installed_hooks = _extract_autowt_hooks(existing_settings)
 
             if installed_hooks:
-                click.echo(f"  ✓ Hooks installed:")
+                click.echo("  ✓ Hooks installed:")
                 for hook_type, hooks in installed_hooks.items():
                     click.echo(f"    {hook_type}: {len(hooks)} autowt hook(s)")
             else:
