@@ -2,8 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from autowt.commands import checkout, cleanup, ls
 from autowt.models import (
     CleanupCommand,
@@ -19,7 +17,6 @@ from tests.mocks.services import (
 class TestListCommand:
     """Tests for ls command."""
 
-    @pytest.mark.skip(reason="Output format may have changed - needs updating")
     def test_ls_with_worktrees(self, temp_repo_path, sample_worktrees, capsys):
         """Test listing worktrees."""
         # Setup mocks
@@ -32,12 +29,11 @@ class TestListCommand:
 
         # Check output
         captured = capsys.readouterr()
-        assert f"Primary clone: {temp_repo_path}" in captured.out
-        assert "You are in: Primary clone" in captured.out
-        assert "Branches:" in captured.out
+        assert "Worktrees:" in captured.out
         assert "feature1" in captured.out
         assert "feature2" in captured.out
         assert "bugfix" in captured.out
+        assert "autowt <branch>" in captured.out
 
     def test_ls_no_worktrees(self, temp_repo_path, capsys):
         """Test listing when no worktrees exist."""

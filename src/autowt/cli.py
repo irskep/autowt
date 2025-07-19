@@ -13,8 +13,8 @@ from autowt.cli_config import create_cli_config_overrides, initialize_config
 from autowt.commands.agents import show_agent_dashboard
 from autowt.commands.checkout import (
     checkout_branch,
-    switch_to_latest_agent,
-    switch_to_waiting_agent,
+    find_latest_agent_branch,
+    find_waiting_agent_branch,
 )
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings
@@ -462,6 +462,18 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     help="Init script to run in the new terminal",
 )
 @click.option(
+    "--after-init",
+    help="Command to run after init script completes",
+)
+@click.option(
+    "--ignore-same-session",
+    is_flag=True,
+    help="Always create new terminal, ignore existing sessions",
+)
+@click.option(
+    "-y", "--yes", "auto_confirm", is_flag=True, help="Auto-confirm all prompts"
+)
+@click.option(
     "--waiting",
     is_flag=True,
     help="Switch to first agent waiting for input",
@@ -476,6 +488,9 @@ def switch(
     branch: str | None,
     terminal: str | None,
     init: str | None,
+    after_init: str | None,
+    ignore_same_session: bool,
+    auto_confirm: bool,
     waiting: bool,
     latest: bool,
     debug: bool,
@@ -493,18 +508,23 @@ def switch(
     services = create_services()
     auto_register_session(services)
 
+    # Determine target branch
+    target_branch = branch
     if waiting:
-        switch_to_waiting_agent(services)
-        return
+        target_branch = find_waiting_agent_branch(services)
+        if not target_branch:
+            return
+    elif latest:
+        target_branch = find_latest_agent_branch(services)
+        if not target_branch:
+            return
 
-    if latest:
-        switch_to_latest_agent(services)
-        return
-
-    # Create CLI overrides for switch command
+    # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
         terminal=terminal,
         init=init,
+        after_init=after_init,
+        ignore_same_session=ignore_same_session,
     )
 
     # Initialize configuration with CLI overrides
@@ -514,11 +534,14 @@ def switch(
     config = get_config()
     terminal_mode = config.terminal.mode if not terminal else TerminalMode(terminal)
 
-    # Create and execute SwitchCommand
+    # Create and execute SwitchCommand with full option support
     switch_cmd = SwitchCommand(
-        branch=branch,
+        branch=target_branch,
         terminal_mode=terminal_mode,
         init_script=config.scripts.init,
+        after_init=after_init,
+        ignore_same_session=config.terminal.always_new or ignore_same_session,
+        auto_confirm=auto_confirm,
         debug=debug,
     )
     checkout_branch(switch_cmd, services)
