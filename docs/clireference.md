@@ -17,6 +17,8 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 | `--init <script>` | Runs a setup script in the new terminal session. Ideal for installing dependencies or copying config files. See [Init Scripts](initscripts.md). |
 | `--after-init <script>` | Runs a command *after* the `init` script completes. Perfect for starting a dev server or an [AI agent](agents.md). |
 | `--ignore-same-session` | Forces `autowt` to create a new terminal, even if a session for that worktree already exists. |
+| `--waiting` | Switch to first agent waiting for input. |
+| `--latest` | Switch to most recently active agent. |
 | `-y`, `--yes` | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session. |
 
 ### `autowt ls`
@@ -92,17 +94,6 @@ Installs Claude Code hooks for agent monitoring. Hooks track agent status and cr
 | `--project` | Install hooks at project level (current project only). |
 | `--dry-run` | Show what would be installed without making changes. |
 | `--show` | Display currently installed autowt hooks. |
-
-### `autowt switch`
-
-Enhanced switching with agent-aware options.
-
-<div class="autowt-clitable-wrapper"></div>
-
-| Option | Description |
-|---|---|
-| `--waiting` | Switch to first agent waiting for input. |
-| `--latest` | Switch to most recently active agent. |
 
 ### Global options
 
