@@ -82,14 +82,15 @@ class AgentService:
         return None
 
     def enhance_worktrees_with_agent_status(
-        self, worktrees: list[WorktreeInfo], session_ids: dict[str, str]
+        self, worktrees: list[WorktreeInfo], state_service, repo_path: Path
     ) -> list[WorktreeWithAgent]:
         """Add agent status to worktree information."""
         enhanced = []
 
         for worktree in worktrees:
             agent_status = self.detect_agent_status(worktree.path)
-            has_session = worktree.branch in session_ids
+            session_id = state_service.get_session_id(repo_path, worktree.branch)
+            has_session = session_id is not None
 
             enhanced.append(
                 WorktreeWithAgent(

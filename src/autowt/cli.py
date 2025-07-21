@@ -70,13 +70,10 @@ def auto_register_session(services: Services) -> None:
         worktree_path = Path(os.getcwd())
         branch_name = services.git.get_current_branch(repo_path) or worktree_path.name
 
-        # Load existing session IDs to check if already registered
-        session_ids = services.state.load_session_ids()
-
         # Only register if not already registered for this branch
-        if branch_name not in session_ids or session_ids[branch_name] != session_id:
-            session_ids[branch_name] = session_id
-            services.state.save_session_ids(session_ids)
+        existing_session_id = services.state.get_session_id(repo_path, branch_name)
+        if existing_session_id != session_id:
+            services.state.set_session_id(repo_path, branch_name, session_id)
 
     except Exception:
         # Silently fail - session registration should never break the main command
@@ -322,10 +319,8 @@ def register_session_for_path(debug: bool) -> None:
             else worktree_path.name
         )
 
-        # Load and update session IDs
-        session_ids = services.state.load_session_ids()
-        session_ids[branch_name] = session_id
-        services.state.save_session_ids(session_ids)
+        # Set session ID for this repo/branch
+        services.state.set_session_id(repo_path, branch_name, session_id)
         print(
             f"Registered session {session_id} for branch {branch_name} (path: {worktree_path})"
         )

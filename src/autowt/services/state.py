@@ -114,6 +114,46 @@ class StateService:
             logger.error(f"Failed to save session IDs: {e}")
             raise
 
+    def _make_session_key(self, repo_path: Path, branch_name: str) -> str:
+        """Create a composite key for session storage."""
+        return f"{repo_path.resolve()}:{branch_name}"
+
+    def get_session_id(self, repo_path: Path, branch_name: str) -> str | None:
+        """Get session ID for specific repo/branch combination."""
+        session_ids = self.load_session_ids()
+        key = self._make_session_key(repo_path, branch_name)
+        return session_ids.get(key)
+
+    def set_session_id(
+        self, repo_path: Path, branch_name: str, session_id: str
+    ) -> None:
+        """Set session ID for specific repo/branch combination."""
+        session_ids = self.load_session_ids()
+        key = self._make_session_key(repo_path, branch_name)
+        session_ids[key] = session_id
+        self.save_session_ids(session_ids)
+
+    def remove_session_id(self, repo_path: Path, branch_name: str) -> None:
+        """Remove session ID for specific repo/branch combination."""
+        session_ids = self.load_session_ids()
+        key = self._make_session_key(repo_path, branch_name)
+        if key in session_ids:
+            session_ids.pop(key)
+            self.save_session_ids(session_ids)
+
+    def get_session_ids_for_repo(self, repo_path: Path) -> dict[str, str]:
+        """Get all session IDs for a repo, with branch names as keys."""
+        session_ids = self.load_session_ids()
+        repo_key_prefix = f"{repo_path.resolve()}:"
+
+        result = {}
+        for key, session_id in session_ids.items():
+            if key.startswith(repo_key_prefix):
+                branch_name = key[len(repo_key_prefix) :]
+                result[branch_name] = session_id
+
+        return result
+
     def load_app_state(self) -> dict[str, Any]:
         """Load application state including UI preferences and prompt tracking."""
         logger.debug("Loading application state")

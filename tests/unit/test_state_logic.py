@@ -102,38 +102,71 @@ class TestSessionIdLogic:
     """Tests for session ID management logic."""
 
     def test_session_id_updates(self):
-        """Test session ID dictionary updates."""
-        session_ids = {"branch1": "session1", "branch2": "session2"}
+        """Test session ID dictionary updates with composite keys."""
+        repo_path = "/test/repo"
+        session_ids = {
+            f"{repo_path}:branch1": "session1",
+            f"{repo_path}:branch2": "session2",
+        }
 
         # Add new session
-        session_ids["branch3"] = "session3"
-        assert "branch3" in session_ids
-        assert session_ids["branch3"] == "session3"
+        session_ids[f"{repo_path}:branch3"] = "session3"
+        assert f"{repo_path}:branch3" in session_ids
+        assert session_ids[f"{repo_path}:branch3"] == "session3"
 
         # Update existing session
-        session_ids["branch1"] = "new-session1"
-        assert session_ids["branch1"] == "new-session1"
+        session_ids[f"{repo_path}:branch1"] = "new-session1"
+        assert session_ids[f"{repo_path}:branch1"] == "new-session1"
 
         # Remove session
-        removed = session_ids.pop("branch2", None)
+        removed = session_ids.pop(f"{repo_path}:branch2", None)
         assert removed == "session2"
-        assert "branch2" not in session_ids
+        assert f"{repo_path}:branch2" not in session_ids
 
     def test_session_id_cleanup_after_worktree_removal(self):
         """Test cleaning up session IDs when worktrees are removed."""
+        repo_path = "/test/repo"
         session_ids = {
-            "feature1": "session1",
-            "feature2": "session2",
-            "bugfix": "session3",
+            f"{repo_path}:feature1": "session1",
+            f"{repo_path}:feature2": "session2",
+            f"{repo_path}:bugfix": "session3",
         }
         removed_branches = {"feature2", "bugfix"}
 
         # Remove session IDs for removed branches
         for branch in removed_branches:
-            session_ids.pop(branch, None)
+            session_ids.pop(f"{repo_path}:{branch}", None)
 
         # Verify cleanup
-        assert "feature1" in session_ids
-        assert "feature2" not in session_ids
-        assert "bugfix" not in session_ids
+        assert f"{repo_path}:feature1" in session_ids
+        assert f"{repo_path}:feature2" not in session_ids
+        assert f"{repo_path}:bugfix" not in session_ids
         assert len(session_ids) == 1
+
+    def test_session_id_repo_disambiguation(self):
+        """Test that session IDs are isolated per repository."""
+        repo1_path = "/path/to/repo1"
+        repo2_path = "/path/to/repo2"
+
+        # Both repos have the same branch name "main"
+        session_ids = {
+            f"{repo1_path}:main": "session-repo1-main",
+            f"{repo2_path}:main": "session-repo2-main",
+            f"{repo1_path}:feature": "session-repo1-feature",
+            f"{repo2_path}:feature": "session-repo2-feature",
+        }
+
+        # Verify sessions are isolated
+        assert session_ids[f"{repo1_path}:main"] == "session-repo1-main"
+        assert session_ids[f"{repo2_path}:main"] == "session-repo2-main"
+        assert session_ids[f"{repo1_path}:feature"] == "session-repo1-feature"
+        assert session_ids[f"{repo2_path}:feature"] == "session-repo2-feature"
+
+        # Removing a branch from one repo doesn't affect the other
+        session_ids.pop(f"{repo1_path}:main", None)
+        assert f"{repo1_path}:main" not in session_ids
+        assert f"{repo2_path}:main" in session_ids
+        assert session_ids[f"{repo2_path}:main"] == "session-repo2-main"
+
+        # Verify total count
+        assert len(session_ids) == 3
