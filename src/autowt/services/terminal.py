@@ -15,15 +15,6 @@ from autowt.utils import run_command, sanitize_branch_name
 logger = logging.getLogger(__name__)
 
 
-# Import StateService for experimental terminal tracking
-# We import this down here to avoid circular imports
-def _get_state_service():
-    """Get StateService instance, importing lazily to avoid circular imports."""
-    from autowt.services.state import StateService  # noqa: PLC0415
-
-    return StateService()
-
-
 class Terminal(ABC):
     """Base class for terminal implementations."""
 
@@ -1608,8 +1599,15 @@ class GenericTerminal(Terminal):
 class TerminalService:
     """Handles terminal switching and session management."""
 
-    def __init__(self):
+    def __init__(self, state_service=None):
         """Initialize terminal service."""
+        # Import here to avoid circular imports
+        if state_service is None:
+            from autowt.services.state import StateService  # noqa: PLC0415
+
+            state_service = StateService()
+
+        self.state_service = state_service
         self.is_macos = platform.system() == "Darwin"
         self.terminal = self._create_terminal_implementation()
         logger.debug(
@@ -1623,6 +1621,10 @@ class TerminalService:
             hasattr(self.terminal, "_mock_name")
             or type(self.terminal).__name__ == "Mock"
         ):
+            return False
+
+        # Skip warning during pytest runs (pytest sets PYTEST_CURRENT_TEST)
+        if os.getenv("PYTEST_CURRENT_TEST"):
             return False
 
         # Fully supported terminals
@@ -1787,12 +1789,11 @@ class TerminalService:
 
         # Check for experimental terminal warning on first use
         if self._is_experimental_terminal():
-            state_service = _get_state_service()
-            if not state_service.has_shown_experimental_terminal_warning():
+            if not self.state_service.has_shown_experimental_terminal_warning():
                 if not self._show_experimental_terminal_warning():
                     # User declined to continue with experimental terminal
                     return False
-                state_service.mark_experimental_terminal_warning_shown()
+                self.state_service.mark_experimental_terminal_warning_shown()
 
         if mode == TerminalMode.INPLACE:
             return self._change_directory_inplace(
