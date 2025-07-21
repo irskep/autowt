@@ -195,8 +195,42 @@ class GitService:
                         f"origin/{branch}",
                     ]
                 else:
-                    # Neither local nor remote exists, create new branch from main branch
+                    # Neither local nor remote exists, try fallback hierarchy
                     default_branch = self._get_default_branch(repo_path)
+
+                    # Try origin/{default_branch} first, then {default_branch}, then HEAD
+                    start_point = "HEAD"  # Ultimate fallback
+                    if default_branch:
+                        # Check if origin/{default_branch} exists
+                        origin_result = run_command_quiet_on_failure(
+                            [
+                                "git",
+                                "show-ref",
+                                "--verify",
+                                f"refs/remotes/origin/{default_branch}",
+                            ],
+                            cwd=repo_path,
+                            timeout=10,
+                            description=f"Check if origin/{default_branch} exists",
+                        )
+                        if origin_result.returncode == 0:
+                            start_point = f"origin/{default_branch}"
+                        else:
+                            # Check if local default branch exists
+                            local_result = run_command_quiet_on_failure(
+                                [
+                                    "git",
+                                    "show-ref",
+                                    "--verify",
+                                    f"refs/heads/{default_branch}",
+                                ],
+                                cwd=repo_path,
+                                timeout=10,
+                                description=f"Check if local {default_branch} exists",
+                            )
+                            if local_result.returncode == 0:
+                                start_point = default_branch
+
                     cmd = [
                         "git",
                         "worktree",
@@ -204,7 +238,7 @@ class GitService:
                         str(worktree_path),
                         "-b",
                         branch,
-                        f"origin/{default_branch}",
+                        start_point,
                     ]
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
