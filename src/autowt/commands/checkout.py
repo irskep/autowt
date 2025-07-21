@@ -65,7 +65,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     # Load configuration
     config = services.state.load_config()
     project_config = services.state.load_project_config(repo_path)
-    session_ids = services.state.load_session_ids()
 
     # Use project config init as default if no init_script provided
     init_script = switch_cmd.init_script
@@ -104,7 +103,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             pass
 
         # Switch to existing worktree - no init script needed (worktree already set up)
-        session_id = session_ids.get(switch_cmd.branch)
+        session_id = services.state.get_session_id(repo_path, switch_cmd.branch)
         try:
             success = services.terminal.switch_to_worktree(
                 existing_worktree.path,
@@ -133,7 +132,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             switch_cmd,
             repo_path,
             terminal_mode,
-            session_ids,
             init_script,
         )
     finally:
@@ -146,7 +144,6 @@ def _create_new_worktree(
     switch_cmd: SwitchCommand,
     repo_path: Path,
     terminal_mode,
-    session_ids: dict,
     init_script: str | None = None,
 ) -> None:
     """Create a new worktree for the branch."""
@@ -260,9 +257,8 @@ def find_waiting_agent_branch(services: Services) -> str | None:
         return None
 
     git_worktrees = services.git.list_worktrees(repo_path)
-    session_ids = services.state.load_session_ids()
     enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, session_ids
+        git_worktrees, services.state, repo_path
     )
 
     waiting_agents = services.agent.find_waiting_agents(enhanced_worktrees)
@@ -296,9 +292,8 @@ def find_latest_agent_branch(services: Services) -> str | None:
         return None
 
     git_worktrees = services.git.list_worktrees(repo_path)
-    session_ids = services.state.load_session_ids()
     enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, session_ids
+        git_worktrees, services.state, repo_path
     )
 
     latest_agent = services.agent.find_latest_active_agent(enhanced_worktrees)

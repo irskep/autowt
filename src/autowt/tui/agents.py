@@ -59,11 +59,10 @@ class AgentDashboard(App):
         """Refresh agent data from worktrees."""
         # Get worktrees
         git_worktrees = self.services.git.list_worktrees(self.repo_path)
-        session_ids = self.services.state.load_session_ids()
 
         # Enhance with agent status
         enhanced_worktrees = self.services.agent.enhance_worktrees_with_agent_status(
-            git_worktrees, session_ids
+            git_worktrees, self.services.state, self.repo_path
         )
 
         # Clear and populate table
@@ -102,9 +101,8 @@ class AgentDashboard(App):
         """Switch to first agent waiting for input."""
         # Find waiting agents
         git_worktrees = self.services.git.list_worktrees(self.repo_path)
-        session_ids = self.services.state.load_session_ids()
         enhanced_worktrees = self.services.agent.enhance_worktrees_with_agent_status(
-            git_worktrees, session_ids
+            git_worktrees, self.services.state, self.repo_path
         )
 
         waiting_agents = self.services.agent.find_waiting_agents(enhanced_worktrees)

@@ -373,10 +373,8 @@ def _remove_worktrees_and_update_state(
     else:
         # Real execution - update session IDs
         removed_branches = {bs.branch for bs in to_cleanup}
-        session_ids = services.state.load_session_ids()
         for branch in removed_branches:
-            session_ids.pop(branch, None)
-        services.state.save_session_ids(session_ids)
+            services.state.remove_session_id(repo_path, branch)
 
         print("Session IDs updated")
 

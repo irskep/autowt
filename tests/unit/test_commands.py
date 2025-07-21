@@ -70,7 +70,9 @@ class TestCheckoutCommand:
         """Test switching to existing worktree."""
         # Setup mocks
         services = MockServices()
-        services.state.session_ids = {"feature1": "session1"}  # Add session ID data
+        # Add session ID data using composite key format
+        composite_key = f"{temp_repo_path.resolve()}:feature1"
+        services.state.session_ids = {composite_key: "session1"}  # Add session ID data
         services.git.repo_root = temp_repo_path
         services.git.worktrees = sample_worktrees
 
@@ -174,7 +176,9 @@ class TestCheckoutCommand:
         """Test switching to existing worktree with init script."""
         # Setup mocks
         services = MockServices()
-        services.state.session_ids = {"feature1": "session1"}
+        # Add session ID data using composite key format
+        composite_key = f"{temp_repo_path.resolve()}:feature1"
+        services.state.session_ids = {composite_key: "session1"}
         services.git.repo_root = temp_repo_path
         services.git.worktrees = sample_worktrees
 

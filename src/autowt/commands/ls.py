@@ -135,12 +135,9 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
 
         print_plain("")
 
-    # Load session IDs
-    session_ids = services.state.load_session_ids()
-
     # Enhance worktrees with agent status
     enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, session_ids
+        git_worktrees, services.state, repo_path
     )
 
     # Determine which worktree we're currently in

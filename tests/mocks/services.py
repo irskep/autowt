@@ -44,6 +44,40 @@ class MockStateService:
     def save_session_ids(self, session_ids: dict[str, str]) -> None:
         self.session_ids = session_ids.copy()
 
+    def _make_session_key(self, repo_path: Path, branch_name: str) -> str:
+        """Create a composite key for session storage."""
+        return f"{repo_path.resolve()}:{branch_name}"
+
+    def get_session_id(self, repo_path: Path, branch_name: str) -> str | None:
+        """Get session ID for specific repo/branch combination."""
+        key = self._make_session_key(repo_path, branch_name)
+        return self.session_ids.get(key)
+
+    def set_session_id(
+        self, repo_path: Path, branch_name: str, session_id: str
+    ) -> None:
+        """Set session ID for specific repo/branch combination."""
+        key = self._make_session_key(repo_path, branch_name)
+        self.session_ids[key] = session_id
+
+    def remove_session_id(self, repo_path: Path, branch_name: str) -> None:
+        """Remove session ID for specific repo/branch combination."""
+        key = self._make_session_key(repo_path, branch_name)
+        if key in self.session_ids:
+            self.session_ids.pop(key)
+
+    def get_session_ids_for_repo(self, repo_path: Path) -> dict[str, str]:
+        """Get all session IDs for a repo, with branch names as keys."""
+        repo_key_prefix = f"{repo_path.resolve()}:"
+
+        result = {}
+        for key, session_id in self.session_ids.items():
+            if key.startswith(repo_key_prefix):
+                branch_name = key[len(repo_key_prefix) :]
+                result[branch_name] = session_id
+
+        return result
+
     def load_app_state(self) -> dict[str, Any]:
         return self.app_state.copy()
 
@@ -210,13 +244,14 @@ class MockAgentService:
         return self.agent_statuses.get(worktree_path)
 
     def enhance_worktrees_with_agent_status(
-        self, worktrees: list[WorktreeInfo], session_ids: dict[str, str]
+        self, worktrees: list[WorktreeInfo], state_service, repo_path: Path
     ) -> list[WorktreeWithAgent]:
         """Add agent status to worktree information."""
         enhanced = []
         for worktree in worktrees:
             agent_status = self.detect_agent_status(worktree.path)
-            has_session = worktree.branch in session_ids
+            session_id = state_service.get_session_id(repo_path, worktree.branch)
+            has_session = session_id is not None
             enhanced.append(
                 WorktreeWithAgent(
                     branch=worktree.branch,
