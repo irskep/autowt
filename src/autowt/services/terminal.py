@@ -10,6 +10,7 @@ from pathlib import Path
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
+from autowt.services.state import StateService
 from autowt.utils import run_command, sanitize_branch_name
 
 logger = logging.getLogger(__name__)
@@ -1599,13 +1600,73 @@ class GenericTerminal(Terminal):
 class TerminalService:
     """Handles terminal switching and session management."""
 
-    def __init__(self):
+    def __init__(self, state_service: StateService):
         """Initialize terminal service."""
+        self.state_service = state_service
         self.is_macos = platform.system() == "Darwin"
         self.terminal = self._create_terminal_implementation()
         logger.debug(
             f"Terminal service initialized with {type(self.terminal).__name__}"
         )
+
+    def _is_experimental_terminal(self) -> bool:
+        """Check if the current terminal is experimental (not fully supported)."""
+        # Skip warning for Mock objects during testing
+        if (
+            hasattr(self.terminal, "_mock_name")
+            or type(self.terminal).__name__ == "Mock"
+        ):
+            return False
+
+        # Skip warning during pytest runs (pytest sets PYTEST_CURRENT_TEST)
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            return False
+
+        # Fully supported terminals
+        fully_supported = (ITerm2Terminal, TerminalAppTerminal)
+        return not isinstance(self.terminal, fully_supported)
+
+    def _get_terminal_github_url(self) -> str:
+        """Get GitHub URL pointing to the terminal implementation source code."""
+        base_url = (
+            "https://github.com/irskep/autowt/blob/main/src/autowt/services/terminal.py"
+        )
+
+        # Map terminal classes to their approximate line numbers in the source
+        terminal_lines = {
+            TmuxTerminal: "#L674",
+            GnomeTerminalTerminal: "#L812",
+            KonsoleTerminal: "#L881",
+            XfceTerminalTerminal: "#L945",
+            TilixTerminal: "#L1014",
+            TerminatorTerminal: "#L1089",
+            AlacrittyTerminal: "#L1153",
+            KittyTerminal: "#L1198",
+            WezTermTerminal: "#L1271",
+            HyperTerminal: "#L1343",
+            WindowsTerminalTerminal: "#L1395",
+            GenericTerminal: "#L1461",
+        }
+
+        line_fragment = terminal_lines.get(type(self.terminal), "#L1")
+        return f"{base_url}{line_fragment}"
+
+    def _show_experimental_terminal_warning(self) -> bool:
+        """Show experimental terminal warning and get user confirmation."""
+        terminal_name = type(self.terminal).__name__.replace("Terminal", "")
+        github_url = self._get_terminal_github_url()
+
+        print("\n⚠️  Experimental Terminal Support")
+        print(
+            f"You're using {terminal_name}, which has experimental support in autowt."
+        )
+        print("This means it may be unstable or have limited functionality.")
+        print("")
+        print(f"Implementation: {github_url}")
+        print("Report issues: https://github.com/irskep/autowt/issues")
+        print("")
+
+        return confirm_default_yes("Continue with experimental terminal support?")
 
     def _create_terminal_implementation(self) -> Terminal:
         """Create the appropriate terminal implementation."""
@@ -1720,6 +1781,14 @@ class TerminalService:
     ) -> bool:
         """Switch to a worktree using the specified terminal mode."""
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
+
+        # Check for experimental terminal warning on first use
+        if self._is_experimental_terminal():
+            if not self.state_service.has_shown_experimental_terminal_warning():
+                if not self._show_experimental_terminal_warning():
+                    # User declined to continue with experimental terminal
+                    return False
+                self.state_service.mark_experimental_terminal_warning_shown()
 
         if mode == TerminalMode.INPLACE:
             return self._change_directory_inplace(

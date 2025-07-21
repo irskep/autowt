@@ -90,6 +90,12 @@ class MockStateService:
     def mark_hooks_prompt_shown(self) -> None:
         self.app_state["hooks_prompt_shown"] = True
 
+    def has_shown_experimental_terminal_warning(self) -> bool:
+        return self.app_state.get("experimental_terminal_warning_shown", False)
+
+    def mark_experimental_terminal_warning_shown(self) -> None:
+        self.app_state["experimental_terminal_warning_shown"] = True
+
 
 class MockGitService:
     """Mock git service for testing."""

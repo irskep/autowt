@@ -180,10 +180,11 @@ class Services:
         from autowt.services.state import StateService  # noqa: PLC0415
         from autowt.services.terminal import TerminalService  # noqa: PLC0415
 
+        state_service = StateService()
         return cls(
-            state=StateService(),
+            state=state_service,
             git=GitService(),
-            terminal=TerminalService(),
+            terminal=TerminalService(state_service),
             process=ProcessService(),
             agent=AgentService(),
         )

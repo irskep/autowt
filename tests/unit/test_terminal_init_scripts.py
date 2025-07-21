@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from autowt.models import TerminalMode
 from autowt.services.terminal import TerminalService
+from tests.mocks.services import MockStateService
 
 
 class TestTerminalServiceInitScripts:
@@ -12,7 +13,8 @@ class TestTerminalServiceInitScripts:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.terminal_service = TerminalService()
+        self.mock_state_service = MockStateService()
+        self.terminal_service = TerminalService(self.mock_state_service)
         self.test_path = Path("/test/worktree")
         self.init_script = "setup.sh"
 
@@ -204,7 +206,8 @@ class TestInitScriptEdgeCases:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.terminal_service = TerminalService()
+        self.mock_state_service = MockStateService()
+        self.terminal_service = TerminalService(self.mock_state_service)
         self.test_path = Path("/test/worktree")
 
     def test_empty_init_script_treated_as_none(self, capsys):
