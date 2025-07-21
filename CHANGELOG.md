@@ -2,13 +2,15 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.3.1 - Unreleased
+## 0.3.1 - 2025-07-21
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+- Fixed session ID conflicts between repositories with same branch names
 
 ## 0.3.0 - 2025-07-20
 
