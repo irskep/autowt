@@ -1,4 +1,4 @@
-# autowt: Supercharge your git workflow
+# autowt: a better git worktree experience
 
 **autowt** is a git worktree manager designed for developers who juggle multiple tasks. It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal session. This eliminates context-switching friction, letting you focus on your code.
 
