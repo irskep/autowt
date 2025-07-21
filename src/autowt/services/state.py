@@ -192,3 +192,14 @@ class StateService:
         state = self.load_app_state()
         state["hooks_prompt_shown"] = True
         self.save_app_state(state)
+
+    def has_shown_experimental_terminal_warning(self) -> bool:
+        """Check if we have already shown the experimental terminal warning."""
+        state = self.load_app_state()
+        return state.get("experimental_terminal_warning_shown", False)
+
+    def mark_experimental_terminal_warning_shown(self) -> None:
+        """Mark that we have shown the experimental terminal warning."""
+        state = self.load_app_state()
+        state["experimental_terminal_warning_shown"] = True
+        self.save_app_state(state)

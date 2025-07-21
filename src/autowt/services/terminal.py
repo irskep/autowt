@@ -15,6 +15,15 @@ from autowt.utils import run_command, sanitize_branch_name
 logger = logging.getLogger(__name__)
 
 
+# Import StateService for experimental terminal tracking
+# We import this down here to avoid circular imports
+def _get_state_service():
+    """Get StateService instance, importing lazily to avoid circular imports."""
+    from autowt.services.state import StateService  # noqa: PLC0415
+
+    return StateService()
+
+
 class Terminal(ABC):
     """Base class for terminal implementations."""
 
@@ -1607,6 +1616,61 @@ class TerminalService:
             f"Terminal service initialized with {type(self.terminal).__name__}"
         )
 
+    def _is_experimental_terminal(self) -> bool:
+        """Check if the current terminal is experimental (not fully supported)."""
+        # Skip warning for Mock objects during testing
+        if (
+            hasattr(self.terminal, "_mock_name")
+            or type(self.terminal).__name__ == "Mock"
+        ):
+            return False
+
+        # Fully supported terminals
+        fully_supported = (ITerm2Terminal, TerminalAppTerminal)
+        return not isinstance(self.terminal, fully_supported)
+
+    def _get_terminal_github_url(self) -> str:
+        """Get GitHub URL pointing to the terminal implementation source code."""
+        base_url = (
+            "https://github.com/irskep/autowt/blob/main/src/autowt/services/terminal.py"
+        )
+
+        # Map terminal classes to their approximate line numbers in the source
+        terminal_lines = {
+            TmuxTerminal: "#L674",
+            GnomeTerminalTerminal: "#L812",
+            KonsoleTerminal: "#L881",
+            XfceTerminalTerminal: "#L945",
+            TilixTerminal: "#L1014",
+            TerminatorTerminal: "#L1089",
+            AlacrittyTerminal: "#L1153",
+            KittyTerminal: "#L1198",
+            WezTermTerminal: "#L1271",
+            HyperTerminal: "#L1343",
+            WindowsTerminalTerminal: "#L1395",
+            GenericTerminal: "#L1461",
+        }
+
+        line_fragment = terminal_lines.get(type(self.terminal), "#L1")
+        return f"{base_url}{line_fragment}"
+
+    def _show_experimental_terminal_warning(self) -> bool:
+        """Show experimental terminal warning and get user confirmation."""
+        terminal_name = type(self.terminal).__name__.replace("Terminal", "")
+        github_url = self._get_terminal_github_url()
+
+        print("\n⚠️  Experimental Terminal Support")
+        print(
+            f"You're using {terminal_name}, which has experimental support in autowt."
+        )
+        print("This means it may be unstable or have limited functionality.")
+        print("")
+        print(f"Implementation: {github_url}")
+        print("Report issues: https://github.com/irskep/autowt/issues")
+        print("")
+
+        return confirm_default_yes("Continue with experimental terminal support?")
+
     def _create_terminal_implementation(self) -> Terminal:
         """Create the appropriate terminal implementation."""
         # Check for tmux first (works on all platforms)
@@ -1720,6 +1784,15 @@ class TerminalService:
     ) -> bool:
         """Switch to a worktree using the specified terminal mode."""
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
+
+        # Check for experimental terminal warning on first use
+        if self._is_experimental_terminal():
+            state_service = _get_state_service()
+            if not state_service.has_shown_experimental_terminal_warning():
+                if not self._show_experimental_terminal_warning():
+                    # User declined to continue with experimental terminal
+                    return False
+                state_service.mark_experimental_terminal_warning_shown()
 
         if mode == TerminalMode.INPLACE:
             return self._change_directory_inplace(

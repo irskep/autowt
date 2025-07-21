@@ -6,6 +6,10 @@
 
 ### Added
 
+- Added experimental terminal warning on first use of unsupported terminals
+- First-run warning displays terminal name, GitHub source link, and issue reporting URL
+- User can confirm or decline to continue with experimental terminal support
+
 ### Changed
 
 ### Fixed
