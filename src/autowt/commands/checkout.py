@@ -152,7 +152,7 @@ def _create_new_worktree(
         print_error("Warning: Failed to fetch latest branches")
 
     # Generate worktree path with sanitized branch name
-    worktree_path = _generate_worktree_path(repo_path, switch_cmd.branch)
+    worktree_path = _generate_worktree_path(services, repo_path, switch_cmd.branch)
 
     # Check if the target path already exists with a different branch
     git_worktrees = services.git.list_worktrees(repo_path)
@@ -218,13 +218,15 @@ def _create_new_worktree(
     print_success(f"Switched to new {switch_cmd.branch} worktree")
 
 
-def _generate_worktree_path(repo_path: Path, branch: str) -> Path:
-    """Generate a path for the new worktree."""
-    # Find the main repository path (not a worktree)
-    from autowt.services.git import GitService  # noqa: PLC0415
+def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
+    """Generate a path for the new worktree using configuration."""
+    import os  # noqa: PLC0415
 
-    git_service = GitService()
-    worktrees = git_service.list_worktrees(repo_path)
+    # Load configuration
+    config = services.state.load_config()
+
+    # Find the main repository path (not a worktree)
+    worktrees = services.git.list_worktrees(repo_path)
 
     # Find the primary (main) repository
     main_repo_path = None
@@ -238,15 +240,35 @@ def _generate_worktree_path(repo_path: Path, branch: str) -> Path:
         main_repo_path = repo_path
 
     repo_name = main_repo_path.name
+    repo_dir = str(main_repo_path)
 
     # Sanitize branch name for filesystem
     safe_branch = sanitize_branch_name(branch)
 
-    # Create worktrees directory next to main repo
-    worktrees_dir = main_repo_path.parent / f"{repo_name}-worktrees"
-    worktrees_dir.mkdir(exist_ok=True)
+    # Get directory pattern from configuration
+    directory_pattern = config.worktree.directory_pattern
 
-    return worktrees_dir / safe_branch
+    # Replace template variables
+    pattern_with_vars = directory_pattern.format(
+        repo_dir=repo_dir, repo_name=repo_name, branch=safe_branch
+    )
+
+    # Expand environment variables
+    expanded_pattern = os.path.expandvars(pattern_with_vars)
+
+    # Create path - handle both absolute and relative paths
+    if os.path.isabs(expanded_pattern):
+        worktree_path = Path(expanded_pattern)
+    else:
+        # Relative paths are relative to the main repo directory
+        combined_path = main_repo_path / expanded_pattern
+        # Normalize path without resolving symlinks
+        worktree_path = Path(os.path.normpath(str(combined_path)))
+
+    # Ensure parent directory exists
+    worktree_path.parent.mkdir(parents=True, exist_ok=True)
+
+    return worktree_path
 
 
 def find_waiting_agent_branch(services: Services) -> str | None:
