@@ -241,6 +241,7 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
 
     repo_name = main_repo_path.name
     repo_dir = str(main_repo_path)
+    repo_parent_dir = str(main_repo_path.parent)
 
     # Sanitize branch name for filesystem
     safe_branch = sanitize_branch_name(branch)
@@ -250,7 +251,10 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
 
     # Replace template variables
     pattern_with_vars = directory_pattern.format(
-        repo_dir=repo_dir, repo_name=repo_name, branch=safe_branch
+        repo_dir=repo_dir,
+        repo_name=repo_name,
+        repo_parent_dir=repo_parent_dir,
+        branch=safe_branch,
     )
 
     # Expand environment variables

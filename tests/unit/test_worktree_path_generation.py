@@ -209,3 +209,41 @@ class TestWorktreePathGeneration:
         # Should use absolute path directly
         expected_path = Path("/tmp/worktrees/test-branch")
         assert result_path == expected_path
+
+    def test_supports_repo_parent_dir_variable(self):
+        """Test that {repo_parent_dir} variable (parent directory) is replaced correctly."""
+        repo_path = Path("/home/user/Code/projects/my-awesome-project")
+        branch = "feature-branch"
+
+        # Create mock services
+        mock_services = Mock()
+        mock_state = Mock()
+
+        # Mock configuration using {repo_parent_dir} instead of relative paths
+        custom_worktree_config = WorktreeConfig(
+            directory_pattern="{repo_parent_dir}/worktrees/{branch}",
+            auto_fetch=True,
+            default_remote="origin",
+        )
+        custom_config = Config(worktree=custom_worktree_config)
+        mock_state.load_config.return_value = custom_config
+        mock_services.state = mock_state
+
+        # Mock the GitService
+        mock_worktree = WorktreeInfo(
+            branch="main",
+            path=repo_path,
+            is_current=False,
+            is_primary=True,
+        )
+        mock_services.git.list_worktrees.return_value = [mock_worktree]
+
+        with (
+            patch("autowt.commands.checkout.sanitize_branch_name", return_value=branch),
+            patch("pathlib.Path.mkdir"),
+        ):
+            result_path = _generate_worktree_path(mock_services, repo_path, branch)
+
+        # Should use {repo_parent_dir} (parent directory) = "/home/user/Code/projects"
+        expected_path = Path("/home/user/Code/projects/worktrees/feature-branch")
+        assert result_path == expected_path

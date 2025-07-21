@@ -1,2 +1,5 @@
 [scripts]
 init = "./setup.sh"
+
+[scripts.custom]
+bugfix = 'claude "Investigate the GitHub issue $1. Propose a possible root cause based on evidence, and a well-considered fix. Think hard."'
