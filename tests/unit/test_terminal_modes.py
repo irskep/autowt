@@ -9,6 +9,7 @@ from autowt.services.terminal import (
     TerminalAppTerminal,
     TerminalService,
 )
+from tests.mocks.services import MockStateService
 
 
 class TestTerminalModes:
@@ -16,7 +17,8 @@ class TestTerminalModes:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.terminal_service = TerminalService()
+        self.mock_state_service = MockStateService()
+        self.terminal_service = TerminalService(self.mock_state_service)
         self.test_path = Path("/test/worktree")
         self.init_script = "setup.sh"
 
@@ -151,7 +153,8 @@ class TestTerminalModeIntegration:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.terminal_service = TerminalService()
+        self.mock_state_service = MockStateService()
+        self.terminal_service = TerminalService(self.mock_state_service)
         self.test_path = Path("/test/worktree")
 
     def test_inplace_mode_with_iterm2_terminal(self):

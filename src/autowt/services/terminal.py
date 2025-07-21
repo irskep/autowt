@@ -10,6 +10,7 @@ from pathlib import Path
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
+from autowt.services.state import StateService
 from autowt.utils import run_command, sanitize_branch_name
 
 logger = logging.getLogger(__name__)
@@ -1599,14 +1600,8 @@ class GenericTerminal(Terminal):
 class TerminalService:
     """Handles terminal switching and session management."""
 
-    def __init__(self, state_service=None):
+    def __init__(self, state_service: StateService):
         """Initialize terminal service."""
-        # Import here to avoid circular imports
-        if state_service is None:
-            from autowt.services.state import StateService  # noqa: PLC0415
-
-            state_service = StateService()
-
         self.state_service = state_service
         self.is_macos = platform.system() == "Darwin"
         self.terminal = self._create_terminal_implementation()
