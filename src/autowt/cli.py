@@ -210,6 +210,8 @@ class AutowtGroup(ClickAliasedGroup):
                 or kwargs.get("ignore_same_session", False),
                 auto_confirm=kwargs.get("auto_confirm", kwargs.get("yes", False)),
                 debug=kwargs.get("debug", False),
+                custom_script=kwargs.get("custom_script"),
+                from_branch=kwargs.get("from_branch"),
             )
             checkout_branch(switch_cmd, services)
 
@@ -246,6 +248,11 @@ class AutowtGroup(ClickAliasedGroup):
                 click.Option(
                     ["--custom-script"],
                     help="Custom script to run with arguments (e.g., 'bugfix 123')",
+                ),
+                click.Option(
+                    ["--from"],
+                    "from_branch",
+                    help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
                 ),
             ],
             help=f"Switch to or create a worktree for branch '{cmd_name}'",
@@ -496,6 +503,11 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     is_flag=True,
     help="Switch to most recently active agent",
 )
+@click.option(
+    "--from",
+    "from_branch",
+    help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option(
     "--custom-script",
@@ -510,6 +522,7 @@ def switch(
     auto_confirm: bool,
     waiting: bool,
     latest: bool,
+    from_branch: str | None,
     debug: bool,
     custom_script: str | None,
 ) -> None:
@@ -563,6 +576,7 @@ def switch(
         auto_confirm=auto_confirm,
         debug=debug,
         custom_script=custom_script,
+        from_branch=from_branch,
     )
     checkout_branch(switch_cmd, services)
 

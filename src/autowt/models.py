@@ -202,6 +202,7 @@ class SwitchCommand:
     auto_confirm: bool = False
     debug: bool = False
     custom_script: str | None = None
+    from_branch: str | None = None
 
 
 @dataclass
