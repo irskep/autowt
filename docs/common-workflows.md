@@ -15,8 +15,8 @@ Create port management scripts:
 ```bash
 # scripts/allocate-ports.sh
 #!/bin/bash
-BRANCH_NAME="$1"
-WORKTREE_DIR="$2"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
 
 # Create a simple port allocation system
 PORT_BASE=3000
@@ -36,8 +36,8 @@ echo "Allocated ports for $BRANCH_NAME: $PORT-$((PORT + 2))"
 ```bash
 # scripts/release-ports.sh
 #!/bin/bash
-BRANCH_NAME="$1"
-WORKTREE_DIR="$2"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
 
 if [ -f "$WORKTREE_DIR/.devports" ]; then
     echo "Releasing ports for $BRANCH_NAME"
@@ -87,7 +87,7 @@ services:
 ```bash
 # scripts/setup-db.sh
 #!/bin/bash
-BRANCH_NAME="$1"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 DB_NAME="myapp_$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/_/g')"
 
 echo "Creating database: $DB_NAME"
@@ -103,7 +103,7 @@ npm run db:migrate
 ```bash
 # scripts/cleanup-db.sh  
 #!/bin/bash
-BRANCH_NAME="$1"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 DB_NAME="myapp_$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/_/g')"
 
 echo "Dropping database: $DB_NAME"
@@ -132,8 +132,8 @@ post_cleanup = "./scripts/cleanup-db.sh"
 ```bash
 # scripts/start-services.sh
 #!/bin/bash
-WORKTREE_DIR="$1"
-BRANCH_NAME="$2"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 
 cd "$WORKTREE_DIR"
 
@@ -161,8 +161,8 @@ echo "Services started for $BRANCH_NAME"
 ```bash
 # scripts/stop-services.sh
 #!/bin/bash
-WORKTREE_DIR="$1" 
-BRANCH_NAME="$2"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR" 
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 
 cd "$WORKTREE_DIR"
 
@@ -203,9 +203,9 @@ pre_cleanup = "./scripts/stop-services.sh"
 ```bash
 # scripts/notify-team.sh
 #!/bin/bash
-BRANCH_NAME="$1"
-HOOK_TYPE="$2"
-WORKTREE_DIR="$3"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+HOOK_TYPE="$AUTOWT_HOOK_TYPE"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
 
 case "$HOOK_TYPE" in
     "post_switch")
@@ -233,7 +233,7 @@ curl -X POST "https://dev-tracker.company.com/api/branches" \
 ```bash
 # scripts/deployment-webhook.sh
 #!/bin/bash
-BRANCH_NAME="$1"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 REPO_URL="$(git remote get-url origin)"
 
 # Trigger preview deployment
@@ -265,9 +265,9 @@ pre_cleanup = "./scripts/notify-team.sh"
 ```bash
 # scripts/collect-metrics.sh
 #!/bin/bash
-BRANCH_NAME="$1"
-WORKTREE_DIR="$2"
-HOOK_TYPE="$3"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+HOOK_TYPE="$AUTOWT_HOOK_TYPE"
 
 METRICS_FILE="$HOME/.autowt/metrics.log"
 mkdir -p "$(dirname "$METRICS_FILE")"
@@ -314,9 +314,9 @@ post_switch = "./scripts/collect-metrics.sh"
 ```bash
 # scripts/sync-env.sh
 #!/bin/bash
-WORKTREE_DIR="$1"
-MAIN_REPO_DIR="$2" 
-BRANCH_NAME="$3"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+MAIN_REPO_DIR="$AUTOWT_MAIN_REPO_DIR" 
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 
 cd "$WORKTREE_DIR"
 
@@ -350,8 +350,8 @@ echo "Environment configured for $BRANCH_NAME"
 ```bash
 # scripts/cleanup-env.sh
 #!/bin/bash
-WORKTREE_DIR="$1"
-BRANCH_NAME="$2"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 
 # Remove sensitive environment files
 rm -f "$WORKTREE_DIR/.env" "$WORKTREE_DIR/.env.local"
@@ -384,8 +384,8 @@ post_cleanup = "./scripts/cleanup-env.sh"
 ```bash
 # scripts/auto-test.sh
 #!/bin/bash
-BRANCH_NAME="$1"
-WORKTREE_DIR="$2"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
 
 cd "$WORKTREE_DIR"
 

@@ -37,3 +37,7 @@ Readers of the changelog do not care about the sequence of events leading up to 
 ENCOURAGED: Use scratch/ directory for all temporary files or non-documentation Markdown files.
 FORBIDDEN: Using /tmp
 FORBIDDEN: deleting the entire scratch/ directory
+
+## Docs
+
+For mulit-word doc filenames, smush the words together instead of adding _, -, or spaces between words.

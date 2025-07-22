@@ -40,7 +40,7 @@ class HookRunner:
         branch_name: str,
         timeout: int = 60,
     ) -> bool:
-        """Execute a hook script with proper arguments and environment variables.
+        """Execute a hook script with environment variables.
 
         Args:
             hook_script: The script command to execute
@@ -56,28 +56,18 @@ class HookRunner:
         if not hook_script or not hook_script.strip():
             return True
 
-        logger.info(f"Executing {hook_type} hook: {hook_script}")
+        logger.info(f"Executing {hook_type} hook")
 
         # Prepare environment variables
         env = self._prepare_environment(
             hook_type, worktree_dir, main_repo_dir, branch_name
         )
 
-        # Prepare positional arguments
-        args = [str(worktree_dir), str(main_repo_dir), branch_name]
-
         try:
-            # Handle multi-line scripts by replacing newlines with semicolons
-            # Strip leading/trailing whitespace and remove empty lines
-            lines = [line.strip() for line in hook_script.split("\n") if line.strip()]
-            normalized_script = "; ".join(lines)
-
-            # Execute the hook script with arguments
-            # Use shell=True to allow complex shell commands
-            full_command = f"{normalized_script} {' '.join(repr(arg) for arg in args)}"
-
+            # Execute the hook script directly with shell=True
+            # The shell naturally handles multi-line scripts without preprocessing
             result = subprocess.run(
-                full_command,
+                hook_script,
                 shell=True,
                 cwd=str(worktree_dir),
                 env=env,

@@ -47,12 +47,9 @@ class TestHookRunner:
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args
 
-        # Check that the command includes the hook script and arguments
+        # Check that the command is the raw hook script (no arguments appended)
         command = call_args[0][0]
-        assert "echo 'test hook'" in command
-        assert str(self.test_worktree_dir) in command
-        assert str(self.test_main_repo_dir) in command
-        assert self.test_branch_name in command
+        assert command == "echo 'test hook'"
 
         # Check keyword arguments
         kwargs = call_args[1]
@@ -237,8 +234,8 @@ class TestHookRunner:
         assert env.get("HOME") == os.environ.get("HOME")
 
     @patch("subprocess.run")
-    def test_multiline_script_normalization(self, mock_subprocess_run):
-        """Test that multiline scripts are normalized correctly."""
+    def test_multiline_script_preserved(self, mock_subprocess_run):
+        """Test that multiline scripts are passed through unchanged."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = ""
@@ -262,13 +259,11 @@ class TestHookRunner:
 
         assert success is True
 
-        # Verify the script was normalized (newlines replaced with semicolons)
+        # Verify the script was passed as-is (no normalization)
         call_args = mock_subprocess_run.call_args
         command = call_args[0][0]
-        assert "; " in command  # Should contain semicolon separators
-        assert (
-            "\n" not in command.split("'")[1]
-        )  # Newlines should be removed from the script part
+        assert command == multiline_script  # Script should be unchanged
+        assert "\n" in command  # Newlines should be preserved
 
 
 class TestExtractHookScripts:

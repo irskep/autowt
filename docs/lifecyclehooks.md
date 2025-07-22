@@ -128,31 +128,51 @@ All hooks receive the following environment variables:
 - `AUTOWT_BRANCH_NAME`: Name of the branch
 - `AUTOWT_HOOK_TYPE`: Type of hook being executed
 
-Hooks also receive positional arguments in this order:
-
-1. Worktree directory path
-2. Main repository directory path  
-3. Branch name
-
 ### Example hook script
 
 ```bash
-#!/bin/bash
-# my-hook.sh
-
-# Access via environment variables
+# Hook script using environment variables
 echo "Hook type: $AUTOWT_HOOK_TYPE"
-echo "Worktree: $AUTOWT_WORKTREE_DIR"
+echo "Worktree: $AUTOWT_WORKTREE_DIR" 
 echo "Branch: $AUTOWT_BRANCH_NAME"
 
-# Or access via positional arguments
-WORKTREE_DIR="$1"
-MAIN_REPO_DIR="$2"
-BRANCH_NAME="$3"
-
-cd "$WORKTREE_DIR"
+cd "$AUTOWT_WORKTREE_DIR"
 # Do work here...
+
+# Multi-line scripts work naturally
+for file in *.txt; do
+    echo "Processing $file"
+done
 ```
+
+**How hook scripts are executed**: Hook scripts are executed by passing the script text directly to the system shell (`/bin/sh` on Unix systems) rather than creating a temporary file. This is equivalent to running `/bin/sh -c "your_script_here"`.
+
+This execution model means:
+- **Multi-line scripts work naturally** - the shell handles newlines and command separation
+- **All shell features are available** - variables, conditionals, loops, pipes, redirections, etc.
+- **Shebangs are ignored** - since no file is created, `#!/bin/bash` lines are treated as comments
+
+```toml
+[scripts]
+# This works - shell script commands
+post_create = """
+echo "Setting up worktree"
+npm install
+mkdir -p logs
+"""
+
+# This works - calls external script file (shebang will work here)
+post_create = "./setup-script.py"
+
+# This doesn't work - shebang is ignored, shell tries to run Python code
+post_create = """#!/usr/bin/env python3
+import sys  # Shell doesn't understand this!
+"""
+```
+
+If you need to use a different programming language, create a separate script file and call it from your hook. The external file can use shebangs normally.
+
+*Technical note: This uses Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`.*
 
 ## Hook Details
 
@@ -351,5 +371,13 @@ See [Common Workflows](common-workflows.md) for real-world examples of using hoo
 ### Hook failing
 
 1. Check autowt logs for error messages
-2. Test hook script independently: `AUTOWT_BRANCH_NAME=test ./my-hook.sh /path/to/worktree /path/to/main test`
+2. Test hook script independently by running it in a terminal with the same environment variables autowt would provide:
+   ```bash
+   cd /path/to/your/worktree
+   AUTOWT_BRANCH_NAME=test-branch \
+   AUTOWT_WORKTREE_DIR=/path/to/worktree \
+   AUTOWT_MAIN_REPO_DIR=/path/to/main \
+   AUTOWT_HOOK_TYPE=post_create \
+   /bin/sh -c 'your_script_here'
+   ```
 3. Add debug output to your hooks with `echo` statements
