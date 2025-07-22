@@ -24,6 +24,14 @@
 
 - Read README.md
 
+# Workflow
+
+## Updating CHANGELOG.md
+
+When describing a new feature in CHANGELOG.md, avoid multiple sibling bullet points about the same feature. Instead, use a single top-level bullet point per feature, with sub-bullets describing its various aspects.
+
+Readers of the changelog do not care about the sequence of events leading up to a feature's release; they want to read about the feature in one shot.
+
 ## The scratchpad directory
 
 ENCOURAGED: Use scratch/ directory for all temporary files or non-documentation Markdown files.
