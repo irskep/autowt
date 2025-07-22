@@ -244,6 +244,9 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
         main_repo_path = repo_path
 
     repo_name = main_repo_path.name
+    # For bare repositories ending in .git, remove the suffix for cleaner directory names
+    if repo_name.endswith(".git"):
+        repo_name = repo_name[:-4]
     repo_dir = str(main_repo_path)
     repo_parent_dir = str(main_repo_path.parent)
 

@@ -10,6 +10,10 @@
 
 ### Fixed
 
+- Fixed worktree directory naming for bare repositories ending in `.git`
+  - Bare repositories like `myrepo.git` now create worktree directories named `myrepo-worktrees` instead of `myrepo.git-worktrees`
+  - Maintains backward compatibility for regular repositories (no change in behavior)
+
 ## 0.3.3 - 2025-07-22
 
 ### Added
