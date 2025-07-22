@@ -204,7 +204,7 @@ class AutowtGroup(ClickAliasedGroup):
             switch_cmd = SwitchCommand(
                 branch=cmd_name,
                 terminal_mode=terminal_mode,
-                init_script=config.scripts.init,
+                init_script=config.scripts.session_init,
                 after_init=kwargs.get("after_init"),
                 ignore_same_session=config.terminal.always_new
                 or kwargs.get("ignore_same_session", False),
@@ -235,11 +235,11 @@ class AutowtGroup(ClickAliasedGroup):
                 click.Option(["--debug"], is_flag=True, help="Enable debug logging"),
                 click.Option(
                     ["--init"],
-                    help="Init script to run in the new terminal",
+                    help="Session init script to run in the new terminal (maps to session_init hook)",
                 ),
                 click.Option(
                     ["--after-init"],
-                    help="Command to run after init script completes",
+                    help="Command to run after session_init script completes",
                 ),
                 click.Option(
                     ["--ignore-same-session"],
@@ -484,11 +484,11 @@ def shellconfig(debug: bool, shell: str | None) -> None:
 )
 @click.option(
     "--init",
-    help="Init script to run in the new terminal",
+    help="Session init script to run in the new terminal (maps to session_init hook)",
 )
 @click.option(
     "--after-init",
-    help="Command to run after init script completes",
+    help="Command to run after session_init script completes",
 )
 @click.option(
     "--ignore-same-session",
@@ -580,7 +580,7 @@ def switch(
     switch_cmd = SwitchCommand(
         branch=target_branch,
         terminal_mode=terminal_mode,
-        init_script=config.scripts.init,
+        init_script=config.scripts.session_init,
         after_init=after_init,
         ignore_same_session=config.terminal.always_new or ignore_same_session,
         auto_confirm=auto_confirm,
@@ -610,7 +610,7 @@ def agents(debug: bool) -> None:
             switch_cmd = SwitchCommand(
                 branch=branch,
                 terminal_mode=config.terminal.mode,
-                init_script=config.scripts.init,
+                init_script=config.scripts.session_init,
             )
             checkout_branch(switch_cmd, services)
 

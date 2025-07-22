@@ -6,6 +6,7 @@ from autowt.models import (
     BranchStatus,
     CleanupMode,
     ProcessInfo,
+    ProjectScriptsConfig,
     SwitchCommand,
     TerminalMode,
     WorktreeInfo,
@@ -109,3 +110,65 @@ class TestEnums:
         assert CleanupMode.REMOTELESS.value == "remoteless"
         assert CleanupMode.MERGED.value == "merged"
         assert CleanupMode.INTERACTIVE.value == "interactive"
+
+
+class TestProjectScriptsConfig:
+    """Tests for ProjectScriptsConfig backward compatibility."""
+
+    def test_from_dict_with_session_init_only(self):
+        """Test creating config with only session_init specified."""
+        data = {"session_init": "npm install", "custom": {"test": "npm test"}}
+        config = ProjectScriptsConfig.from_dict(data)
+
+        assert config.session_init == "npm install"
+        assert config.custom == {"test": "npm test"}
+
+    def test_from_dict_with_init_only_maps_to_session_init(self):
+        """Test creating config with only init maps to session_init."""
+        data = {"init": "make setup", "custom": {"build": "make build"}}
+        config = ProjectScriptsConfig.from_dict(data)
+
+        assert config.session_init == "make setup"
+        assert config.custom == {"build": "make build"}
+
+    def test_from_dict_with_both_init_and_session_init_prefers_session_init(self):
+        """Test that session_init is preferred when both are specified."""
+        data = {
+            "init": "old command",
+            "session_init": "new command",
+            "custom": {"deploy": "make deploy"},
+        }
+
+        config = ProjectScriptsConfig.from_dict(data)
+
+        assert config.session_init == "new command"  # session_init takes precedence
+        assert config.custom == {"deploy": "make deploy"}
+
+    def test_from_dict_with_empty_dict(self):
+        """Test creating config from empty dictionary."""
+        config = ProjectScriptsConfig.from_dict({})
+
+        assert config.session_init is None
+        assert config.custom is None
+
+    def test_to_dict_includes_session_init(self):
+        """Test that to_dict outputs session_init, not init."""
+        config = ProjectScriptsConfig(
+            session_init="python setup.py", custom={"test": "pytest", "lint": "ruff"}
+        )
+
+        result = config.to_dict()
+
+        assert result == {
+            "session_init": "python setup.py",
+            "custom": {"test": "pytest", "lint": "ruff"},
+        }
+        assert "init" not in result  # Should not output deprecated key
+
+    def test_to_dict_with_none_values(self):
+        """Test that to_dict excludes None values."""
+        config = ProjectScriptsConfig(session_init=None, custom=None)
+
+        result = config.to_dict()
+
+        assert result == {}  # Empty dict when all values are None

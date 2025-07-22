@@ -71,7 +71,7 @@ class TestCLIRouting:
             # Setup mock config
             mock_config = Mock()
             mock_config.terminal.mode = "tab"
-            mock_config.scripts.init = None
+            mock_config.scripts.session_init = None
             mock_get_config.return_value = mock_config
 
             result = runner.invoke(main, ["switch", "feature-branch"])
@@ -99,7 +99,7 @@ class TestCLIRouting:
             # Setup mock config
             mock_config = Mock()
             mock_config.terminal.mode = "tab"
-            mock_config.scripts.init = None
+            mock_config.scripts.session_init = None
             mock_config.terminal.always_new = False
             mock_get_config.return_value = mock_config
 
@@ -142,7 +142,7 @@ class TestCLIRouting:
             # Setup mock config
             mock_config = Mock()
             mock_config.terminal.mode = "tab"
-            mock_config.scripts.init = None
+            mock_config.scripts.session_init = None
             mock_config.terminal.always_new = False
             mock_get_config.return_value = mock_config
 
@@ -276,7 +276,7 @@ class TestCLIRouting:
             # Setup mock config
             mock_config = Mock()
             mock_config.terminal.mode = "tab"
-            mock_config.scripts.init = None
+            mock_config.scripts.session_init = None
             mock_config.terminal.always_new = False
             mock_get_config.return_value = mock_config
 
@@ -315,7 +315,7 @@ class TestCLIRouting:
             # Setup mock config
             mock_config = Mock()
             mock_config.terminal.mode = "tab"
-            mock_config.scripts.init = None
+            mock_config.scripts.session_init = None
             mock_config.terminal.always_new = False
             mock_get_config.return_value = mock_config
 

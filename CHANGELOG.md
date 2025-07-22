@@ -2,12 +2,24 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.3.6 - Unreleased
+## 0.4.0 - Unreleased
 
 ### Added
 
+- Lifecycle hooks system for worktree automation
+    - `pre_cleanup` hook runs before cleaning up worktrees (resource cleanup, backups)
+    - `pre_process_kill` hook runs before terminating processes (graceful shutdown)
+    - `post_cleanup` hook runs after worktrees are removed (volume cleanup, state updates)
+    - `pre_switch` hook runs before switching worktrees (stop current services)
+    - `post_switch` hook runs after switching worktrees (start new services)
+    - Hooks receive environment variables (`AUTOWT_WORKTREE_DIR`, `AUTOWT_MAIN_REPO_DIR`, `AUTOWT_BRANCH_NAME`, `AUTOWT_HOOK_TYPE`)
+    - Both global and project hooks run in sequence (global first, then project)
+    - Comprehensive documentation with real-world examples for Docker, databases, and service orchestration
+
 ### Changed
 
+- Improved hook script execution to pass scripts directly to shell without preprocessing
+- Hook scripts now use environment variables only (no positional arguments)
 - Modernized test suite with pytest patterns
 
 ### Fixed

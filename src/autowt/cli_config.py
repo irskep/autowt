@@ -110,7 +110,7 @@ def get_terminal_mode_from_config() -> TerminalMode:
 def get_init_script_from_config() -> str | None:
     """Get the init script from current configuration."""
     config = get_config()
-    return config.scripts.init
+    return config.scripts.session_init
 
 
 def get_cleanup_kill_processes_from_config() -> bool:

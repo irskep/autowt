@@ -20,6 +20,15 @@ All worktrees are created in a dedicated directory adjacent to your main project
 
 Branch names are sanitized for the filesystem. A branch named `feature/user-auth` will be created in the directory `~/dev/my-project-worktrees/feature-user-auth/`.
 
+!!! tip "Customize your directory structure"
+
+    You can customize where and how autowt creates worktree directories by configuring the `directory_pattern` setting. This supports template variables like `{repo_name}`, `{branch}`, and `{repo_parent_dir}`, as well as environment variables.
+
+    For example, to organize worktrees by type: `~/worktrees/{repo_name}/{branch}`
+    Or to use a flat structure: `~/all-worktrees/{repo_name}-{branch}`
+
+    Run `autowt config` to set your preferred pattern, or use `--dir` to override the location for individual worktrees. See the [Configuration Guide](configuration.md) for detailed examples.
+
 ## Cleaning up worktrees
 
 `autowt cleanup` is a powerful command designed to safely remove all traces of stale worktrees from your system. When you run it, `autowt` identifies branches that are good candidates for removal and, with your confirmation, cleans up:

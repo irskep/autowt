@@ -9,7 +9,7 @@ nav:
   - Getting Started: gettingstarted.md
   - User Guide:
     - Branch Management: branchmanagement.md
-    - Init Scripts: initscripts.md
+    - Lifecycle Hooks: lifecyclehooks.md
     - AI Agents: agents.md
   - Reference:
     - CLI Reference: clireference.md
