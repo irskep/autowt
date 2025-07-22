@@ -6,9 +6,16 @@
 
 ### Added
 
+- Added `{repo_parent_dir}` template variable for worktree directory patterns
+
 ### Changed
 
 ### Fixed
+
+- Fixed `directory_pattern` configuration being completely ignored when creating worktrees (#39)
+- Worktree paths now respect custom `directory_pattern` settings in both global and project configs
+- Added support for template variables: `{repo_dir}`, `{repo_name}`, `{repo_parent_dir}`, `{branch}`
+- Added support for environment variable expansion in directory patterns (e.g., `$HOME`)
 
 ## 0.3.2 - 2025-07-21
 

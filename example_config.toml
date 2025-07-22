@@ -41,9 +41,10 @@ always_new = false
 
 [worktree]
 # Pattern for worktree directory location
-# Variables: {repo_dir}, {repo_name}, {branch}
+# Variables: {repo_dir}, {repo_name}, {repo_parent_dir}, {branch}
 # Default: "../{repo_name}-worktrees/{branch}"
 # Can also use environment variables: "$HOME/worktrees/{repo_name}/{branch}"
+# Example with repo_parent_dir: "{repo_parent_dir}/worktrees/{branch}"
 # ENV: AUTOWT_WORKTREE_DIRECTORY_PATTERN="../{repo_name}-worktrees/{branch}"
 directory_pattern = "../{repo_name}-worktrees/{branch}"
 
