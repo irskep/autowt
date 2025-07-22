@@ -176,34 +176,39 @@ class GitService:
             return False
 
     def create_worktree(
-        self, repo_path: Path, branch: str, worktree_path: Path
+        self,
+        repo_path: Path,
+        branch: str,
+        worktree_path: Path,
+        from_branch: str | None = None,
     ) -> bool:
         """Create a new worktree for the given branch."""
         logger.debug(f"Creating worktree for {branch} at {worktree_path}")
 
         try:
-            # Check if branch exists locally
-            result = run_command_quiet_on_failure(
-                ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
-                cwd=repo_path,
-                timeout=10,
-                description=f"Check if branch {branch} exists locally",
-            )
-
-            if result.returncode == 0:
-                # Branch exists locally
-                cmd = ["git", "worktree", "add", str(worktree_path), branch]
-            else:
-                # Check if remote branch exists
+            if from_branch:
+                # User specified a source branch/commit - use it directly
+                logger.debug(f"Creating worktree from specified source: {from_branch}")
+                # Check if branch exists locally first
                 result = run_command_quiet_on_failure(
-                    ["git", "show-ref", "--verify", f"refs/remotes/origin/{branch}"],
+                    ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
                     cwd=repo_path,
                     timeout=10,
-                    description=f"Check if remote branch origin/{branch} exists",
+                    description=f"Check if branch {branch} exists locally",
                 )
 
                 if result.returncode == 0:
-                    # Remote branch exists, create from it
+                    # Branch exists locally, check out from from_branch
+                    cmd = [
+                        "git",
+                        "worktree",
+                        "add",
+                        str(worktree_path),
+                        branch,
+                        from_branch,
+                    ]
+                else:
+                    # Branch doesn't exist, create new branch from from_branch
                     cmd = [
                         "git",
                         "worktree",
@@ -211,54 +216,92 @@ class GitService:
                         str(worktree_path),
                         "-b",
                         branch,
-                        f"origin/{branch}",
+                        from_branch,
                     ]
-                else:
-                    # Neither local nor remote exists, try fallback hierarchy
-                    default_branch = self._get_default_branch(repo_path)
+            else:
+                # No source branch specified - use existing logic
+                # Check if branch exists locally
+                result = run_command_quiet_on_failure(
+                    ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
+                    cwd=repo_path,
+                    timeout=10,
+                    description=f"Check if branch {branch} exists locally",
+                )
 
-                    # Try origin/{default_branch} first, then {default_branch}, then HEAD
-                    start_point = "HEAD"  # Ultimate fallback
-                    if default_branch:
-                        # Check if origin/{default_branch} exists
-                        origin_result = run_command_quiet_on_failure(
-                            [
-                                "git",
-                                "show-ref",
-                                "--verify",
-                                f"refs/remotes/origin/{default_branch}",
-                            ],
-                            cwd=repo_path,
-                            timeout=10,
-                            description=f"Check if origin/{default_branch} exists",
-                        )
-                        if origin_result.returncode == 0:
-                            start_point = f"origin/{default_branch}"
-                        else:
-                            # Check if local default branch exists
-                            local_result = run_command_quiet_on_failure(
+                if result.returncode == 0:
+                    # Branch exists locally
+                    cmd = ["git", "worktree", "add", str(worktree_path), branch]
+                else:
+                    # Check if remote branch exists
+                    result = run_command_quiet_on_failure(
+                        [
+                            "git",
+                            "show-ref",
+                            "--verify",
+                            f"refs/remotes/origin/{branch}",
+                        ],
+                        cwd=repo_path,
+                        timeout=10,
+                        description=f"Check if remote branch origin/{branch} exists",
+                    )
+
+                    if result.returncode == 0:
+                        # Remote branch exists, create from it
+                        cmd = [
+                            "git",
+                            "worktree",
+                            "add",
+                            str(worktree_path),
+                            "-b",
+                            branch,
+                            f"origin/{branch}",
+                        ]
+                    else:
+                        # Neither local nor remote exists, try fallback hierarchy
+                        default_branch = self._get_default_branch(repo_path)
+
+                        # Try origin/{default_branch} first, then {default_branch}, then HEAD
+                        start_point = "HEAD"  # Ultimate fallback
+                        if default_branch:
+                            # Check if origin/{default_branch} exists
+                            origin_result = run_command_quiet_on_failure(
                                 [
                                     "git",
                                     "show-ref",
                                     "--verify",
-                                    f"refs/heads/{default_branch}",
+                                    f"refs/remotes/origin/{default_branch}",
                                 ],
                                 cwd=repo_path,
                                 timeout=10,
-                                description=f"Check if local {default_branch} exists",
+                                description=f"Check if origin/{default_branch} exists",
                             )
-                            if local_result.returncode == 0:
-                                start_point = default_branch
+                            if origin_result.returncode == 0:
+                                start_point = f"origin/{default_branch}"
+                            else:
+                                # Check if local default branch exists
+                                local_result = run_command_quiet_on_failure(
+                                    [
+                                        "git",
+                                        "show-ref",
+                                        "--verify",
+                                        f"refs/heads/{default_branch}",
+                                    ],
+                                    cwd=repo_path,
+                                    timeout=10,
+                                    description=f"Check if local {default_branch} exists",
+                                )
+                                if local_result.returncode == 0:
+                                    start_point = default_branch
 
-                    cmd = [
-                        "git",
-                        "worktree",
-                        "add",
-                        str(worktree_path),
-                        "-b",
-                        branch,
-                        start_point,
-                    ]
+                        cmd = [
+                            "git",
+                            "worktree",
+                            "add",
+                            str(worktree_path),
+                            "-b",
+                            branch,
+                            start_point,
+                        ]
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
             success = result.returncode == 0

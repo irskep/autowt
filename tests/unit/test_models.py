@@ -6,6 +6,7 @@ from autowt.models import (
     BranchStatus,
     CleanupMode,
     ProcessInfo,
+    SwitchCommand,
     TerminalMode,
     WorktreeInfo,
 )
@@ -64,6 +65,33 @@ class TestProcessInfo:
         assert process.pid == 1234
         assert process.command == "python server.py"
         assert process.working_dir == working_dir
+
+
+class TestSwitchCommand:
+    """Tests for SwitchCommand model."""
+
+    def test_switch_command_creation(self):
+        """Test creating SwitchCommand instance."""
+        cmd = SwitchCommand(
+            branch="test-branch", terminal_mode=TerminalMode.TAB, from_branch="main"
+        )
+
+        assert cmd.branch == "test-branch"
+        assert cmd.terminal_mode == TerminalMode.TAB
+        assert cmd.from_branch == "main"
+
+    def test_switch_command_defaults(self):
+        """Test SwitchCommand default values."""
+        cmd = SwitchCommand(branch="test-branch")
+
+        assert cmd.branch == "test-branch"
+        assert cmd.terminal_mode is None
+        assert cmd.init_script is None
+        assert cmd.after_init is None
+        assert cmd.ignore_same_session is False
+        assert cmd.auto_confirm is False
+        assert cmd.debug is False
+        assert cmd.from_branch is None
 
 
 class TestEnums:

@@ -196,7 +196,9 @@ def _create_new_worktree(
     print_info(f"Creating worktree for {switch_cmd.branch}...")
 
     # Create the worktree
-    if not services.git.create_worktree(repo_path, switch_cmd.branch, worktree_path):
+    if not services.git.create_worktree(
+        repo_path, switch_cmd.branch, worktree_path, switch_cmd.from_branch
+    ):
         print_error(f"✗ Failed to create worktree for {switch_cmd.branch}")
         return
 

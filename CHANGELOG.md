@@ -6,6 +6,11 @@
 
 ### Added
 
+- Added `--from` flag to specify source branch/commit when creating worktrees
+  - Accepts any git revision: branch names, tags, commit hashes, `HEAD`, etc.
+  - Available for both `autowt switch` and direct branch commands (`autowt my-branch --from main`)
+  - Only used when creating new worktrees; ignored when switching to existing ones
+
 ### Changed
 
 ### Fixed
