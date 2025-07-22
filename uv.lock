@@ -3,7 +3,7 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "autowt"
-version = "0.3.4.dev0"
+version = "0.3.4"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
