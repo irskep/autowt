@@ -133,9 +133,15 @@ class MockGitService:
         return self.fetch_success
 
     def create_worktree(
-        self, repo_path: Path, branch: str, worktree_path: Path
+        self,
+        repo_path: Path,
+        branch: str,
+        worktree_path: Path,
+        from_branch: str | None = None,
     ) -> bool:
-        self.create_worktree_calls.append((repo_path, branch, worktree_path))
+        self.create_worktree_calls.append(
+            (repo_path, branch, worktree_path, from_branch)
+        )
         if self.create_success:
             # Add to our mock worktree list
             self.worktrees.append(

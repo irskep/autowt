@@ -201,6 +201,7 @@ class SwitchCommand:
     ignore_same_session: bool = False
     auto_confirm: bool = False
     debug: bool = False
+    from_branch: str | None = None
 
 
 @dataclass

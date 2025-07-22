@@ -210,6 +210,7 @@ class AutowtGroup(ClickAliasedGroup):
                 or kwargs.get("ignore_same_session", False),
                 auto_confirm=kwargs.get("auto_confirm", kwargs.get("yes", False)),
                 debug=kwargs.get("debug", False),
+                from_branch=kwargs.get("from_branch"),
             )
             checkout_branch(switch_cmd, services)
 
@@ -242,6 +243,11 @@ class AutowtGroup(ClickAliasedGroup):
                     ["--ignore-same-session"],
                     is_flag=True,
                     help="Always create new terminal, ignore existing sessions",
+                ),
+                click.Option(
+                    ["--from"],
+                    "from_branch",
+                    help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
                 ),
             ],
             help=f"Switch to or create a worktree for branch '{cmd_name}'",
@@ -492,6 +498,11 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     is_flag=True,
     help="Switch to most recently active agent",
 )
+@click.option(
+    "--from",
+    "from_branch",
+    help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def switch(
     branch: str | None,
@@ -502,6 +513,7 @@ def switch(
     auto_confirm: bool,
     waiting: bool,
     latest: bool,
+    from_branch: str | None,
     debug: bool,
 ) -> None:
     """Switch to or create a worktree for the specified branch."""
@@ -552,6 +564,7 @@ def switch(
         ignore_same_session=config.terminal.always_new or ignore_same_session,
         auto_confirm=auto_confirm,
         debug=debug,
+        from_branch=from_branch,
     )
     checkout_branch(switch_cmd, services)
 
