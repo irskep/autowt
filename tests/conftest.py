@@ -10,7 +10,12 @@ from autowt.models import (
     ProcessInfo,
     WorktreeInfo,
 )
-from tests.mocks.services import MockTerminalService
+from tests.fixtures.service_builders import MockTerminalService
+from tests.fixtures.git_fixtures import (
+    build_sample_worktrees,
+    build_sample_branch_statuses,
+)
+from tests.fixtures.config_fixtures import build_sample_config
 
 
 @pytest.fixture
@@ -24,57 +29,19 @@ def temp_repo_path(tmp_path):
 @pytest.fixture
 def sample_config():
     """Sample configuration for testing."""
-    return Config()
+    return build_sample_config()
 
 
 @pytest.fixture
 def sample_worktrees(temp_repo_path):
     """Sample worktree data for testing."""
-    return [
-        WorktreeInfo(
-            branch="feature1",
-            path=temp_repo_path.parent / "test-repo-worktrees" / "feature1",
-            is_current=False,
-        ),
-        WorktreeInfo(
-            branch="feature2",
-            path=temp_repo_path.parent / "test-repo-worktrees" / "feature2",
-            is_current=True,
-        ),
-        WorktreeInfo(
-            branch="bugfix",
-            path=temp_repo_path.parent / "test-repo-worktrees" / "bugfix",
-            is_current=False,
-        ),
-    ]
+    return build_sample_worktrees(temp_repo_path)
 
 
 @pytest.fixture
 def sample_branch_statuses(sample_worktrees):
     """Sample branch status data for testing."""
-    return [
-        BranchStatus(
-            branch="feature1",
-            has_remote=False,  # Make it remoteless so it gets cleaned up
-            is_merged=False,
-            is_identical=False,
-            path=sample_worktrees[0].path,
-        ),
-        BranchStatus(
-            branch="feature2",
-            has_remote=False,
-            is_merged=False,
-            is_identical=True,  # This branch is identical to main
-            path=sample_worktrees[1].path,
-        ),
-        BranchStatus(
-            branch="bugfix",
-            has_remote=True,
-            is_merged=True,
-            is_identical=False,
-            path=sample_worktrees[2].path,
-        ),
-    ]
+    return build_sample_branch_statuses(sample_worktrees)
 
 
 @pytest.fixture

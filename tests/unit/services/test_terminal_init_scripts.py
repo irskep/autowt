@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 from autowt.models import TerminalMode
 from autowt.services.terminal import TerminalService
-from tests.mocks.services import MockStateService
+from tests.fixtures.service_builders import MockStateService
 
 
 class TestTerminalServiceInitScripts:

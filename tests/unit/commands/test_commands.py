@@ -9,7 +9,7 @@ from autowt.models import (
     SwitchCommand,
     TerminalMode,
 )
-from tests.mocks.services import (
+from tests.fixtures.service_builders import (
     MockServices,
 )
 
