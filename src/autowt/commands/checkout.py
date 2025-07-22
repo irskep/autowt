@@ -57,9 +57,13 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     logger.debug(f"Checking out branch: {switch_cmd.branch}")
 
     # Find git repository
-    repo_path = services.git.find_repo_root()
-    if not repo_path:
-        print_error("Error: Not in a git repository")
+    try:
+        repo_path = services.git.find_repo_root()
+        if not repo_path:
+            print_error("Error: Not in a git repository")
+            return
+    except ValueError as e:
+        print_error(f"Error: {e}")
         return
 
     # Load configuration
