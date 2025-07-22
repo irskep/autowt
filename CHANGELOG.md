@@ -15,6 +15,10 @@
   - Accepts any git revision: branch names, tags, commit hashes, `HEAD`, etc.
   - Available for both `autowt switch` and direct branch commands (`autowt my-branch --from main`)
   - Only used when creating new worktrees; ignored when switching to existing ones
+- Added `--dir` option to override worktree directory at creation time
+  - Specify custom directory path: `autowt switch branch --dir /tmp/my-worktree`
+  - Supports both absolute and relative paths
+  - Available for both `autowt switch` and direct branch commands
 
 ### Changed
 
