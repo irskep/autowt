@@ -63,9 +63,14 @@ class CleanupConfig:
 
 @dataclass(frozen=True)
 class ScriptsConfig:
-    """Init scripts and custom commands."""
+    """Lifecycle scripts and custom commands."""
 
     init: str | None = None
+    pre_cleanup: str | None = None
+    pre_process_kill: str | None = None
+    post_cleanup: str | None = None
+    pre_switch: str | None = None
+    post_switch: str | None = None
     custom: dict[str, str] = field(default_factory=dict)
 
 
@@ -137,6 +142,11 @@ class Config:
 
         scripts_config = ScriptsConfig(
             init=scripts_data.get("init"),
+            pre_cleanup=scripts_data.get("pre_cleanup"),
+            pre_process_kill=scripts_data.get("pre_process_kill"),
+            post_cleanup=scripts_data.get("post_cleanup"),
+            pre_switch=scripts_data.get("pre_switch"),
+            post_switch=scripts_data.get("post_switch"),
             custom=scripts_data.get("custom", {}),
         )
 
@@ -180,6 +190,11 @@ class Config:
             },
             "scripts": {
                 "init": self.scripts.init,
+                "pre_cleanup": self.scripts.pre_cleanup,
+                "pre_process_kill": self.scripts.pre_process_kill,
+                "post_cleanup": self.scripts.post_cleanup,
+                "pre_switch": self.scripts.pre_switch,
+                "post_switch": self.scripts.post_switch,
                 "custom": self.scripts.custom,
             },
             "confirmations": {
@@ -324,6 +339,11 @@ class ConfigLoader:
             "CLEANUP_KILL_PROCESS_TIMEOUT": ["cleanup", "kill_process_timeout"],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_INIT": ["scripts", "init"],
+            "SCRIPTS_PRE_CLEANUP": ["scripts", "pre_cleanup"],
+            "SCRIPTS_PRE_PROCESS_KILL": ["scripts", "pre_process_kill"],
+            "SCRIPTS_POST_CLEANUP": ["scripts", "post_cleanup"],
+            "SCRIPTS_PRE_SWITCH": ["scripts", "pre_switch"],
+            "SCRIPTS_POST_SWITCH": ["scripts", "post_switch"],
             "CONFIRMATIONS_CLEANUP_MULTIPLE": ["confirmations", "cleanup_multiple"],
             "CONFIRMATIONS_KILL_PROCESS": ["confirmations", "kill_process"],
             "CONFIRMATIONS_FORCE_OPERATIONS": ["confirmations", "force_operations"],

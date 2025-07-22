@@ -212,7 +212,15 @@ class TestConfigToDict:
                 "kill_process_timeout": 10,
                 "default_mode": "interactive",
             },
-            "scripts": {"init": None, "custom": {}},
+            "scripts": {
+                "init": None,
+                "pre_cleanup": None,
+                "pre_process_kill": None,
+                "post_cleanup": None,
+                "pre_switch": None,
+                "post_switch": None,
+                "custom": {},
+            },
             "confirmations": {
                 "cleanup_multiple": True,
                 "kill_process": True,

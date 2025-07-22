@@ -10,6 +10,8 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
+from autowt.config import get_config_loader
+from autowt.hooks import HookRunner, HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
 
@@ -93,6 +95,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         print("Cleanup cancelled.")
         return
 
+    # Run pre_cleanup hooks for each worktree
+    _run_pre_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+
     # Check for running processes in all worktrees to be removed
     all_processes = []
     for branch_status in to_cleanup:
@@ -101,6 +106,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
 
     # Handle running processes if any are found
     if all_processes:
+        # Run pre_process_kill hooks for each worktree
+        _run_pre_process_kill_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+
         # Determine auto_kill value based on CLI flags and config
         if cleanup_cmd.kill_processes is not None:
             # CLI flag specified: --kill (True) or --no-kill (False)
@@ -126,6 +134,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         cleanup_cmd.force,
         cleanup_cmd.dry_run,
     )
+
+    # Run post_cleanup hooks for each worktree
+    _run_post_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
 
 def _display_branch_status(
@@ -424,3 +435,113 @@ def _simple_interactive_selection(
         print(f"\nSelected {len(selected)} worktrees for removal.")
 
     return selected
+
+
+def _run_pre_cleanup_hooks(
+    to_cleanup: list[BranchStatus],
+    repo_path: Path,
+    config,
+    dry_run: bool = False,
+) -> None:
+    """Run pre_cleanup hooks for worktrees being cleaned up."""
+    if dry_run:
+        print("[DRY RUN] Would run pre_cleanup hooks")
+        return
+
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    for branch_status in to_cleanup:
+        global_scripts, project_scripts = extract_hook_scripts(
+            global_config, config, HookType.PRE_CLEANUP
+        )
+
+        if global_scripts or project_scripts:
+            print(f"Running pre_cleanup hooks for {branch_status.branch}")
+            hook_runner.run_hooks(
+                global_scripts,
+                project_scripts,
+                HookType.PRE_CLEANUP,
+                branch_status.path,
+                repo_path,
+                branch_status.branch,
+            )
+
+
+def _run_pre_process_kill_hooks(
+    to_cleanup: list[BranchStatus],
+    repo_path: Path,
+    config,
+    dry_run: bool = False,
+) -> None:
+    """Run pre_process_kill hooks for worktrees being cleaned up."""
+    if dry_run:
+        print("[DRY RUN] Would run pre_process_kill hooks")
+        return
+
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    for branch_status in to_cleanup:
+        global_scripts, project_scripts = extract_hook_scripts(
+            global_config, config, HookType.PRE_PROCESS_KILL
+        )
+
+        if global_scripts or project_scripts:
+            print(f"Running pre_process_kill hooks for {branch_status.branch}")
+            hook_runner.run_hooks(
+                global_scripts,
+                project_scripts,
+                HookType.PRE_PROCESS_KILL,
+                branch_status.path,
+                repo_path,
+                branch_status.branch,
+            )
+
+
+def _run_post_cleanup_hooks(
+    to_cleanup: list[BranchStatus],
+    repo_path: Path,
+    config,
+    dry_run: bool = False,
+) -> None:
+    """Run post_cleanup hooks for worktrees that were cleaned up."""
+    if dry_run:
+        print("[DRY RUN] Would run post_cleanup hooks")
+        return
+
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    for branch_status in to_cleanup:
+        global_scripts, project_scripts = extract_hook_scripts(
+            global_config, config, HookType.POST_CLEANUP
+        )
+
+        if global_scripts or project_scripts:
+            print(f"Running post_cleanup hooks for {branch_status.branch}")
+            # Note: For post_cleanup hooks, the worktree_dir might no longer exist
+            # But we still pass it as hooks may need the path information
+            hook_runner.run_hooks(
+                global_scripts,
+                project_scripts,
+                HookType.POST_CLEANUP,
+                branch_status.path,
+                repo_path,
+                branch_status.branch,
+            )

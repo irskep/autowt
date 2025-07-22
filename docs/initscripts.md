@@ -86,6 +86,31 @@ This multi-line script will be executed as a single command, automating your ent
     autowt feature/performance --init "npm ci"
     ```
 
+## Advanced: Lifecycle hooks
+
+Beyond init scripts, autowt supports additional **lifecycle hooks** that run at specific points during worktree operations:
+
+| Hook | When it runs | Common use cases |
+|------|-------------|------------------|
+| `init` | After creating/switching to worktree | Install deps, copy configs |
+| `pre_cleanup` | Before cleaning up worktrees | Release ports, backup data |
+| `pre_process_kill` | Before killing processes | Graceful shutdown |
+| `post_cleanup` | After worktrees are removed | Clean volumes, update state |
+| `pre_switch` | Before switching worktrees | Stop current services |  
+| `post_switch` | After switching worktrees | Start new services |
+
+### Quick example
+
+```toml
+# .autowt.toml
+[scripts]
+init = "npm install"
+pre_cleanup = "./scripts/release-ports.sh"
+pre_process_kill = "docker-compose down"
+```
+
+For detailed information on lifecycle hooks, see the [Lifecycle Hooks](lifecycle-hooks.md) documentation.
+
 ---
 *[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
 *[main worktree]: The original repository directory, as opposed to the worktree directories managed by `autowt`.

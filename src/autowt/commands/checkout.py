@@ -6,8 +6,10 @@ from pathlib import Path
 import click
 
 from autowt.cli_config import resolve_custom_script_with_interpolation
+from autowt.config import get_config_loader
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
+from autowt.hooks import HookRunner, HookType, extract_hook_scripts
 from autowt.models import Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.utils import sanitize_branch_name
@@ -135,6 +137,11 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             switch_cmd.after_init, custom_script_resolved
         )
         try:
+            # Run pre_switch hooks
+            _run_pre_switch_hooks(
+                existing_worktree.path, repo_path, config, switch_cmd.branch
+            )
+
             success = services.terminal.switch_to_worktree(
                 existing_worktree.path,
                 terminal_mode,
@@ -149,6 +156,11 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             if not success:
                 print_error(f"Failed to switch to {switch_cmd.branch} worktree")
                 return
+
+            # Run post_switch hooks
+            _run_post_switch_hooks(
+                existing_worktree.path, repo_path, config, switch_cmd.branch
+            )
 
             # Session ID will be registered by the new tab itself
             return
@@ -235,6 +247,12 @@ def _create_new_worktree(
 
     print_success(f"✓ Worktree created at {worktree_path}")
 
+    # Load configuration for hooks
+    config = services.state.load_config(project_dir=repo_path)
+
+    # Run pre_switch hooks for new worktree
+    _run_pre_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
+
     # Switch to the new worktree
     # Combine after_init and custom script
     combined_after_init = _combine_after_init_and_custom_script(
@@ -253,6 +271,9 @@ def _create_new_worktree(
     if not success:
         print_error("Worktree created but failed to switch terminals")
         return
+
+    # Run post_switch hooks for new worktree
+    _run_post_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
 
     # Session ID will be registered by the new tab itself
 
@@ -392,3 +413,65 @@ def find_latest_agent_branch(services: Services) -> str | None:
 
     print_info(f"Switching to most recent agent: {latest_agent.branch}")
     return latest_agent.branch
+
+
+def _run_pre_switch_hooks(
+    worktree_path: Path,
+    repo_path: Path,
+    config,
+    branch_name: str,
+) -> None:
+    """Run pre_switch hooks before switching to a worktree."""
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.PRE_SWITCH
+    )
+
+    if global_scripts or project_scripts:
+        print_info(f"Running pre_switch hooks for {branch_name}")
+        hook_runner.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.PRE_SWITCH,
+            worktree_path,
+            repo_path,
+            branch_name,
+        )
+
+
+def _run_post_switch_hooks(
+    worktree_path: Path,
+    repo_path: Path,
+    config,
+    branch_name: str,
+) -> None:
+    """Run post_switch hooks after switching to a worktree."""
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.POST_SWITCH
+    )
+
+    if global_scripts or project_scripts:
+        print_info(f"Running post_switch hooks for {branch_name}")
+        hook_runner.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.POST_SWITCH,
+            worktree_path,
+            repo_path,
+            branch_name,
+        )
