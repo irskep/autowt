@@ -17,8 +17,8 @@ def temp_git_repo():
     with tempfile.TemporaryDirectory() as tmp_dir:
         repo_path = Path(tmp_dir)
 
-        # Initialize git repository
-        run_command(["git", "init"], cwd=repo_path)
+        # Initialize git repository with main as default branch
+        run_command(["git", "init", "--initial-branch=main"], cwd=repo_path)
         run_command(["git", "config", "user.email", "test@example.com"], cwd=repo_path)
         run_command(["git", "config", "user.name", "Test User"], cwd=repo_path)
 
