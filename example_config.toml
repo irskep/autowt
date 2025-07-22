@@ -101,9 +101,9 @@ default_mode = "interactive"
 
 [scripts]
 # Command to run after creating or switching to a worktree
-# CLI: --init="npm install"
-# ENV: AUTOWT_SCRIPTS_INIT="npm install && npm run dev"
-init = "echo 'Always run after creating a new worktree; copy env vars & install dependencies'"
+# CLI: --init="npm install" (maps to session_init)
+# ENV: AUTOWT_SCRIPTS_SESSION_INIT="npm install && npm run dev"
+session_init = "echo 'Always run after creating a new worktree; copy env vars & install dependencies'"
 
 [scripts.custom]
 # Custom scripts for specialized worktree initialization

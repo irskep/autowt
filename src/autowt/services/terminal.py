@@ -30,19 +30,21 @@ class Terminal(ABC):
 
     @abstractmethod
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_session_init_script: str | None = None
     ) -> bool:
         """Switch to existing session if supported."""
         pass
 
     @abstractmethod
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_session_init_script: str | None = None
+    ) -> bool:
         """Open new tab in current window."""
         pass
 
     @abstractmethod
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_session_init_script: str | None = None
     ) -> bool:
         """Open new window."""
         pass
@@ -189,7 +191,7 @@ class ITerm2Terminal(Terminal):
         return result == "true" if result else False
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_session_init_script: str | None = None
     ) -> bool:
         """Switch to an existing iTerm2 session."""
         logger.debug(f"Switching to iTerm2 session: {session_id}")
@@ -207,10 +209,10 @@ class ITerm2Terminal(Terminal):
                             select theTab
                             select theWindow'''
 
-        if init_script:
+        if session_session_init_script:
             applescript += f'''
                             tell theSession
-                                write text "{self._escape_for_applescript(init_script)}"
+                                write text "{self._escape_for_applescript(session_session_init_script)}"
                             end tell'''
 
         applescript += """
@@ -224,7 +226,9 @@ class ITerm2Terminal(Terminal):
 
         return self._run_applescript(applescript)
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_session_init_script: str | None = None
+    ) -> bool:
         """Open a new iTerm2 tab."""
         logger.debug(f"Opening new iTerm2 tab for {worktree_path}")
 
@@ -242,8 +246,8 @@ class ITerm2Terminal(Terminal):
         # Add session registration command (uses current working directory)
         commands.append(f"{escaped_autowt_path} register-session-for-path")
 
-        if init_script:
-            commands.append(init_script)
+        if session_session_init_script:
+            commands.append(session_session_init_script)
 
         applescript = f"""
         tell application "iTerm2"
@@ -259,14 +263,14 @@ class ITerm2Terminal(Terminal):
         return self._run_applescript(applescript)
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new iTerm2 window."""
         logger.debug(f"Opening new iTerm2 window for {worktree_path}")
 
         commands = [f"cd {self._escape_path_for_command(worktree_path)}"]
-        if init_script:
-            commands.append(init_script)
+        if session_init_script:
+            commands.append(session_init_script)
 
         applescript = f"""
         tell application "iTerm2"
@@ -475,7 +479,7 @@ class TerminalAppTerminal(Terminal):
             return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Switch to existing Terminal.app session by working directory."""
         # Find the window title that contains our target directory
@@ -528,10 +532,10 @@ class TerminalAppTerminal(Terminal):
         '''
 
         # Run init script if provided
-        if init_script:
+        if session_init_script:
             init_result = self._run_applescript(f'''
             tell application "Terminal"
-                do script "{self._escape_for_applescript(init_script)}" in front window
+                do script "{self._escape_for_applescript(session_init_script)}" in front window
             end tell
             ''')
             if not init_result:
@@ -568,7 +572,9 @@ class TerminalAppTerminal(Terminal):
         result = self._run_applescript_with_result(applescript)
         return result == "true" if result else False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new Terminal.app tab.
 
         Terminal.app requires System Events (accessibility permissions) to create
@@ -577,8 +583,8 @@ class TerminalAppTerminal(Terminal):
         logger.debug(f"Opening new Terminal.app tab for {worktree_path}")
 
         commands = [f"cd {shlex.quote(str(worktree_path))}"]
-        if init_script:
-            commands.append(init_script)
+        if session_init_script:
+            commands.append(session_init_script)
 
         command_string = self._escape_for_applescript("; ".join(commands))
 
@@ -640,14 +646,14 @@ class TerminalAppTerminal(Terminal):
         return success
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Terminal.app window."""
         logger.debug(f"Opening new Terminal.app window for {worktree_path}")
 
         commands = [f"cd {shlex.quote(str(worktree_path))}"]
-        if init_script:
-            commands.append(init_script)
+        if session_init_script:
+            commands.append(session_init_script)
 
         command_string = self._escape_for_applescript("; ".join(commands))
 
@@ -700,7 +706,7 @@ class TmuxTerminal(Terminal):
         return True
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Switch to existing tmux session."""
         logger.debug(f"Switching to tmux session: {session_id}")
@@ -735,9 +741,16 @@ class TmuxTerminal(Terminal):
             success = switch_result.returncode == 0
 
             # Run init script if provided and switch succeeded
-            if success and init_script:
+            if success and session_init_script:
                 run_command(
-                    ["tmux", "send-keys", "-t", session_id, init_script, "Enter"],
+                    [
+                        "tmux",
+                        "send-keys",
+                        "-t",
+                        session_id,
+                        session_init_script,
+                        "Enter",
+                    ],
                     timeout=5,
                     description=f"Send init script to tmux session {session_id}",
                 )
@@ -753,12 +766,14 @@ class TmuxTerminal(Terminal):
         # Use sanitized worktree directory name
         return f"autowt-{sanitize_branch_name(worktree_path.name)}"
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Create new tmux window (tmux equivalent of tab)."""
-        return self.open_new_window(worktree_path, init_script)
+        return self.open_new_window(worktree_path, session_init_script)
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Create new tmux session for the worktree."""
         logger.debug(f"Creating tmux session for {worktree_path}")
@@ -786,7 +801,7 @@ class TmuxTerminal(Terminal):
                     description=f"Create tmux session {session_name}",
                 )
                 if create_result.returncode == 0:
-                    return self.switch_to_session(session_name, init_script)
+                    return self.switch_to_session(session_name, session_init_script)
                 return False
             else:
                 # Not in tmux, can attach directly
@@ -796,9 +811,9 @@ class TmuxTerminal(Terminal):
                     description=f"Create/attach tmux session {session_name}",
                 )
 
-                if result.returncode == 0 and init_script:
+                if result.returncode == 0 and session_init_script:
                     run_command(
-                        ["tmux", "send-keys", init_script, "Enter"],
+                        ["tmux", "send-keys", session_init_script, "Enter"],
                         timeout=5,
                         description="Send init script to new tmux session",
                     )
@@ -818,12 +833,14 @@ class GnomeTerminalTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """GNOME Terminal doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new GNOME Terminal tab."""
         logger.info(
             "Using experimental support for GNOME Terminal. "
@@ -833,8 +850,8 @@ class GnomeTerminalTerminal(Terminal):
 
         try:
             cmd = ["gnome-terminal", "--tab", "--working-directory", str(worktree_path)]
-            if init_script:
-                cmd.extend(["--", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["--", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -848,7 +865,7 @@ class GnomeTerminalTerminal(Terminal):
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new GNOME Terminal window."""
         logger.info(
@@ -864,8 +881,8 @@ class GnomeTerminalTerminal(Terminal):
                 "--working-directory",
                 str(worktree_path),
             ]
-            if init_script:
-                cmd.extend(["--", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["--", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -887,12 +904,14 @@ class KonsoleTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Konsole doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new Konsole tab."""
         logger.info(
             "Using experimental support for Konsole. "
@@ -902,8 +921,8 @@ class KonsoleTerminal(Terminal):
 
         try:
             cmd = ["konsole", "--new-tab", "--workdir", str(worktree_path)]
-            if init_script:
-                cmd.extend(["-e", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-e", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -917,7 +936,7 @@ class KonsoleTerminal(Terminal):
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Konsole window."""
         logger.info(
@@ -928,8 +947,8 @@ class KonsoleTerminal(Terminal):
 
         try:
             cmd = ["konsole", "--workdir", str(worktree_path)]
-            if init_script:
-                cmd.extend(["-e", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-e", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -951,12 +970,14 @@ class XfceTerminalTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """XFCE4 Terminal doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new XFCE4 Terminal tab."""
         logger.info(
             "Using experimental support for XFCE4 Terminal. "
@@ -966,8 +987,8 @@ class XfceTerminalTerminal(Terminal):
 
         try:
             cmd = ["xfce4-terminal", "--tab", "--working-directory", str(worktree_path)]
-            if init_script:
-                cmd.extend(["--command", f"bash -c '{init_script}; exec bash'"])
+            if session_init_script:
+                cmd.extend(["--command", f"bash -c '{session_init_script}; exec bash'"])
 
             result = run_command(
                 cmd,
@@ -981,7 +1002,7 @@ class XfceTerminalTerminal(Terminal):
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new XFCE4 Terminal window."""
         logger.info(
@@ -997,8 +1018,8 @@ class XfceTerminalTerminal(Terminal):
                 "--working-directory",
                 str(worktree_path),
             ]
-            if init_script:
-                cmd.extend(["--command", f"bash -c '{init_script}; exec bash'"])
+            if session_init_script:
+                cmd.extend(["--command", f"bash -c '{session_init_script}; exec bash'"])
 
             result = run_command(
                 cmd,
@@ -1020,12 +1041,14 @@ class TilixTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Tilix doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new Tilix session (tab equivalent)."""
         logger.info(
             "Using experimental support for Tilix. "
@@ -1041,8 +1064,8 @@ class TilixTerminal(Terminal):
                 "--working-directory",
                 str(worktree_path),
             ]
-            if init_script:
-                cmd.extend(["-x", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-x", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1056,7 +1079,7 @@ class TilixTerminal(Terminal):
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Tilix window."""
         logger.info(
@@ -1072,8 +1095,8 @@ class TilixTerminal(Terminal):
                 "--working-directory",
                 str(worktree_path),
             ]
-            if init_script:
-                cmd.extend(["-x", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-x", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1095,12 +1118,14 @@ class TerminatorTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Terminator doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new Terminator tab."""
         logger.info(
             "Using experimental support for Terminator. "
@@ -1110,8 +1135,8 @@ class TerminatorTerminal(Terminal):
 
         try:
             cmd = ["terminator", "--new-tab", f"--working-directory={worktree_path}"]
-            if init_script:
-                cmd.extend(["-x", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-x", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1125,7 +1150,7 @@ class TerminatorTerminal(Terminal):
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Terminator window."""
         logger.info(
@@ -1136,8 +1161,8 @@ class TerminatorTerminal(Terminal):
 
         try:
             cmd = ["terminator", f"--working-directory={worktree_path}"]
-            if init_script:
-                cmd.extend(["-x", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-x", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1159,18 +1184,20 @@ class AlacrittyTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Alacritty doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Alacritty doesn't support tabs, fall back to window."""
         logger.warning("Alacritty doesn't support tabs, opening new window instead")
-        return self.open_new_window(worktree_path, init_script)
+        return self.open_new_window(worktree_path, session_init_script)
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Alacritty window."""
         logger.info(
@@ -1181,8 +1208,8 @@ class AlacrittyTerminal(Terminal):
 
         try:
             cmd = ["alacritty", "--working-directory", str(worktree_path)]
-            if init_script:
-                cmd.extend(["-e", "bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["-e", "bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1204,12 +1231,14 @@ class KittyTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Kitty doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new Kitty tab using remote control."""
         logger.info(
             "Using experimental support for Kitty. "
@@ -1220,8 +1249,8 @@ class KittyTerminal(Terminal):
         try:
             # Try using kitty remote control first
             cmd = ["kitty", "@", "launch", "--type=tab", "--cwd", str(worktree_path)]
-            if init_script:
-                cmd.extend(["bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["bash", "-c", f"{session_init_script}; exec bash"])
             else:
                 cmd.append("bash")
 
@@ -1236,14 +1265,14 @@ class KittyTerminal(Terminal):
 
             # Fall back to opening new window if remote control fails
             logger.debug("Kitty remote control failed, falling back to new window")
-            return self.open_new_window(worktree_path, init_script)
+            return self.open_new_window(worktree_path, session_init_script)
 
         except Exception as e:
             logger.error(f"Failed to open Kitty tab: {e}")
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Kitty window."""
         logger.info(
@@ -1254,8 +1283,8 @@ class KittyTerminal(Terminal):
 
         try:
             cmd = ["kitty", "--directory", str(worktree_path)]
-            if init_script:
-                cmd.extend(["bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1277,12 +1306,14 @@ class WezTermTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """WezTerm doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new WezTerm tab."""
         logger.info(
             "Using experimental support for WezTerm. "
@@ -1292,8 +1323,8 @@ class WezTermTerminal(Terminal):
 
         try:
             cmd = ["wezterm", "cli", "spawn", "--cwd", str(worktree_path)]
-            if init_script:
-                cmd.extend(["bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["bash", "-c", f"{session_init_script}; exec bash"])
             else:
                 cmd.append("bash")
 
@@ -1308,14 +1339,14 @@ class WezTermTerminal(Terminal):
 
             # Fall back to opening new window if CLI fails
             logger.debug("WezTerm CLI failed, falling back to new window")
-            return self.open_new_window(worktree_path, init_script)
+            return self.open_new_window(worktree_path, session_init_script)
 
         except Exception as e:
             logger.error(f"Failed to open WezTerm tab: {e}")
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new WezTerm window."""
         logger.info(
@@ -1326,8 +1357,8 @@ class WezTermTerminal(Terminal):
 
         try:
             cmd = ["wezterm", "start", "--cwd", str(worktree_path)]
-            if init_script:
-                cmd.extend(["bash", "-c", f"{init_script}; exec bash"])
+            if session_init_script:
+                cmd.extend(["bash", "-c", f"{session_init_script}; exec bash"])
 
             result = run_command(
                 cmd,
@@ -1349,17 +1380,19 @@ class HyperTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Hyper doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open new Hyper tab (same as window for Hyper)."""
-        return self.open_new_window(worktree_path, init_script)
+        return self.open_new_window(worktree_path, session_init_script)
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Hyper window."""
         logger.info(
@@ -1374,7 +1407,7 @@ class HyperTerminal(Terminal):
             else:
                 cmd = ["hyper", str(worktree_path)]
 
-            if init_script:
+            if session_init_script:
                 # Hyper doesn't easily support init scripts via command line
                 logger.warning(
                     "Hyper doesn't support init scripts via command line. "
@@ -1401,12 +1434,14 @@ class WindowsTerminalTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Windows Terminal doesn't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open a new Windows Terminal tab."""
         logger.info(
             "Using experimental support for Windows Terminal. "
@@ -1416,9 +1451,9 @@ class WindowsTerminalTerminal(Terminal):
 
         try:
             cmd = ["wt", "-d", str(worktree_path)]
-            if init_script:
+            if session_init_script:
                 # Use PowerShell to run the init script
-                cmd.extend(["powershell", "-NoExit", "-Command", init_script])
+                cmd.extend(["powershell", "-NoExit", "-Command", session_init_script])
 
             result = run_command(
                 cmd,
@@ -1432,7 +1467,7 @@ class WindowsTerminalTerminal(Terminal):
             return False
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new Windows Terminal window."""
         logger.info(
@@ -1443,9 +1478,9 @@ class WindowsTerminalTerminal(Terminal):
 
         try:
             cmd = ["wt", "--window", "0", "-d", str(worktree_path)]
-            if init_script:
+            if session_init_script:
                 # Use PowerShell to run the init script
-                cmd.extend(["powershell", "-NoExit", "-Command", init_script])
+                cmd.extend(["powershell", "-NoExit", "-Command", session_init_script])
 
             result = run_command(
                 cmd,
@@ -1467,14 +1502,16 @@ class GenericTerminal(Terminal):
         return None
 
     def switch_to_session(
-        self, session_id: str, init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Generic terminals don't support session switching."""
         return False
 
-    def open_new_tab(self, worktree_path: Path, init_script: str | None = None) -> bool:
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
         """Open terminal using generic methods (same as new window)."""
-        return self.open_new_window(worktree_path, init_script)
+        return self.open_new_window(worktree_path, session_init_script)
 
     def _collect_debug_info(self) -> dict:
         """Collect debug information for GitHub issue reporting."""
@@ -1523,7 +1560,7 @@ class GenericTerminal(Terminal):
         return debug_info
 
     def open_new_window(
-        self, worktree_path: Path, init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Echo commands that would open a terminal instead of executing them."""
         print("\n=== Generic Terminal Fallback - Manual Commands Required ===")
@@ -1536,9 +1573,9 @@ class GenericTerminal(Terminal):
         print("# Change to worktree directory:")
         print(f"cd {shlex.quote(str(worktree_path))}")
 
-        if init_script:
+        if session_init_script:
             print("\n# Run initialization script:")
-            print(f"{init_script}")
+            print(f"{session_init_script}")
 
         print()
 
@@ -1758,12 +1795,12 @@ class TerminalService:
         return self.terminal.get_current_session_id()
 
     def _combine_scripts(
-        self, init_script: str | None, after_init: str | None
+        self, session_init_script: str | None, after_init: str | None
     ) -> str | None:
         """Combine init script and after-init command into a single script."""
         scripts = []
-        if init_script:
-            scripts.append(init_script)
+        if session_init_script:
+            scripts.append(session_init_script)
         if after_init:
             scripts.append(after_init)
         return "; ".join(scripts) if scripts else None
@@ -1773,7 +1810,7 @@ class TerminalService:
         worktree_path: Path,
         mode: TerminalMode,
         session_id: str | None = None,
-        init_script: str | None = None,
+        session_init_script: str | None = None,
         after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
@@ -1796,15 +1833,15 @@ class TerminalService:
 
         if mode == TerminalMode.INPLACE:
             return self._change_directory_inplace(
-                worktree_path, init_script, after_init
+                worktree_path, session_init_script, after_init
             )
         elif mode == TerminalMode.ECHO:
-            return self._echo_commands(worktree_path, init_script, after_init)
+            return self._echo_commands(worktree_path, session_init_script, after_init)
         elif mode == TerminalMode.TAB:
             return self._switch_to_existing_or_new_tab(
                 worktree_path,
                 session_id,
-                init_script,
+                session_init_script,
                 after_init,
                 branch_name,
                 auto_confirm,
@@ -1814,7 +1851,7 @@ class TerminalService:
             return self._switch_to_existing_or_new_window(
                 worktree_path,
                 session_id,
-                init_script,
+                session_init_script,
                 after_init,
                 branch_name,
                 auto_confirm,
@@ -1827,7 +1864,7 @@ class TerminalService:
     def _echo_commands(
         self,
         worktree_path: Path,
-        init_script: str | None = None,
+        session_init_script: str | None = None,
         after_init: str | None = None,
     ) -> bool:
         """Output shell command to change directory for eval usage."""
@@ -1837,9 +1874,9 @@ class TerminalService:
             # Output the cd command that the user can evaluate
             # Usage: eval "$(autowt ci --terminal=echo)"
             commands = [f"cd {shlex.quote(str(worktree_path))}"]
-            if init_script:
+            if session_init_script:
                 # Handle multi-line scripts by replacing newlines with semicolons
-                normalized_script = init_script.replace("\n", "; ").strip()
+                normalized_script = session_init_script.replace("\n", "; ").strip()
                 if normalized_script:
                     commands.append(normalized_script)
             if after_init:
@@ -1856,7 +1893,7 @@ class TerminalService:
     def _change_directory_inplace(
         self,
         worktree_path: Path,
-        init_script: str | None = None,
+        session_init_script: str | None = None,
         after_init: str | None = None,
     ) -> bool:
         """Execute directory change and commands directly in current terminal session."""
@@ -1865,8 +1902,8 @@ class TerminalService:
         try:
             # Build command list
             commands = [f"cd {shlex.quote(str(worktree_path))}"]
-            if init_script:
-                commands.append(init_script)
+            if session_init_script:
+                commands.append(session_init_script)
             if after_init:
                 commands.append(after_init)
 
@@ -1891,7 +1928,7 @@ class TerminalService:
         self,
         worktree_path: Path,
         session_id: str | None = None,
-        init_script: str | None = None,
+        session_init_script: str | None = None,
         after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
@@ -1981,14 +2018,14 @@ class TerminalService:
                             return True
 
         # Fall back to creating new tab (or forced by ignore_same_session)
-        combined_script = self._combine_scripts(init_script, after_init)
+        combined_script = self._combine_scripts(session_init_script, after_init)
         return self.terminal.open_new_tab(worktree_path, combined_script)
 
     def _switch_to_existing_or_new_window(
         self,
         worktree_path: Path,
         session_id: str | None = None,
-        init_script: str | None = None,
+        session_init_script: str | None = None,
         after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
@@ -2078,7 +2115,7 @@ class TerminalService:
                             return True
 
         # Fall back to creating new window (or forced by ignore_same_session)
-        combined_script = self._combine_scripts(init_script, after_init)
+        combined_script = self._combine_scripts(session_init_script, after_init)
         return self.terminal.open_new_window(worktree_path, combined_script)
 
     def _should_switch_to_existing(self, branch_name: str | None) -> bool:

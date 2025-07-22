@@ -85,10 +85,10 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     config = services.state.load_config(project_dir=repo_path)
     project_config = services.state.load_project_config(repo_path)
 
-    # Use project config init as default if no init_script provided
-    init_script = switch_cmd.init_script
-    if init_script is None:
-        init_script = project_config.init
+    # Use project config session_init as default if no init_script provided
+    session_init_script = switch_cmd.init_script
+    if session_init_script is None:
+        session_init_script = project_config.session_init
 
     # Resolve custom script if provided
     custom_script_resolved = None
@@ -146,7 +146,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
                 existing_worktree.path,
                 terminal_mode,
                 session_id,
-                None,  # No init script for existing worktrees
+                None,  # No session_init script for existing worktrees
                 combined_after_init,
                 branch_name=switch_cmd.branch,
                 auto_confirm=options.auto_confirm,
@@ -175,7 +175,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             switch_cmd,
             repo_path,
             terminal_mode,
-            init_script,
+            session_init_script,
             custom_script_resolved,
         )
     finally:
@@ -188,7 +188,7 @@ def _create_new_worktree(
     switch_cmd: SwitchCommand,
     repo_path: Path,
     terminal_mode,
-    init_script: str | None = None,
+    session_init_script: str | None = None,
     custom_script_resolved: str | None = None,
 ) -> None:
     """Create a new worktree for the branch."""
@@ -250,6 +250,11 @@ def _create_new_worktree(
     # Load configuration for hooks
     config = services.state.load_config(project_dir=repo_path)
 
+    # Run post_create hooks after worktree creation
+    if not _run_post_create_hooks(worktree_path, repo_path, config, switch_cmd.branch):
+        print_error("post_create hooks failed, aborting worktree creation")
+        return
+
     # Run pre_switch hooks for new worktree
     _run_pre_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
 
@@ -262,7 +267,7 @@ def _create_new_worktree(
         worktree_path,
         terminal_mode,
         None,
-        init_script,
+        session_init_script,
         combined_after_init,
         branch_name=switch_cmd.branch,
         ignore_same_session=switch_cmd.ignore_same_session,
@@ -413,6 +418,42 @@ def find_latest_agent_branch(services: Services) -> str | None:
 
     print_info(f"Switching to most recent agent: {latest_agent.branch}")
     return latest_agent.branch
+
+
+def _run_post_create_hooks(
+    worktree_path: Path,
+    repo_path: Path,
+    config,
+    branch_name: str,
+) -> bool:
+    """Run post_create hooks after creating a worktree but before terminal switch.
+
+    Returns:
+        True if all hooks succeeded, False if any failed
+    """
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.POST_CREATE
+    )
+
+    if global_scripts or project_scripts:
+        print_info(f"Running post_create hooks for {branch_name}")
+        return hook_runner.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.POST_CREATE,
+            worktree_path,
+            repo_path,
+            branch_name,
+        )
+
+    return True
 
 
 def _run_pre_switch_hooks(

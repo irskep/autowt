@@ -209,7 +209,7 @@ def show_config(services: Services) -> None:
     print()
 
     print("Scripts:")
-    print(f"  init: {config.scripts.init}")
+    print(f"  session_init: {config.scripts.session_init}")
     if config.scripts.custom:
         print("  custom:")
         for name, script in config.scripts.custom.items():

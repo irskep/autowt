@@ -71,7 +71,8 @@ class TestConfigDataClasses:
     def test_scripts_config_defaults(self):
         """Test ScriptsConfig default values."""
         config = ScriptsConfig()
-        assert config.init is None
+        assert config.post_create is None
+        assert config.session_init is None
         assert config.custom == {}
 
     def test_confirmations_config_defaults(self):
@@ -169,7 +170,7 @@ class TestConfigFromDict:
         assert config.cleanup.default_mode == CleanupMode.MERGED
 
         # Scripts config
-        assert config.scripts.init == "npm install"
+        assert config.scripts.session_init == "npm install"
         assert config.scripts.custom == {"test": "npm test", "build": "npm run build"}
 
         # Confirmations config
@@ -213,7 +214,8 @@ class TestConfigToDict:
                 "default_mode": "interactive",
             },
             "scripts": {
-                "init": None,
+                "post_create": None,
+                "session_init": None,
                 "pre_cleanup": None,
                 "pre_process_kill": None,
                 "post_cleanup": None,
@@ -251,7 +253,9 @@ class TestConfigToDict:
             original_config.cleanup.kill_processes
             == restored_config.cleanup.kill_processes
         )
-        assert original_config.scripts.init == restored_config.scripts.init
+        assert (
+            original_config.scripts.session_init == restored_config.scripts.session_init
+        )
         assert original_config.scripts.custom == restored_config.scripts.custom
 
 
@@ -347,7 +351,7 @@ class TestConfigLoader:
             loader = ConfigLoader(app_dir=app_dir)
             config = loader.load_config(project_dir=project_dir)
 
-            assert config.scripts.init == "npm install"
+            assert config.scripts.session_init == "npm install"
             assert config.terminal.mode == TerminalMode.INPLACE
 
     def test_load_project_config_hidden_file(self):
@@ -365,7 +369,7 @@ class TestConfigLoader:
             loader = ConfigLoader(app_dir=app_dir)
             config = loader.load_config(project_dir=project_dir)
 
-            assert config.scripts.init == "python setup.py"
+            assert config.scripts.session_init == "python setup.py"
 
     def test_environment_variables(self):
         """Test loading configuration from environment variables."""
@@ -379,7 +383,7 @@ class TestConfigLoader:
                 "AUTOWT_CLEANUP_KILL_PROCESSES": "false",
                 "AUTOWT_WORKTREE_AUTO_FETCH": "false",
                 "AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": "100",
-                "AUTOWT_SCRIPTS_INIT": "make setup",
+                "AUTOWT_SCRIPTS_SESSION_INIT": "make setup",
             }
 
             with patch.dict(os.environ, env_vars):
@@ -391,7 +395,7 @@ class TestConfigLoader:
                 assert config.cleanup.kill_processes is False
                 assert config.worktree.auto_fetch is False
                 assert config.worktree.branch_sanitization.max_length == 100
-                assert config.scripts.init == "make setup"
+                assert config.scripts.session_init == "make setup"
 
     def test_cli_overrides(self):
         """Test CLI overrides."""
@@ -454,7 +458,7 @@ class TestConfigLoader:
                 assert config.terminal.mode == TerminalMode.WINDOW  # From project
                 assert config.terminal.always_new is True  # From environment
                 assert config.cleanup.kill_processes is False  # From environment
-                assert config.scripts.init == "cli init"  # From CLI override
+                assert config.scripts.session_init == "cli init"  # From CLI override
 
     def test_invalid_global_config_file(self):
         """Test handling of invalid global config file."""
@@ -508,7 +512,7 @@ class TestConfigLoader:
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "yes",  # Boolean true
                 "AUTOWT_CLEANUP_KILL_PROCESSES": "no",  # Boolean false
                 "AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": "150",  # Integer
-                "AUTOWT_SCRIPTS_INIT": "echo hello",  # String
+                "AUTOWT_SCRIPTS_SESSION_INIT": "echo hello",  # String
             }
 
             with patch.dict(os.environ, env_vars):
@@ -518,7 +522,7 @@ class TestConfigLoader:
                 assert config.terminal.always_new is True
                 assert config.cleanup.kill_processes is False
                 assert config.worktree.branch_sanitization.max_length == 150
-                assert config.scripts.init == "echo hello"
+                assert config.scripts.session_init == "echo hello"
 
     def test_save_config(self):
         """Test saving configuration to file."""
@@ -675,7 +679,7 @@ class TestConfigIntegration:
                 assert config.cleanup.kill_process_timeout == 15  # From global
 
                 assert (
-                    config.scripts.init == "npm install && npm run setup"
+                    config.scripts.session_init == "npm install && npm run setup"
                 )  # From project
                 assert len(config.scripts.custom) == 3  # From project
 
@@ -698,7 +702,7 @@ class TestConfigIntegration:
             # Should work with all defaults
             assert config.terminal.mode == TerminalMode.TAB
             assert config.cleanup.kill_processes is True
-            assert config.scripts.init is None
+            assert config.scripts.session_init is None
             assert config.scripts.custom == {}
 
             # Should be able to save defaults

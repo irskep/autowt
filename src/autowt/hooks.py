@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 class HookType:
     """Constants for hook types."""
 
-    INIT = "init"
+    POST_CREATE = "post_create"
+    SESSION_INIT = "session_init"
     PRE_CLEANUP = "pre_cleanup"
     PRE_PROCESS_KILL = "pre_process_kill"
     POST_CLEANUP = "post_cleanup"
@@ -178,7 +179,7 @@ def extract_hook_scripts(
     Args:
         global_config: Global configuration object
         project_config: Project configuration object
-        hook_type: Type of hook to extract (init, pre_cleanup, etc.)
+        hook_type: Type of hook to extract (post_create, session_init, pre_cleanup, etc.)
 
     Returns:
         Tuple of (global_scripts, project_scripts) lists
@@ -186,15 +187,25 @@ def extract_hook_scripts(
     global_scripts = []
     project_scripts = []
 
+    # Handle backward compatibility for legacy 'init' hook type
+    effective_hook_type = hook_type
+    if hook_type == "init":
+        # Legacy support: map 'init' to 'session_init' for backward compatibility
+        effective_hook_type = "session_init"
+        logger.warning(
+            "Hook type 'init' is deprecated. Use 'session_init' instead. "
+            "This will be removed in a future version."
+        )
+
     # Extract from global config
     if global_config and hasattr(global_config, "scripts") and global_config.scripts:
-        script = getattr(global_config.scripts, hook_type, None)
+        script = getattr(global_config.scripts, effective_hook_type, None)
         if script:
             global_scripts.append(script)
 
     # Extract from project config
     if project_config and hasattr(project_config, "scripts") and project_config.scripts:
-        script = getattr(project_config.scripts, hook_type, None)
+        script = getattr(project_config.scripts, effective_hook_type, None)
         if script:
             project_scripts.append(script)
 

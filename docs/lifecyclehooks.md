@@ -4,16 +4,16 @@
 
 ## Getting Started with Init Scripts
 
-The most common hook is the **init script**, which runs after creating a new worktree. This is perfect for automating setup tasks like installing dependencies or copying configuration files.
+The most common hook is the **session_init script**, which runs in your terminal session after creating a new worktree. This is perfect for setting up your shell environment, activating virtual environments, and running interactive setup tasks.
 
 ### Configuration
 
-You can specify an init script in two ways:
+You can specify a session_init script in two ways:
 
-1. **Command-line flag**: Use the `--init` flag for a one-time script
-2. **Configuration file**: Set the `scripts.init` key in your `.autowt.toml` file for a project-wide default
+1. **Command-line flag**: Use the `--init` flag for a one-time script (maps to session_init)
+2. **Configuration file**: Set the `scripts.session_init` key in your `.autowt.toml` file for a project-wide default
 
-The init script is executed in the worktree's directory *after* `autowt` has switched to it, but *before* any `--after-init` script is run.
+The session_init script is executed in your terminal session *after* `autowt` has switched to the worktree, but *before* any `--after-init` script is run.
 
 ### Installing dependencies
 
@@ -30,7 +30,7 @@ autowt feature/new-ui --init "npm install"
 ```toml
 # .autowt.toml
 [scripts]
-init = "npm install"
+session_init = "npm install"
 ```
 
 Now, `npm install` will run automatically every time you create a new worktree in this project.
@@ -45,7 +45,7 @@ autowt provides environment variables that make this easier, including `AUTOWT_M
 # .autowt.toml
 [scripts]
 # Copy .env file from main worktree if it exists
-init = """
+session_init = """
 if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
   cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
 fi
@@ -57,7 +57,7 @@ fi
 ```toml
 # .autowt.toml
 [scripts]
-init = """
+session_init = """
 if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
   cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
 fi;
@@ -67,25 +67,26 @@ npm install
 
 !!! tip "Overriding the Default"
 
-    If you have a `scripts.init` script in your `.autowt.toml` but want to do something different for a specific worktree, the `--init` flag will always take precedence.
+    If you have a `scripts.session_init` script in your `.autowt.toml` but want to do something different for a specific worktree, the `--init` flag will always take precedence.
 
     ```bash
-    # This will run *only* `npm ci`, ignoring the default init script.
+    # This will run *only* `npm ci`, ignoring the default session_init script.
     autowt feature/performance --init "npm ci"
     ```
 
 ## Complete Lifecycle Hooks
 
-Beyond init scripts, autowt supports 6 lifecycle hooks that run at specific points during worktree operations:
+Beyond session_init scripts, autowt supports 7 lifecycle hooks that run at specific points during worktree operations:
 
-| Hook | When it runs | Common use cases |
-|------|-------------|------------------|
-| `init` | After creating worktree (not when switching) | Install deps, copy configs |
-| `pre_cleanup` | Before cleaning up worktrees | Release ports, backup data |
-| `pre_process_kill` | Before killing processes | Graceful shutdown |
-| `post_cleanup` | After worktrees are removed | Clean volumes, update state |
-| `pre_switch` | Before switching worktrees | Stop current services |  
-| `post_switch` | After switching worktrees | Start new services |
+| Hook | When it runs | Execution Context | Common use cases |
+|------|-------------|------------------|------------------|
+| `post_create` | After creating worktree, before terminal switch | Subprocess | File operations, git setup, dependency installation |
+| `session_init` | In terminal session after switching to worktree | Terminal session | Environment setup, virtual env activation, shell config |
+| `pre_cleanup` | Before cleaning up worktrees | Subprocess | Release ports, backup data |
+| `pre_process_kill` | Before killing processes | Subprocess | Graceful shutdown |
+| `post_cleanup` | After worktrees are removed | Subprocess | Clean volumes, update state |
+| `pre_switch` | Before switching worktrees | Subprocess | Stop current services |  
+| `post_switch` | After switching worktrees | Subprocess | Start new services |
 
 ## Configuration
 
@@ -96,7 +97,8 @@ Configure hooks in your project's `.autowt.toml` file:
 ```toml
 # .autowt.toml
 [scripts]
-init = "npm install"
+post_create = "npm install && cp .env.example .env"
+session_init = "source .env && npm run dev"
 pre_cleanup = "./scripts/release-ports.sh"
 pre_process_kill = "docker-compose down"
 post_cleanup = "./scripts/cleanup-volumes.sh"
@@ -117,7 +119,7 @@ post_cleanup = "echo 'Worktree cleanup complete'"
 
 ### Hook execution order
 
-**Both global and project hooks run** - global hooks execute first, then project hooks. This allows you to set up global defaults while still customizing behavior per project.
+**Both global and project hooks run**—global hooks execute first, then project hooks. This allows you to set up global defaults while still customizing behavior per project.
 
 ## Environment Variables and Arguments
 
@@ -148,9 +150,9 @@ done
 **How hook scripts are executed**: Hook scripts are executed by passing the script text directly to the system shell (`/bin/sh` on Unix systems) rather than creating a temporary file. This is equivalent to running `/bin/sh -c "your_script_here"`.
 
 This execution model means:
-- **Multi-line scripts work naturally** - the shell handles newlines and command separation
-- **All shell features are available** - variables, conditionals, loops, pipes, redirections, etc.
-- **Shebangs are ignored** - since no file is created, `#!/bin/bash` lines are treated as comments
+- **Multi-line scripts work naturally**—the shell handles newlines and command separation
+- **All shell features are available**—variables, conditionals, loops, pipes, redirections, etc.
+- **Shebangs are ignored**—since no file is created, `#!/bin/bash` lines are treated as comments
 
 ```toml
 [scripts]
@@ -176,20 +178,44 @@ If you need to use a different programming language, create a separate script fi
 
 ## Hook Details
 
-### `init` Hook
+### `post_create` Hook
 
-**Timing**: After worktree creation, before after-init commands  
-**Use cases**: Dependency installation, configuration setup
+**Timing**: After worktree creation, before terminal switch  
+**Execution Context**: Subprocess in worktree directory  
+**Use cases**: File operations, git setup, dependency installation, configuration copying
 
 ```toml
 [scripts]
-init = """
+post_create = """
 npm install
 cp .env.example .env
+git config user.email "dev@example.com"
 """
 ```
 
-The init hook is special - it's the only hook that runs **inside the terminal session**. While other lifecycle hooks run as background subprocesses, init scripts are literally pasted/typed into the terminal using terminal automation (AppleScript on macOS, tmux send-keys, etc.). This allows init scripts to:
+The post_create hook runs as a subprocess after the worktree is created but before switching to the terminal session. It's ideal for:
+
+- Installing dependencies that don't require shell interaction
+- Setting up configuration files
+- Running git commands
+- File operations that don't need shell environment
+
+### `session_init` Hook
+
+**Timing**: In terminal session after switching to worktree  
+**Execution Context**: Terminal session (pasted/typed into terminal)  
+**Use cases**: Environment setup, virtual environment activation, shell configuration
+
+```toml
+[scripts]
+session_init = """
+source .env
+conda activate myproject
+export DEV_MODE=true
+"""
+```
+
+The session_init hook is special—it's the only hook that runs **inside the terminal session**. While other lifecycle hooks run as background subprocesses, session_init scripts are literally pasted/typed into the terminal using terminal automation (AppleScript on macOS, tmux send-keys, etc.). This allows session_init scripts to:
 
 - Set environment variables that persist in your shell session
 - Activate virtual environments (conda, venv, etc.)  
@@ -351,14 +377,309 @@ if ! ./my-command; then
 fi
 ```
 
-## Common Workflows
+## Real-World Examples
 
-See [Common Workflows](common-workflows.md) for real-world examples of using hooks for:
+### Docker Port Management
 
-- Docker port management
-- Database per worktree
-- Service orchestration
-- External tool integration
+**Problem**: Running multiple Docker development environments simultaneously causes port conflicts.
+
+**Solution**: Use hooks to allocate and release unique ports per worktree.
+
+#### Implementation
+
+Create port management scripts:
+
+```bash
+# scripts/allocate-ports.sh
+#!/bin/bash
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+
+# Create a simple port allocation system
+PORT_BASE=3000
+PORT_FILE="$WORKTREE_DIR/.devports"
+
+# Generate deterministic port from branch name hash
+PORT=$(echo "$BRANCH_NAME" | shasum | cut -c1-2)
+PORT=$((PORT_BASE + (16#$PORT % 100)))
+
+echo "API_PORT=$PORT" > "$PORT_FILE"
+echo "DB_PORT=$((PORT + 1))" >> "$PORT_FILE"
+echo "REDIS_PORT=$((PORT + 2))" >> "$PORT_FILE"
+
+echo "Allocated ports for $BRANCH_NAME: $PORT-$((PORT + 2))"
+```
+
+```bash
+# scripts/release-ports.sh
+#!/bin/bash
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+
+if [ -f "$WORKTREE_DIR/.devports" ]; then
+    echo "Releasing ports for $BRANCH_NAME"
+    rm "$WORKTREE_DIR/.devports"
+fi
+```
+
+Update your configuration:
+
+```toml
+# .autowt.toml
+[scripts]
+init = """
+./scripts/allocate-ports.sh "$AUTOWT_BRANCH_NAME" "$AUTOWT_WORKTREE_DIR"
+source .devports
+docker-compose up -d
+"""
+
+pre_cleanup = "./scripts/release-ports.sh"
+pre_process_kill = "docker-compose down"
+```
+
+Update your `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  api:
+    ports:
+      - "${API_PORT:-3000}:3000"
+  db:
+    ports:
+      - "${DB_PORT:-5432}:5432"
+  redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+```
+
+### Database Per Worktree
+
+**Problem**: Feature branches need isolated database environments to avoid data conflicts.
+
+**Solution**: Create and destroy databases automatically per worktree.
+
+#### Implementation
+
+```bash
+# scripts/setup-db.sh
+#!/bin/bash
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+DB_NAME="myapp_$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/_/g')"
+
+echo "Creating database: $DB_NAME"
+createdb "$DB_NAME" || echo "Database already exists"
+
+# Update environment file
+echo "DATABASE_URL=postgresql://localhost:5432/$DB_NAME" > .env.local
+
+# Run migrations
+npm run db:migrate
+```
+
+```bash
+# scripts/cleanup-db.sh  
+#!/bin/bash
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+DB_NAME="myapp_$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/_/g')"
+
+echo "Dropping database: $DB_NAME"
+dropdb "$DB_NAME" 2>/dev/null || echo "Database not found"
+```
+
+```toml
+# .autowt.toml
+[scripts]
+init = """
+npm install
+./scripts/setup-db.sh "$AUTOWT_BRANCH_NAME"
+"""
+
+post_cleanup = "./scripts/cleanup-db.sh"
+```
+
+### Service Orchestration
+
+**Problem**: Development requires multiple services (API, frontend, background jobs) to run in coordination.
+
+**Solution**: Use hooks to manage service lifecycle across worktree switches.
+
+#### Implementation
+
+```bash
+# scripts/start-services.sh
+#!/bin/bash
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+
+cd "$WORKTREE_DIR"
+
+# Stop any existing services for this worktree
+pkill -f "worktree:$BRANCH_NAME" 2>/dev/null || true
+
+# Start services with branch identifier
+echo "Starting services for $BRANCH_NAME"
+
+# Start API server
+nohup npm run api -- --name "worktree:$BRANCH_NAME" > logs/api.log 2>&1 &
+echo $! > .pids/api.pid
+
+# Start frontend dev server  
+nohup npm run dev -- --name "worktree:$BRANCH_NAME" > logs/frontend.log 2>&1 &
+echo $! > .pids/frontend.pid
+
+# Start background worker
+nohup npm run worker -- --name "worktree:$BRANCH_NAME" > logs/worker.log 2>&1 &
+echo $! > .pids/worker.pid
+
+echo "Services started for $BRANCH_NAME"
+```
+
+```bash
+# scripts/stop-services.sh
+#!/bin/bash
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR" 
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+
+cd "$WORKTREE_DIR"
+
+# Stop services using PID files
+for pidfile in .pids/*.pid; do
+    if [ -f "$pidfile" ]; then
+        PID=$(cat "$pidfile")
+        kill "$PID" 2>/dev/null && echo "Stopped process $PID"
+        rm "$pidfile"
+    fi
+done
+
+# Cleanup any remaining processes
+pkill -f "worktree:$BRANCH_NAME" 2>/dev/null || true
+```
+
+```toml
+# .autowt.toml  
+[scripts]
+init = """
+npm install
+mkdir -p logs .pids
+"""
+
+pre_switch = "./scripts/stop-services.sh"
+post_switch = "./scripts/start-services.sh"
+pre_cleanup = "./scripts/stop-services.sh"
+```
+
+### External Tool Integration
+
+**Problem**: Need to integrate with external tools like monitoring, deployment pipelines, or team notifications.
+
+**Solution**: Use hooks to trigger external integrations.
+
+#### Implementation
+
+```bash
+# scripts/notify-team.sh
+#!/bin/bash
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+HOOK_TYPE="$AUTOWT_HOOK_TYPE"
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+
+case "$HOOK_TYPE" in
+    "post_switch")
+        MESSAGE="🚀 Started working on branch: $BRANCH_NAME"
+        ;;
+    "pre_cleanup")
+        MESSAGE="🧹 Cleaning up branch: $BRANCH_NAME"
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+
+# Send to Slack
+curl -X POST -H 'Content-type: application/json' \
+    --data "{\"text\":\"$MESSAGE\"}" \
+    "$SLACK_WEBHOOK_URL"
+
+# Update development tracking
+curl -X POST "https://dev-tracker.company.com/api/branches" \
+    -H "Content-Type: application/json" \
+    -d "{\"branch\":\"$BRANCH_NAME\",\"status\":\"$HOOK_TYPE\",\"timestamp\":\"$(date -Iseconds)\"}"
+```
+
+```toml
+# .autowt.toml
+[scripts] 
+post_switch = "./scripts/notify-team.sh"
+pre_cleanup = "./scripts/notify-team.sh"
+```
+
+### Tips for Implementation
+
+#### 1. Make scripts idempotent
+Ensure scripts can run multiple times safely:
+
+```bash
+# Good: Check before creating
+if [ ! -f ".env" ]; then
+    cp .env.example .env
+fi
+
+# Good: Use -f to avoid errors
+rm -f tempfile
+
+# Good: Use || true for optional commands
+pkill myservice || true
+```
+
+#### 2. Add error handling
+```bash
+#!/bin/bash
+set -e  # Exit on error
+
+# Your script logic here
+if ! command_that_might_fail; then
+    echo "Warning: Command failed, continuing anyway" >&2
+    exit 0  # Don't fail the hook
+fi
+```
+
+#### 3. Use configuration files
+Store settings in dedicated config files:
+
+```bash
+# .autowt/config.sh
+export DEFAULT_API_PORT=3000
+export DB_HOST=localhost
+export REDIS_URL=redis://localhost:6379
+```
+
+#### 4. Log hook execution
+Add logging to debug issues:
+
+```bash
+LOG_FILE="$HOME/.autowt/hooks.log"
+echo "$(date): Running $AUTOWT_HOOK_TYPE for $AUTOWT_BRANCH_NAME" >> "$LOG_FILE"
+```
+
+#### 5. Test hooks independently
+Create a test script:
+
+```bash
+#!/bin/bash
+# test-hooks.sh
+export AUTOWT_BRANCH_NAME="test-branch"
+export AUTOWT_WORKTREE_DIR="/tmp/test-worktree"
+export AUTOWT_MAIN_REPO_DIR="/tmp/main-repo"
+export AUTOWT_HOOK_TYPE="init"
+
+mkdir -p "$AUTOWT_WORKTREE_DIR" "$AUTOWT_MAIN_REPO_DIR"
+
+# Test your hook
+./scripts/my-hook.sh "$AUTOWT_WORKTREE_DIR" "$AUTOWT_MAIN_REPO_DIR" "$AUTOWT_BRANCH_NAME"
+```
+
+These examples demonstrate how lifecycle hooks can automate complex development scenarios while maintaining clean, predictable behavior across your team.
 
 ## Troubleshooting
 

@@ -1,6 +1,7 @@
 """Data models for autowt state and configuration."""
 
 import json
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -100,22 +101,48 @@ class BranchStatus:
 class ProjectScriptsConfig:
     """Project-specific scripts configuration."""
 
-    init: str | None = None
+    session_init: str | None = None
     custom: dict[str, str] | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjectScriptsConfig":
         """Create project scripts configuration from dictionary."""
+        # Handle backward compatibility for init -> session_init migration
+        session_init_value = None
+        init_value = data.get("init")
+        session_init_explicit = data.get("session_init")
+
+        if session_init_explicit is not None and init_value is not None:
+            # Both specified - use session_init and warn about ignoring init
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                "Both 'init' and 'session_init' specified in project scripts config. "
+                "Using 'session_init' and ignoring deprecated 'init'. "
+                "Please remove 'init' from your configuration."
+            )
+            session_init_value = session_init_explicit
+        elif session_init_explicit is not None:
+            # Only session_init specified
+            session_init_value = session_init_explicit
+        elif init_value is not None:
+            # Only init specified - migrate to session_init with deprecation warning
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                "The 'init' script key is deprecated. Please rename it to 'session_init' in your configuration. "
+                "Support for 'init' will be removed in a future version."
+            )
+            session_init_value = init_value
+
         return cls(
-            init=data.get("init"),
+            session_init=session_init_value,
             custom=data.get("custom"),
         )
 
     def to_dict(self) -> dict:
         """Convert project scripts configuration to dictionary."""
         result = {}
-        if self.init is not None:
-            result["init"] = self.init
+        if self.session_init is not None:
+            result["session_init"] = self.session_init
         if self.custom is not None:
             result["custom"] = self.custom
         return result
@@ -146,9 +173,9 @@ class ProjectConfig:
         return result
 
     @property
-    def init(self) -> str | None:
-        """Get init script from scripts configuration."""
-        return self.scripts.init if self.scripts else None
+    def session_init(self) -> str | None:
+        """Get session_init script from scripts configuration."""
+        return self.scripts.session_init if self.scripts else None
 
 
 @dataclass

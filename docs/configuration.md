@@ -2,6 +2,8 @@
 
 `autowt` is designed to work out of the box with sensible defaults, but you can customize its behavior to perfectly match your workflow. This guide covers the different ways you can configure `autowt`, from global settings to project-specific rules and one-time command-line overrides.
 
+For a comprehensive example configuration file with comments explaining all options, see the [example_config.toml](https://github.com/irskep/autowt/blob/main/example_config.toml) in the repository.
+
 ## Configuration layers
 
 `autowt` uses a hierarchical configuration system. Settings are loaded from multiple sources, and later sources override earlier ones. The order of precedence is:
@@ -81,13 +83,24 @@ Configures the `autowt cleanup` command.
 
 ---
 
-### `[scripts]` - Init scripts and hooks
+### `[scripts]` - Lifecycle hooks and scripts
 
-Automate setup tasks with scripts.
+Automate setup tasks with lifecycle hooks that run at different points during worktree operations.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `init` | string | `null` | A command or script to run automatically after creating a worktree (not when switching to existing ones). See the [Lifecycle Hooks guide](lifecyclehooks.md) for examples. <br> **ENV**: `AUTOWT_SCRIPTS_INIT` <br> **CLI**: `--init "<command>"` |
+| `post_create` | string | `null` | A command or script to run as a subprocess after creating a worktree, before terminal session. Ideal for file operations and dependency installation. <br> **ENV**: `AUTOWT_SCRIPTS_POST_CREATE` |
+| `session_init` | string | `null` | A command or script to run in the terminal session after creating/switching to a worktree. Perfect for environment setup and shell configuration. <br> **ENV**: `AUTOWT_SCRIPTS_SESSION_INIT` <br> **CLI**: `--init "<command>"` (maps to session_init) |
+| `pre_cleanup` | string | `null` | A command or script to run before cleaning up worktrees. <br> **ENV**: `AUTOWT_SCRIPTS_PRE_CLEANUP` |
+| `pre_process_kill` | string | `null` | A command or script to run before killing processes during cleanup. <br> **ENV**: `AUTOWT_SCRIPTS_PRE_PROCESS_KILL` |
+| `post_cleanup` | string | `null` | A command or script to run after worktrees are removed. <br> **ENV**: `AUTOWT_SCRIPTS_POST_CLEANUP` |
+| `pre_switch` | string | `null` | A command or script to run before switching away from current worktree. <br> **ENV**: `AUTOWT_SCRIPTS_PRE_SWITCH` |
+| `post_switch` | string | `null` | A command or script to run after switching to new worktree. <br> **ENV**: `AUTOWT_SCRIPTS_POST_SWITCH` |
+
+!!! note "Migration from `init`"
+    The old `init` key is deprecated but still supported for backward compatibility. It maps to `session_init`. Update your configuration to use `session_init` explicitly.
+
+See the [Lifecycle Hooks guide](lifecyclehooks.md) for detailed examples and execution context information.
 
 #### `[scripts.custom]`
 
@@ -102,7 +115,7 @@ bugfix = 'claude "Fix the bug described in GitHub issue $1"'
 release = 'claude "/release"'
 ```
 
-These are run *after* the standard `init` script. You can invoke them with the `--custom-script` flag, and any additional arguments are passed to the script. For one-time commands, the `--after-init` flag is often simpler.
+These are run *after* the standard `session_init` script. You can invoke them with the `--custom-script` flag, and any additional arguments are passed to the script. For one-time commands, the `--after-init` flag is often simpler.
 
 ---
 

@@ -34,7 +34,7 @@ class TestHookRunner:
         # Run the hook
         success = self.hook_runner.run_hook(
             "echo 'test hook'",
-            HookType.INIT,
+            HookType.SESSION_INIT,
             self.test_worktree_dir,
             self.test_main_repo_dir,
             self.test_branch_name,
@@ -62,7 +62,7 @@ class TestHookRunner:
         assert env["AUTOWT_WORKTREE_DIR"] == str(self.test_worktree_dir)
         assert env["AUTOWT_MAIN_REPO_DIR"] == str(self.test_main_repo_dir)
         assert env["AUTOWT_BRANCH_NAME"] == self.test_branch_name
-        assert env["AUTOWT_HOOK_TYPE"] == HookType.INIT
+        assert env["AUTOWT_HOOK_TYPE"] == HookType.SESSION_INIT
 
     @patch("subprocess.run")
     def test_run_hook_failure(self, mock_subprocess_run):
@@ -110,7 +110,7 @@ class TestHookRunner:
         # Test with None
         success = self.hook_runner.run_hook(
             None,
-            HookType.INIT,
+            HookType.SESSION_INIT,
             self.test_worktree_dir,
             self.test_main_repo_dir,
             self.test_branch_name,
@@ -120,7 +120,7 @@ class TestHookRunner:
         # Test with empty string
         success = self.hook_runner.run_hook(
             "",
-            HookType.INIT,
+            HookType.SESSION_INIT,
             self.test_worktree_dir,
             self.test_main_repo_dir,
             self.test_branch_name,
@@ -130,7 +130,7 @@ class TestHookRunner:
         # Test with whitespace only
         success = self.hook_runner.run_hook(
             "   \t\n  ",
-            HookType.INIT,
+            HookType.SESSION_INIT,
             self.test_worktree_dir,
             self.test_main_repo_dir,
             self.test_branch_name,
@@ -206,7 +206,7 @@ class TestHookRunner:
         success = self.hook_runner.run_hooks(
             [],  # No global scripts
             [],  # No project scripts
-            HookType.INIT,
+            HookType.SESSION_INIT,
             self.test_worktree_dir,
             self.test_main_repo_dir,
             self.test_branch_name,
@@ -251,7 +251,7 @@ class TestHookRunner:
         # Run the hook
         success = self.hook_runner.run_hook(
             multiline_script,
-            HookType.INIT,
+            HookType.SESSION_INIT,
             self.test_worktree_dir,
             self.test_main_repo_dir,
             self.test_branch_name,
@@ -274,7 +274,7 @@ class TestExtractHookScripts:
         # Mock global config - need to set specific values to avoid MagicMock default behavior
         global_config = MagicMock()
         global_config.scripts = MagicMock()
-        global_config.scripts.init = "global init script"
+        global_config.scripts.session_init = "global session_init script"
         global_config.scripts.pre_cleanup = "global pre_cleanup script"
         global_config.scripts.pre_process_kill = None
         global_config.scripts.post_cleanup = None
@@ -284,7 +284,7 @@ class TestExtractHookScripts:
         # Mock project config - need to set specific values to avoid MagicMock default behavior
         project_config = MagicMock()
         project_config.scripts = MagicMock()
-        project_config.scripts.init = "project init script"
+        project_config.scripts.session_init = "project session_init script"
         project_config.scripts.pre_cleanup = None
         project_config.scripts.pre_process_kill = None
         project_config.scripts.post_cleanup = None
@@ -293,10 +293,10 @@ class TestExtractHookScripts:
 
         # Test init hook extraction
         global_scripts, project_scripts = extract_hook_scripts(
-            global_config, project_config, HookType.INIT
+            global_config, project_config, HookType.SESSION_INIT
         )
-        assert global_scripts == ["global init script"]
-        assert project_scripts == ["project init script"]
+        assert global_scripts == ["global session_init script"]
+        assert project_scripts == ["project session_init script"]
 
         # Test pre_cleanup hook extraction
         global_scripts, project_scripts = extract_hook_scripts(
@@ -322,7 +322,7 @@ class TestExtractHookScripts:
     def test_extract_with_none_configs(self):
         """Test extracting when configs are None."""
         global_scripts, project_scripts = extract_hook_scripts(
-            None, None, HookType.INIT
+            None, None, HookType.SESSION_INIT
         )
         assert global_scripts == []
         assert project_scripts == []
@@ -336,7 +336,7 @@ class TestExtractHookScripts:
         project_config = MagicMock(spec=[])  # Empty spec means no attributes
 
         global_scripts, project_scripts = extract_hook_scripts(
-            global_config, project_config, HookType.INIT
+            global_config, project_config, HookType.SESSION_INIT
         )
         assert global_scripts == []
         assert project_scripts == []
@@ -347,7 +347,8 @@ class TestHookType:
 
     def test_hook_type_constants(self):
         """Test that all hook type constants are defined correctly."""
-        assert HookType.INIT == "init"
+        assert HookType.POST_CREATE == "post_create"
+        assert HookType.SESSION_INIT == "session_init"
         assert HookType.PRE_CLEANUP == "pre_cleanup"
         assert HookType.PRE_PROCESS_KILL == "pre_process_kill"
         assert HookType.POST_CLEANUP == "post_cleanup"
@@ -372,7 +373,7 @@ class TestHookIntegration:
             # Test simple echo command
             success = hook_runner.run_hook(
                 "echo 'Hello from hook'",
-                HookType.INIT,
+                HookType.SESSION_INIT,
                 worktree_dir,
                 main_repo_dir,
                 "test-branch",

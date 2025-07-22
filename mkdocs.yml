@@ -10,7 +10,6 @@ nav:
   - User Guide:
     - Branch Management: branchmanagement.md
     - Lifecycle Hooks: lifecyclehooks.md
-    - Common Workflows: common-workflows.md
     - AI Agents: agents.md
   - Reference:
     - CLI Reference: clireference.md

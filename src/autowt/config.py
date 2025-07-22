@@ -65,7 +65,8 @@ class CleanupConfig:
 class ScriptsConfig:
     """Lifecycle scripts and custom commands."""
 
-    init: str | None = None
+    post_create: str | None = None
+    session_init: str | None = None
     pre_cleanup: str | None = None
     pre_process_kill: str | None = None
     post_cleanup: str | None = None
@@ -140,8 +141,33 @@ class Config:
             default_mode=CleanupMode(cleanup_data.get("default_mode", "interactive")),
         )
 
+        # Handle backward compatibility for init -> session_init migration
+        session_init_value = None
+        init_value = scripts_data.get("init")
+        session_init_explicit = scripts_data.get("session_init")
+
+        if session_init_explicit is not None and init_value is not None:
+            # Both specified - use session_init and warn about ignoring init
+            logger.warning(
+                "Both 'init' and 'session_init' specified in scripts config. "
+                "Using 'session_init' and ignoring deprecated 'init'. "
+                "Please remove 'init' from your configuration."
+            )
+            session_init_value = session_init_explicit
+        elif session_init_explicit is not None:
+            # Only session_init specified
+            session_init_value = session_init_explicit
+        elif init_value is not None:
+            # Only init specified - migrate to session_init with deprecation warning
+            logger.warning(
+                "The 'init' script key is deprecated. Please rename it to 'session_init' in your configuration. "
+                "Support for 'init' will be removed in a future version."
+            )
+            session_init_value = init_value
+
         scripts_config = ScriptsConfig(
-            init=scripts_data.get("init"),
+            post_create=scripts_data.get("post_create"),
+            session_init=session_init_value,
             pre_cleanup=scripts_data.get("pre_cleanup"),
             pre_process_kill=scripts_data.get("pre_process_kill"),
             post_cleanup=scripts_data.get("post_cleanup"),
@@ -189,7 +215,8 @@ class Config:
                 "default_mode": self.cleanup.default_mode.value,
             },
             "scripts": {
-                "init": self.scripts.init,
+                "post_create": self.scripts.post_create,
+                "session_init": self.scripts.session_init,
                 "pre_cleanup": self.scripts.pre_cleanup,
                 "pre_process_kill": self.scripts.pre_process_kill,
                 "post_cleanup": self.scripts.post_cleanup,
@@ -338,7 +365,8 @@ class ConfigLoader:
             "CLEANUP_KILL_PROCESSES": ["cleanup", "kill_processes"],
             "CLEANUP_KILL_PROCESS_TIMEOUT": ["cleanup", "kill_process_timeout"],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
-            "SCRIPTS_INIT": ["scripts", "init"],
+            "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
+            "SCRIPTS_SESSION_INIT": ["scripts", "session_init"],
             "SCRIPTS_PRE_CLEANUP": ["scripts", "pre_cleanup"],
             "SCRIPTS_PRE_PROCESS_KILL": ["scripts", "pre_process_kill"],
             "SCRIPTS_POST_CLEANUP": ["scripts", "post_cleanup"],
