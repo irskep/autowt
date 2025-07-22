@@ -52,7 +52,7 @@ Defines how worktrees are created and managed.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `directory_pattern` | string | `"../{repo_name}-worktrees/{branch}"` | The template for creating worktree directory paths. Can use variables `{repo_dir}` (full repo path), `{repo_name}` (repo directory name), `{repo_parent_dir}` (parent directory of repo), `{branch}` (branch name), and environment variables like `$HOME`. Examples: `"{repo_parent_dir}/worktrees/{branch}"`, `"$HOME/worktrees/{repo_name}/{branch}"`. <br> **ENV**: `AUTOWT_WORKTREE_DIRECTORY_PATTERN` |
+| `directory_pattern` | string | `"../{repo_name}-worktrees/{branch}"` | The template for creating worktree directory paths. Can use variables `{repo_dir}` (full repo path), `{repo_name}` (repo directory name), `{repo_parent_dir}` (parent directory of repo), `{branch}` (branch name), and environment variables like `$HOME`. Examples: `"{repo_parent_dir}/worktrees/{branch}"`, `"$HOME/worktrees/{repo_name}/{branch}"`. This can be overridden on a per-command basis using the `--dir` flag. <br> **ENV**: `AUTOWT_WORKTREE_DIRECTORY_PATTERN` <br> **CLI**: `--dir <path>` |
 | `max_worktrees` | integer | `null` | The maximum number of worktrees allowed per repository. Helps prevent excessive disk usage. <br> **ENV**: `AUTOWT_WORKTREE_MAX_WORKTREES` |
 | `auto_fetch` | boolean | `true` | If `true`, automatically fetches from the remote before creating new worktrees. <br> **ENV**: `AUTOWT_WORKTREE_AUTO_FETCH` <br> **CLI**: `--no-fetch` (to disable) |
 | `default_remote` | string | `"origin"` | The default remote to use when multiple remotes exist. <br> **ENV**: `AUTOWT_WORKTREE_DEFAULT_REMOTE` |

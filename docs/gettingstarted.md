@@ -112,6 +112,16 @@ autowt hotfix/urgent-bug --terminal=inplace
 autowt new-feature --terminal=inplace
 ```
 
+For special cases where you need the worktree in a specific location, you can override the default directory pattern with `--dir`:
+
+```bash
+# Place in a custom location
+autowt urgent-fix --dir /tmp/quick-fix
+
+# Use a relative path from current directory
+autowt feature-demo --dir ../demo-workspace
+```
+
 Run `autowt config` to configure the default terminal behavior for switching worktrees.
 
 ### Cleaning up
