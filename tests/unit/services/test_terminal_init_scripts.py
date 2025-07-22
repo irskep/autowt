@@ -1,8 +1,9 @@
 """Tests for terminal service init script functionality."""
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
 
 from autowt.models import TerminalMode
 from autowt.services.terminal import TerminalService

@@ -1,7 +1,8 @@
 """Tests for console styling functionality."""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from autowt.console import (
     AUTOWT_THEME,

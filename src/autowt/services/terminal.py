@@ -1782,6 +1782,10 @@ class TerminalService:
         """Switch to a worktree using the specified terminal mode."""
         logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
 
+        # Force echo mode for testing if environment variable is set
+        if os.getenv("AUTOWT_TEST_FORCE_ECHO"):
+            mode = TerminalMode.ECHO
+
         # Check for experimental terminal warning on first use
         if self._is_experimental_terminal():
             if not self.state_service.has_shown_experimental_terminal_warning():

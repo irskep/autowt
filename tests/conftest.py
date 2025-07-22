@@ -4,18 +4,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from autowt.config import Config
 from autowt.models import (
-    BranchStatus,
     ProcessInfo,
-    WorktreeInfo,
-)
-from tests.fixtures.service_builders import MockTerminalService
-from tests.fixtures.git_fixtures import (
-    build_sample_worktrees,
-    build_sample_branch_statuses,
 )
 from tests.fixtures.config_fixtures import build_sample_config
+from tests.fixtures.git_fixtures import (
+    build_sample_branch_statuses,
+    build_sample_worktrees,
+)
+from tests.fixtures.service_builders import MockTerminalService
 
 
 @pytest.fixture

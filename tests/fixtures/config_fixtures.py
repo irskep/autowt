@@ -1,6 +1,6 @@
 """Configuration-related test fixtures and data builders."""
 
-from autowt.config import Config, CleanupConfig, TerminalConfig
+from autowt.config import CleanupConfig, Config, TerminalConfig
 from autowt.models import CleanupMode, TerminalMode
 
 
