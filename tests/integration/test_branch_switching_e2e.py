@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 from autowt.cli import main
+from autowt.utils import run_command
 
 
 class TestBranchSwitchingE2E:
@@ -25,8 +26,6 @@ class TestBranchSwitchingE2E:
     ):
         """Test switching to an existing git branch (creates worktree if needed)."""
         # Debug: Show git status before test
-        from autowt.utils import run_command
-
         git_status = run_command(
             ["git", "status", "--porcelain", "-b"], cwd=temp_git_repo
         )
