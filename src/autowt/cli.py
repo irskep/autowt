@@ -212,6 +212,7 @@ class AutowtGroup(ClickAliasedGroup):
                 debug=kwargs.get("debug", False),
                 custom_script=kwargs.get("custom_script"),
                 from_branch=kwargs.get("from_branch"),
+                dir=kwargs.get("dir"),
             )
             checkout_branch(switch_cmd, services)
 
@@ -253,6 +254,10 @@ class AutowtGroup(ClickAliasedGroup):
                     ["--from"],
                     "from_branch",
                     help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
+                ),
+                click.Option(
+                    ["--dir"],
+                    help="Directory path for the new worktree (overrides config pattern)",
                 ),
             ],
             help=f"Switch to or create a worktree for branch '{cmd_name}'",
@@ -513,6 +518,10 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     "--custom-script",
     help="Custom script to run with arguments (e.g., 'bugfix 123')",
 )
+@click.option(
+    "--dir",
+    help="Directory path for the new worktree (overrides config pattern)",
+)
 def switch(
     branch: str | None,
     terminal: str | None,
@@ -525,6 +534,7 @@ def switch(
     from_branch: str | None,
     debug: bool,
     custom_script: str | None,
+    dir: str | None,
 ) -> None:
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
@@ -577,6 +587,7 @@ def switch(
         debug=debug,
         custom_script=custom_script,
         from_branch=from_branch,
+        dir=dir,
     )
     checkout_branch(switch_cmd, services)
 

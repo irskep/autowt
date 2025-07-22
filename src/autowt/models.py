@@ -203,6 +203,7 @@ class SwitchCommand:
     debug: bool = False
     custom_script: str | None = None
     from_branch: str | None = None
+    dir: str | None = None
 
 
 @dataclass

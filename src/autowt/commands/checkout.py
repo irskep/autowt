@@ -185,7 +185,9 @@ def _create_new_worktree(
         print_error("Warning: Failed to fetch latest branches")
 
     # Generate worktree path with sanitized branch name
-    worktree_path = _generate_worktree_path(services, repo_path, switch_cmd.branch)
+    worktree_path = _generate_worktree_path(
+        services, repo_path, switch_cmd.branch, switch_cmd.dir
+    )
 
     # Check if the target path already exists with a different branch
     git_worktrees = services.git.list_worktrees(repo_path)
@@ -257,9 +259,24 @@ def _create_new_worktree(
     print_success(f"Switched to new {switch_cmd.branch} worktree")
 
 
-def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
-    """Generate a path for the new worktree using configuration."""
+def _generate_worktree_path(
+    services, repo_path: Path, branch: str, custom_dir: str | None = None
+) -> Path:
+    """Generate a path for the new worktree using configuration or custom directory."""
     import os  # noqa: PLC0415
+
+    # If custom directory is provided, use it directly
+    if custom_dir:
+        # Handle both absolute and relative paths
+        if os.path.isabs(custom_dir):
+            custom_path = Path(custom_dir)
+        else:
+            # Relative paths are relative to the current working directory
+            custom_path = Path(os.getcwd()) / custom_dir
+
+        # Ensure parent directory exists
+        custom_path.parent.mkdir(parents=True, exist_ok=True)
+        return custom_path
 
     # Load configuration
     config = services.state.load_config(project_dir=repo_path)

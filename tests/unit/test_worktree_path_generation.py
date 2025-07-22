@@ -426,3 +426,46 @@ class TestWorktreePathGeneration:
         # Pattern: "/srv/git/worktrees/myapp/hotfix"
         expected_path = Path("/srv/git/worktrees/myapp/hotfix")
         assert result_path == expected_path
+
+    def test_custom_dir_absolute_path(self):
+        """Test that custom_dir with absolute path overrides config pattern."""
+        repo_path = Path("/home/user/Code/www/myprojectroot/base-repo")
+        branch = "test-branch"
+        custom_dir = "/tmp/my-custom-worktree"
+
+        # Create mock services (shouldn't be called since custom_dir is provided)
+        mock_services = Mock()
+
+        with patch("pathlib.Path.mkdir"):
+            result_path = _generate_worktree_path(
+                mock_services, repo_path, branch, custom_dir
+            )
+
+        # Should use custom directory directly
+        expected_path = Path("/tmp/my-custom-worktree")
+        assert result_path == expected_path
+        # Verify that config loading was not called since custom_dir was provided
+        mock_services.state.load_config.assert_not_called()
+
+    def test_custom_dir_relative_path(self):
+        """Test that custom_dir with relative path works correctly."""
+        repo_path = Path("/home/user/Code/www/myprojectroot/base-repo")
+        branch = "test-branch"
+        custom_dir = "my-worktree"
+
+        # Create mock services (shouldn't be called since custom_dir is provided)
+        mock_services = Mock()
+
+        with (
+            patch("pathlib.Path.mkdir"),
+            patch("os.getcwd", return_value="/current/working/directory"),
+        ):
+            result_path = _generate_worktree_path(
+                mock_services, repo_path, branch, custom_dir
+            )
+
+        # Should use custom directory relative to current working directory
+        expected_path = Path("/current/working/directory/my-worktree")
+        assert result_path == expected_path
+        # Verify that config loading was not called since custom_dir was provided
+        mock_services.state.load_config.assert_not_called()
