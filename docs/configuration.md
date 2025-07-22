@@ -8,7 +8,7 @@
 
 1.  **Built-in Defaults**: Sensible defaults for all settings.
 2.  **Global `config.toml`**: User-wide settings that apply to all your projects.
-3.  **Project `autowt.toml`**: Project-specific settings, defined in your repository's root.
+3.  **Project `.autowt.toml`**: Project-specific settings, defined in your repository's root.
 4.  **Environment Variables**: System-wide overrides, prefixed with `AUTOWT_`.
 5.  **Command-Line Flags**: The highest priority, for on-the-fly adjustments.
 
@@ -26,7 +26,7 @@ The easiest way to manage common settings is with the `autowt config` command, w
 
 ### Project-specific configuration
 
-For settings that should apply only to a specific project, create an `autowt.toml` or `.autowt.toml` file in the root of your repository. This is the ideal place to define project-wide init scripts or worktree settings.
+For settings that should apply only to a specific project, create a `.autowt.toml` file in the root of your repository. This is the ideal place to define project-wide init scripts or worktree settings.
 
 ## All configuration options
 

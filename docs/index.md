@@ -24,7 +24,7 @@ While powerful for any developer, `autowt` is a game-changer for those working w
 
     ---
 
-    Isolate your AI agents in their own worktrees. Run multiple agents on different tasks simultaneously without them tripping over each other's work. `autowt` provides the perfect sandbox for parallel development and experimentation.
+    Isolate your AI agents in their own worktrees. Run multiple agents on different tasks simultaneously without them tripping over each other's work. `autowt` provides the perfect sandbox for parallel development and experimentation. See [AI Agents](agents.md) for detailed setup and monitoring.
 
 -   __Effortless Cleanup__
 
