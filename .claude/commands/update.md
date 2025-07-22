@@ -1,6 +1,6 @@
 1. `mise run format && mise run lint`, then fix issues
 2. `mise run tests`, then fix issues
-3. Update CHANGELOG.md with a brief description of changes made
+3. Update CHANGELOG.md with a brief description of changes made if and only if they are user-facing.
 4. Review changes with `git status` and `git diff`, checking for commits vs origin/{branch}, as well as unstaged cahnges, and staged changes
 5. Stage and commit changes:
 

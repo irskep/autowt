@@ -1,6 +1,7 @@
 """Git operations service for autowt."""
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 from autowt.models import BranchStatus, WorktreeInfo
@@ -10,11 +11,174 @@ from autowt.utils import run_command, run_command_quiet_on_failure, run_command_
 logger = logging.getLogger(__name__)
 
 
+class GitCommands:
+    """Low-level git command construction."""
+
+    @staticmethod
+    def worktree_add_existing(worktree_path: Path, branch: str) -> list[str]:
+        """Build command to add worktree for existing branch."""
+        return ["git", "worktree", "add", str(worktree_path), branch]
+
+    @staticmethod
+    def worktree_add_new_branch(
+        worktree_path: Path, branch: str, start_point: str
+    ) -> list[str]:
+        """Build command to add worktree with new branch from start point."""
+        return ["git", "worktree", "add", str(worktree_path), "-b", branch, start_point]
+
+    @staticmethod
+    def worktree_remove(worktree_path: Path, force: bool = False) -> list[str]:
+        """Build command to remove worktree."""
+        cmd = ["git", "worktree", "remove"]
+        if force:
+            cmd.append("--force")
+        cmd.append(str(worktree_path))
+        return cmd
+
+    @staticmethod
+    def branch_exists_locally(branch: str) -> list[str]:
+        """Build command to check if branch exists locally."""
+        return ["git", "show-ref", "--verify", f"refs/heads/{branch}"]
+
+    @staticmethod
+    def branch_exists_remotely(branch: str) -> list[str]:
+        """Build command to check if branch exists on remote."""
+        return ["git", "show-ref", "--verify", f"refs/remotes/origin/{branch}"]
+
+
+class BranchResolver:
+    """Resolves branch existence and determines worktree creation strategy."""
+
+    def __init__(self, git_service):
+        self.commands = GitCommands()
+        self.git_service = git_service
+
+    def resolve_worktree_source(
+        self, repo_path: Path, branch: str, from_branch: str | None
+    ) -> Callable[[Path], list[str]]:
+        """Return function that builds git command for creating worktree."""
+        if from_branch:
+            return self._build_command_from_specific_branch(
+                repo_path, branch, from_branch
+            )
+        return self._build_command_from_branch_hierarchy(repo_path, branch)
+
+    def _build_command_from_specific_branch(
+        self, repo_path: Path, branch: str, from_branch: str
+    ) -> Callable[[Path], list[str]]:
+        """Return command builder when user specified source branch."""
+        if self._branch_exists_locally(repo_path, branch):
+            return lambda path: self.commands.worktree_add_existing(path, branch)
+        return lambda path: self.commands.worktree_add_new_branch(
+            path, branch, from_branch
+        )
+
+    def _build_command_from_branch_hierarchy(
+        self, repo_path: Path, branch: str
+    ) -> Callable[[Path], list[str]]:
+        """Return command builder using branch resolution hierarchy."""
+        if self._branch_exists_locally(repo_path, branch):
+            return lambda path: self.commands.worktree_add_existing(path, branch)
+
+        if self._branch_exists_remotely(repo_path, branch):
+            return lambda path: self.commands.worktree_add_new_branch(
+                path, branch, f"origin/{branch}"
+            )
+
+        start_point = self._find_best_start_point(repo_path)
+        return lambda path: self.commands.worktree_add_new_branch(
+            path, branch, start_point
+        )
+
+    def _branch_exists_locally(self, repo_path: Path, branch: str) -> bool:
+        """Check if branch exists locally."""
+        result = run_command_quiet_on_failure(
+            self.commands.branch_exists_locally(branch),
+            cwd=repo_path,
+            timeout=10,
+            description=f"Check if branch {branch} exists locally",
+        )
+        return result.returncode == 0
+
+    def _branch_exists_remotely(self, repo_path: Path, branch: str) -> bool:
+        """Check if branch exists on remote."""
+        result = run_command_quiet_on_failure(
+            self.commands.branch_exists_remotely(branch),
+            cwd=repo_path,
+            timeout=10,
+            description=f"Check if remote branch origin/{branch} exists",
+        )
+        return result.returncode == 0
+
+    def _find_best_start_point(self, repo_path: Path) -> str:
+        """Find best starting point for new branch."""
+        default_branch = self.git_service._get_default_branch(repo_path)
+        if not default_branch:
+            return "HEAD"
+
+        if self._branch_exists_remotely(repo_path, default_branch):
+            return f"origin/{default_branch}"
+
+        if self._branch_exists_locally(repo_path, default_branch):
+            return default_branch
+
+        return "HEAD"
+
+
+class GitOutputParser:
+    """Parses git command outputs into structured data."""
+
+    @staticmethod
+    def parse_worktree_list(porcelain_output: str) -> list[WorktreeInfo]:
+        """Parse git worktree list --porcelain output into WorktreeInfo objects."""
+        worktrees = []
+        current_path = None
+        current_branch = None
+        is_first_worktree = True
+
+        for line in porcelain_output.strip().split("\n"):
+            if not line:
+                if current_path and current_branch:
+                    worktrees.append(
+                        WorktreeInfo(
+                            branch=current_branch,
+                            path=Path(current_path),
+                            is_current=False,  # We don't track this in porcelain output
+                            is_primary=is_first_worktree,
+                        )
+                    )
+                current_path = None
+                current_branch = None
+                is_first_worktree = False
+            elif line.startswith("worktree "):
+                current_path = line[9:]  # Remove 'worktree ' prefix
+            elif line.startswith("branch refs/heads/"):
+                current_branch = line[18:]  # Remove 'branch refs/heads/' prefix
+            elif line in ["bare", "detached"] or line.startswith("HEAD "):
+                continue
+
+        # Process last entry
+        if current_path and current_branch:
+            worktrees.append(
+                WorktreeInfo(
+                    branch=current_branch,
+                    path=Path(current_path),
+                    is_current=False,
+                    is_primary=is_first_worktree,
+                )
+            )
+
+        return worktrees
+
+
 class GitService:
     """Handles all git operations for worktree management."""
 
     def __init__(self):
         """Initialize git service."""
+        self.commands = GitCommands()
+        self.branch_resolver = BranchResolver(self)
+        self.parser = GitOutputParser()
         logger.debug("Git service initialized")
 
     def find_repo_root(self, start_path: Path | None = None) -> Path | None:
@@ -88,70 +252,27 @@ class GitService:
     def list_worktrees(self, repo_path: Path) -> list[WorktreeInfo]:
         """List all git worktrees."""
         try:
-            result = run_command(
-                ["git", "worktree", "list", "--porcelain"],
-                cwd=repo_path,
-                timeout=30,
-                description="List git worktrees",
-            )
-
+            result = self._execute_worktree_list_command(repo_path)
             if result.returncode != 0:
                 logger.error(f"Git worktree list failed: {result.stderr}")
                 return []
 
-            worktrees = []
-            current_worktree = None
-            current_path = None
-            current_branch = None
-            is_first_worktree = True
-
-            for line in result.stdout.strip().split("\n"):
-                if not line:
-                    # End of worktree entry
-                    if current_path and current_branch:
-                        worktrees.append(
-                            WorktreeInfo(
-                                branch=current_branch,
-                                path=Path(current_path),
-                                is_current=current_worktree is not None,
-                                is_primary=is_first_worktree,
-                            )
-                        )
-                    current_worktree = None
-                    current_path = None
-                    current_branch = None
-                    is_first_worktree = False
-                elif line.startswith("worktree "):
-                    current_path = line[9:]  # Remove 'worktree ' prefix
-                elif line.startswith("branch refs/heads/"):
-                    current_branch = line[18:]  # Remove 'branch refs/heads/' prefix
-                elif line.startswith("HEAD "):
-                    # This is just the commit hash, ignore for branch name
-                    continue
-                elif line == "bare":
-                    # Skip bare repositories
-                    continue
-                elif line == "detached":
-                    # Skip detached HEAD
-                    continue
-
-            # Handle last entry
-            if current_path and current_branch:
-                worktrees.append(
-                    WorktreeInfo(
-                        branch=current_branch,
-                        path=Path(current_path),
-                        is_current=current_worktree is not None,
-                        is_primary=is_first_worktree,
-                    )
-                )
-
+            worktrees = self.parser.parse_worktree_list(result.stdout)
             logger.debug(f"Found {len(worktrees)} worktrees")
             return worktrees
 
         except Exception as e:
             logger.error(f"Failed to list worktrees: {e}")
             return []
+
+    def _execute_worktree_list_command(self, repo_path: Path):
+        """Execute git worktree list command."""
+        return run_command(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=repo_path,
+            timeout=30,
+            description="List git worktrees",
+        )
 
     def fetch_branches(self, repo_path: Path) -> bool:
         """Fetch latest branches from remote."""
@@ -186,134 +307,26 @@ class GitService:
         logger.debug(f"Creating worktree for {branch} at {worktree_path}")
 
         try:
-            if from_branch:
-                # User specified a source branch/commit - use it directly
-                logger.debug(f"Creating worktree from specified source: {from_branch}")
-                result = run_command_quiet_on_failure(
-                    ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Check if branch {branch} exists locally",
-                )
-
-                if result.returncode == 0:
-                    # Branch exists locally
-                    cmd = [
-                        "git",
-                        "worktree",
-                        "add",
-                        str(worktree_path),
-                        branch,
-                        from_branch,
-                    ]
-                else:
-                    # Branch doesn't exist, create new branch from from_branch
-                    cmd = [
-                        "git",
-                        "worktree",
-                        "add",
-                        str(worktree_path),
-                        "-b",
-                        branch,
-                        from_branch,
-                    ]
-            else:
-                # ORIGINAL LOGIC - unchanged from before
-                # Check if branch exists locally
-                result = run_command_quiet_on_failure(
-                    ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Check if branch {branch} exists locally",
-                )
-
-                if result.returncode == 0:
-                    # Branch exists locally
-                    cmd = ["git", "worktree", "add", str(worktree_path), branch]
-                else:
-                    # Check if remote branch exists
-                    result = run_command_quiet_on_failure(
-                        [
-                            "git",
-                            "show-ref",
-                            "--verify",
-                            f"refs/remotes/origin/{branch}",
-                        ],
-                        cwd=repo_path,
-                        timeout=10,
-                        description=f"Check if remote branch origin/{branch} exists",
-                    )
-
-                    if result.returncode == 0:
-                        # Remote branch exists, create from it
-                        cmd = [
-                            "git",
-                            "worktree",
-                            "add",
-                            str(worktree_path),
-                            "-b",
-                            branch,
-                            f"origin/{branch}",
-                        ]
-                    else:
-                        # Neither local nor remote exists, try fallback hierarchy
-                        default_branch = self._get_default_branch(repo_path)
-
-                        # Try origin/{default_branch} first, then {default_branch}, then HEAD
-                        start_point = "HEAD"  # Ultimate fallback
-                        if default_branch:
-                            # Check if origin/{default_branch} exists
-                            origin_result = run_command_quiet_on_failure(
-                                [
-                                    "git",
-                                    "show-ref",
-                                    "--verify",
-                                    f"refs/remotes/origin/{default_branch}",
-                                ],
-                                cwd=repo_path,
-                                timeout=10,
-                                description=f"Check if origin/{default_branch} exists",
-                            )
-                            if origin_result.returncode == 0:
-                                start_point = f"origin/{default_branch}"
-                            else:
-                                # Check if local default branch exists
-                                local_result = run_command_quiet_on_failure(
-                                    [
-                                        "git",
-                                        "show-ref",
-                                        "--verify",
-                                        f"refs/heads/{default_branch}",
-                                    ],
-                                    cwd=repo_path,
-                                    timeout=10,
-                                    description=f"Check if local {default_branch} exists",
-                                )
-                                if local_result.returncode == 0:
-                                    start_point = default_branch
-
-                        cmd = [
-                            "git",
-                            "worktree",
-                            "add",
-                            str(worktree_path),
-                            "-b",
-                            branch,
-                            start_point,
-                        ]
+            command_builder = self.branch_resolver.resolve_worktree_source(
+                repo_path, branch, from_branch
+            )
+            cmd = command_builder(worktree_path)
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
-            success = result.returncode == 0
-            if success:
-                logger.debug(f"Worktree created successfully at {worktree_path}")
-            else:
-                logger.error(f"Failed to create worktree: {result.stderr}")
-
-            return success
+            return self._evaluate_worktree_creation_result(result, worktree_path)
 
         except Exception as e:
             logger.error(f"Failed to create worktree: {e}")
             return False
+
+    def _evaluate_worktree_creation_result(self, result, worktree_path: Path) -> bool:
+        """Evaluate worktree creation command result and log appropriately."""
+        success = result.returncode == 0
+        if success:
+            logger.debug(f"Worktree created successfully at {worktree_path}")
+        else:
+            logger.error(f"Failed to create worktree: {result.stderr}")
+        return success
 
     def remove_worktree(
         self,
@@ -326,42 +339,49 @@ class GitService:
         logger.debug(f"Removing worktree at {worktree_path}")
 
         try:
-            cmd = ["git", "worktree", "remove"]
-            if force:
-                cmd.append("--force")
-            cmd.append(str(worktree_path))
-
+            cmd = self.commands.worktree_remove(worktree_path, force)
             result = run_command_visible(cmd, cwd=repo_path, timeout=30)
 
-            success = result.returncode == 0
-            if success:
+            if result.returncode == 0:
                 logger.debug("Worktree removed successfully")
                 return True
 
-            # If removal failed and we haven't tried force yet
-            if (
-                not force
-                and interactive
-                and result.stderr
-                and "modified or untracked files" in result.stderr
-            ):
-                logger.error(f"Failed to remove worktree: {result.stderr}")
-                print(f"Git error: {result.stderr.strip()}")
-
-                if confirm_default_no(
-                    "Retry with --force to remove worktree with modified files?"
-                ):
-                    return self.remove_worktree(
-                        repo_path, worktree_path, force=True, interactive=False
-                    )
-            else:
-                logger.error(f"Failed to remove worktree: {result.stderr}")
-
-            return False
+            return self._retry_worktree_removal_if_needed(
+                repo_path, worktree_path, force, interactive, result
+            )
 
         except Exception as e:
             logger.error(f"Failed to remove worktree: {e}")
             return False
+
+    def _retry_worktree_removal_if_needed(
+        self,
+        repo_path: Path,
+        worktree_path: Path,
+        force: bool,
+        interactive: bool,
+        result,
+    ) -> bool:
+        """Retry worktree removal with force if user confirms and conditions are met."""
+        if (
+            not force
+            and interactive
+            and result.stderr
+            and "modified or untracked files" in result.stderr
+        ):
+            logger.error(f"Failed to remove worktree: {result.stderr}")
+            print(f"Git error: {result.stderr.strip()}")
+
+            if confirm_default_no(
+                "Retry with --force to remove worktree with modified files?"
+            ):
+                return self.remove_worktree(
+                    repo_path, worktree_path, force=True, interactive=False
+                )
+        else:
+            logger.error(f"Failed to remove worktree: {result.stderr}")
+
+        return False
 
     def analyze_branches_for_cleanup(
         self, repo_path: Path, worktrees: list[WorktreeInfo]
@@ -369,89 +389,94 @@ class GitService:
         """Analyze branches to determine cleanup candidates."""
         logger.debug("Analyzing branches for cleanup")
 
-        # Get default branch once and cache it - use remote tracking branch for comparison
+        default_branch = self._prepare_default_branch_for_analysis(repo_path)
+        branch_statuses = [
+            self._analyze_single_branch(repo_path, worktree, default_branch)
+            for worktree in worktrees
+        ]
+
+        logger.debug(f"Analyzed {len(branch_statuses)} branches")
+        return branch_statuses
+
+    def _prepare_default_branch_for_analysis(self, repo_path: Path) -> str | None:
+        """Prepare default branch reference for merge analysis."""
         default_branch = self._get_default_branch(repo_path)
         if not default_branch:
             logger.warning(
                 "Could not determine default branch, skipping merge analysis"
             )
-        else:
-            # Use remote tracking branch for comparison after fetch
-            default_branch = f"origin/{default_branch}"
+            return None
+        return f"origin/{default_branch}"
 
-        branch_statuses = []
-
-        for worktree in worktrees:
-            branch = worktree.branch
-
-            # Check if branch has remote
-            has_remote = self._branch_has_remote(repo_path, branch)
-
-            # Check if branch is identical to default branch
-            is_identical = self._branches_are_identical_cached(
+    def _analyze_single_branch(
+        self, repo_path: Path, worktree: WorktreeInfo, default_branch: str | None
+    ) -> BranchStatus:
+        """Analyze a single branch for cleanup eligibility."""
+        branch = worktree.branch
+        return BranchStatus(
+            branch=branch,
+            has_remote=self._branch_has_remote(repo_path, branch),
+            is_merged=self._branch_is_merged_cached(repo_path, branch, default_branch),
+            is_identical=self._branches_are_identical_cached(
                 repo_path, branch, default_branch
-            )
-
-            # Check if branch is merged (only if it had unique commits)
-            is_merged = self._branch_is_merged_cached(repo_path, branch, default_branch)
-
-            # Check for uncommitted changes
-            has_uncommitted = self.has_uncommitted_changes(worktree.path)
-
-            branch_statuses.append(
-                BranchStatus(
-                    branch=branch,
-                    has_remote=has_remote,
-                    is_merged=is_merged,
-                    is_identical=is_identical,
-                    path=worktree.path,
-                    has_uncommitted_changes=has_uncommitted,
-                )
-            )
-
-        logger.debug(f"Analyzed {len(branch_statuses)} branches")
-        return branch_statuses
+            ),
+            path=worktree.path,
+            has_uncommitted_changes=self.has_uncommitted_changes(worktree.path),
+        )
 
     def _get_default_branch(self, repo_path: Path) -> str | None:
         """Get the default branch name (main, master, etc.)."""
         try:
-            # Try to get the default branch from origin (this often fails, that's expected)
-            result = run_command_quiet_on_failure(
-                ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
-                cwd=repo_path,
-                timeout=10,
-                description="Get default branch from origin",
-            )
-            if result.returncode == 0:
-                # Extract branch name from refs/remotes/origin/main
-                branch_ref = result.stdout.strip()
-                if branch_ref.startswith("refs/remotes/origin/"):
-                    return branch_ref[len("refs/remotes/origin/") :]
+            branch_from_origin = self._extract_default_branch_from_origin(repo_path)
+            if branch_from_origin:
+                return branch_from_origin
 
-            # Fall back to checking common default branches
-            for branch in ["main", "master"]:
-                result = run_command_quiet_on_failure(
-                    ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
-                    cwd=repo_path,
-                    timeout=10,
-                    description=f"Check if {branch} exists",
-                )
-                if result.returncode == 0:
-                    return branch
+            branch_from_common_names = self._find_common_default_branch(repo_path)
+            if branch_from_common_names:
+                return branch_from_common_names
 
-            # If neither main nor master exist, try to get current branch as fallback
-            result = run_command(
-                ["git", "branch", "--show-current"],
-                cwd=repo_path,
-                timeout=10,
-                description="Get current branch as fallback",
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout.strip()
-
-            return None
+            return self._get_current_branch_as_fallback(repo_path)
         except Exception:
             return None
+
+    def _extract_default_branch_from_origin(self, repo_path: Path) -> str | None:
+        """Extract default branch name from origin HEAD reference."""
+        result = run_command_quiet_on_failure(
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            cwd=repo_path,
+            timeout=10,
+            description="Get default branch from origin",
+        )
+        if result.returncode == 0:
+            branch_ref = result.stdout.strip()
+            if branch_ref.startswith("refs/remotes/origin/"):
+                return branch_ref[len("refs/remotes/origin/") :]
+        return None
+
+    def _find_common_default_branch(self, repo_path: Path) -> str | None:
+        """Check for common default branch names (main, master)."""
+        for branch in ["main", "master"]:
+            result = run_command_quiet_on_failure(
+                ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Check if {branch} exists",
+            )
+            if result.returncode == 0:
+                return branch
+        return None
+
+    def _get_current_branch_as_fallback(self, repo_path: Path) -> str | None:
+        """Get current branch as last resort fallback."""
+        result = run_command(
+            ["git", "branch", "--show-current"],
+            cwd=repo_path,
+            timeout=10,
+            description="Get current branch as fallback",
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        return None
 
     def _branch_has_remote(self, repo_path: Path, branch: str) -> bool:
         """Check if branch has a remote tracking branch."""
@@ -469,56 +494,56 @@ class GitService:
     def _branches_are_identical_cached(
         self, repo_path: Path, branch: str, default_branch: str | None
     ) -> bool:
-        """Check if branch points to the same commit as default branch (with cached default branch)."""
+        """Check if branch points to the same commit as default branch."""
         try:
             if not default_branch:
                 return False
 
-            # Get commit hashes for both branches
-            branch_result = run_command(
-                ["git", "rev-parse", branch],
-                cwd=repo_path,
-                timeout=10,
-                description=f"Get commit hash for {branch}",
-            )
-            base_result = run_command(
-                ["git", "rev-parse", default_branch],
-                cwd=repo_path,
-                timeout=10,
-                description=f"Get commit hash for {default_branch}",
-            )
+            branch_hash = self._get_commit_hash(repo_path, branch)
+            default_hash = self._get_commit_hash(repo_path, default_branch)
 
-            if branch_result.returncode == 0 and base_result.returncode == 0:
-                # Branches are identical if they point to the same commit
-                return branch_result.stdout.strip() == base_result.stdout.strip()
-
-            return False
+            return branch_hash and default_hash and branch_hash == default_hash
         except Exception:
             return False
+
+    def _get_commit_hash(self, repo_path: Path, branch: str) -> str | None:
+        """Get commit hash for a branch."""
+        result = run_command(
+            ["git", "rev-parse", branch],
+            cwd=repo_path,
+            timeout=10,
+            description=f"Get commit hash for {branch}",
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
 
     def _branch_is_merged_cached(
         self, repo_path: Path, branch: str, default_branch: str | None
     ) -> bool:
-        """Check if branch is merged into default branch (but not identical) with cached default branch."""
+        """Check if branch is merged into default branch (but not identical)."""
         try:
             if not default_branch:
                 return False
 
-            # Don't consider identical branches as "merged"
             if self._branches_are_identical_cached(repo_path, branch, default_branch):
                 return False
 
-            # Check if branch is ancestor (was merged)
-            result = run_command(
-                ["git", "merge-base", "--is-ancestor", branch, default_branch],
-                cwd=repo_path,
-                timeout=10,
-                description=f"Check if {branch} is merged into {default_branch}",
+            return self._is_branch_ancestor_of_default(
+                repo_path, branch, default_branch
             )
-            return result.returncode == 0
-
         except Exception:
             return False
+
+    def _is_branch_ancestor_of_default(
+        self, repo_path: Path, branch: str, default_branch: str
+    ) -> bool:
+        """Check if branch is an ancestor of default branch (was merged)."""
+        result = run_command(
+            ["git", "merge-base", "--is-ancestor", branch, default_branch],
+            cwd=repo_path,
+            timeout=10,
+            description=f"Check if {branch} is merged into {default_branch}",
+        )
+        return result.returncode == 0
 
     def has_uncommitted_changes(self, worktree_path: Path) -> bool:
         """Check if a worktree has uncommitted changes (staged or unstaged)."""
