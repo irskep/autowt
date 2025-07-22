@@ -46,6 +46,13 @@ def temp_git_repo():
 
         yield repo_path
 
+        # Cleanup: ensure we're on main branch after each test
+        try:
+            run_command(["git", "checkout", "main"], cwd=repo_path)
+        except Exception:
+            # Ignore cleanup errors if directory is already gone
+            pass
+
 
 @pytest.fixture
 def force_echo_mode():
