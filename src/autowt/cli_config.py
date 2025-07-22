@@ -5,6 +5,7 @@ It provides utilities to convert CLI options to config overrides and initialize 
 """
 
 import logging
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -157,12 +158,22 @@ def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
         script_spec = "bugfix 123"
         config has: bugfix = 'claude "Fix bug described in issue $1"'
         returns: 'claude "Fix bug described in issue 123"'
+
+    Note:
+        Arguments are inserted directly without shell escaping to preserve shell features.
     """
     if not script_spec:
         return None
 
-    # Parse script name and arguments
-    parts = script_spec.split()
+    # Parse script name and arguments using shell-aware splitting
+    try:
+        parts = shlex.split(script_spec)
+    except ValueError as e:
+        logger.warning(
+            f"Invalid shell syntax in custom script spec '{script_spec}': {e}"
+        )
+        return None
+
     if not parts:
         return None
 

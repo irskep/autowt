@@ -9,6 +9,7 @@
 - Custom script argument interpolation with `--custom-script` option
   - Run custom scripts with arguments: `autowt switch branch --custom-script="bugfix 123"`
   - Arguments are interpolated into script templates using `$1`, `$2`, etc. placeholders
+  - Supports shell-style quoting for arguments with spaces: `--custom-script='deploy "staging env" --force'`
   - Works with both new and existing worktrees
 
 ### Changed
