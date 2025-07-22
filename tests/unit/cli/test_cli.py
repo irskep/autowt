@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 from autowt.cli import main
 from autowt.models import CleanupMode
-from tests.mocks.services import MockServices
+from tests.fixtures.service_builders import MockServices
 
 
 class TestCLIRouting:

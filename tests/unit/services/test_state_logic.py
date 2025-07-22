@@ -4,6 +4,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from autowt.config import Config, TerminalConfig
 from autowt.models import TerminalMode
 from autowt.services.state import StateService
@@ -45,57 +47,44 @@ class TestStateServiceLogic:
 class TestStateServicePlatformLogic:
     """Tests for platform-specific state service logic."""
 
-    @patch("platform.system")
-    def test_get_default_app_dir_macos(self, mock_system):
-        """Test default app directory on macOS."""
-        mock_system.return_value = "Darwin"
+    @pytest.mark.parametrize(
+        "platform,home_subpath,env_setup",
+        [
+            ("Darwin", ["Library", "Application Support", "autowt"], {}),
+            ("Windows", [".autowt"], {}),
+            ("Linux", [".local", "share", "autowt"], {}),
+        ],
+    )
+    def test_get_default_app_dir_platforms(
+        self, platform, home_subpath, env_setup, monkeypatch
+    ):
+        """Test default app directory across different platforms."""
+        # Clear environment and set up platform
+        for key, value in env_setup.items():
+            monkeypatch.setenv(key, value)
+        if not env_setup:  # Clear XDG_DATA_HOME for non-XDG tests
+            monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+
+        monkeypatch.setattr("platform.system", lambda: platform)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_home = Path(temp_dir)
 
             with patch("pathlib.Path.home", return_value=temp_home):
                 service = StateService()
-                expected = temp_home / "Library" / "Application Support" / "autowt"
+                expected = temp_home
+                for part in home_subpath:
+                    expected = expected / part
                 assert service.app_dir == expected
 
-    @patch("platform.system")
-    @patch.dict("os.environ", {"XDG_DATA_HOME": "/custom/xdg"})
-    def test_get_default_app_dir_linux_xdg(self, mock_system, tmp_path):
+    def test_get_default_app_dir_linux_xdg(self, tmp_path, monkeypatch):
         """Test default app directory on Linux with XDG_DATA_HOME."""
-        mock_system.return_value = "Linux"
+        monkeypatch.setattr("platform.system", lambda: "Linux")
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
 
-        # Use a temporary directory for the test
-        with patch.dict("os.environ", {"XDG_DATA_HOME": str(tmp_path)}):
-            service = StateService()
-            expected = tmp_path / "autowt"
-            assert service.app_dir == expected
-
-    @patch("platform.system")
-    @patch.dict("os.environ", {}, clear=True)
-    def test_get_default_app_dir_linux_default(self, mock_system):
-        """Test default app directory on Linux without XDG_DATA_HOME."""
-        mock_system.return_value = "Linux"
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_home = Path(temp_dir)
-
-            with patch("pathlib.Path.home", return_value=temp_home):
-                service = StateService()
-                expected = temp_home / ".local" / "share" / "autowt"
-                assert service.app_dir == expected
-
-    @patch("platform.system")
-    def test_get_default_app_dir_windows(self, mock_system):
-        """Test default app directory on Windows."""
-        mock_system.return_value = "Windows"
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_home = Path(temp_dir)
-
-            with patch("pathlib.Path.home", return_value=temp_home):
-                service = StateService()
-                expected = temp_home / ".autowt"
-                assert service.app_dir == expected
+        service = StateService()
+        expected = tmp_path / "autowt"
+        assert service.app_dir == expected
 
 
 class TestSessionIdLogic:

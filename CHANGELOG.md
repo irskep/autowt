@@ -8,6 +8,8 @@
 
 ### Changed
 
+- Modernized test suite with pytest patterns
+
 ### Fixed
 
 ## 0.3.5 - 2025-07-22

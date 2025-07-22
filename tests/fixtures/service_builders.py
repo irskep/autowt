@@ -1,4 +1,4 @@
-"""Mock services for testing business logic."""
+"""Service builders and mocks for testing business logic."""
 
 from pathlib import Path
 from typing import Any

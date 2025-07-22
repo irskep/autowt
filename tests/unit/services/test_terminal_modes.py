@@ -9,7 +9,7 @@ from autowt.services.terminal import (
     TerminalAppTerminal,
     TerminalService,
 )
-from tests.mocks.services import MockStateService
+from tests.fixtures.service_builders import MockStateService
 
 
 class TestTerminalModes:
