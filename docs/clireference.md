@@ -14,7 +14,7 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 | Option | Description |
 |---|---|
 | `--terminal <mode>` | Overrides the default terminal behavior. Modes include `tab`, `window`, `inplace`, and `echo`. See [Terminal Support](terminalsupport.md) for details. |
-| `--init <script>` | Runs a setup script in the new terminal session. Ideal for installing dependencies or copying config files. See [Init Scripts](initscripts.md). |
+| `--init <script>` | Runs a setup script in the new terminal session. Ideal for installing dependencies or copying config files. See [Lifecycle Hooks](lifecyclehooks.md). |
 | `--after-init <script>` | Runs a command *after* the `init` script completes. Perfect for starting a dev server or an [AI agent](agents.md). |
 | `--ignore-same-session` | Forces `autowt` to create a new terminal, even if a session for that worktree already exists. |
 | `--from <branch>` | Source branch/commit to create worktree from. Accepts any git revision: branch names, tags, commit hashes, `HEAD`, etc. Only used when creating new worktrees. |

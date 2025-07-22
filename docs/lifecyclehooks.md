@@ -1,19 +1,91 @@
-# Lifecycle Hooks
+# Lifecycle Hooks and Init Scripts
 
-Lifecycle hooks allow you to run custom scripts at specific points during autowt operations. They provide fine-grained control over your development workflow, enabling everything from resource management to service orchestration.
+`autowt` allows you to run custom commands at specific points during worktree operations. This enables powerful automation for everything from dependency installation to resource management and service orchestration.
 
-## Overview
+## Getting Started with Init Scripts
 
-Autowt supports 6 lifecycle hooks that run at different stages:
+The most common hook is the **init script**, which runs after creating a new worktree. This is perfect for automating setup tasks like installing dependencies or copying configuration files.
 
-| Hook | Trigger | Execution Context | Common Use Cases |
-|------|---------|-------------------|------------------|
-| `init` | After creating/switching to worktree | In terminal session | Install dependencies, copy configs |
-| `pre_cleanup` | Before cleaning up worktrees | Before process termination | Release resources, backup data |
-| `pre_process_kill` | Before killing processes in worktrees | Before `SIGINT`/`SIGKILL` | Graceful service shutdown |
-| `post_cleanup` | After worktrees are removed | After directory cleanup | Remove volumes, update global state |
-| `pre_switch` | Before switching to a worktree | Before terminal switch | Stop services in current worktree |
-| `post_switch` | After switching to a worktree | After terminal switch | Start services in new worktree |
+### Configuration
+
+You can specify an init script in two ways:
+
+1. **Command-line flag**: Use the `--init` flag for a one-time script
+2. **Configuration file**: Set the `scripts.init` key in your `.autowt.toml` file for a project-wide default
+
+The init script is executed in the worktree's directory *after* `autowt` has switched to it, but *before* any `--after-init` script is run.
+
+### Installing dependencies
+
+The most common use case for init scripts is to ensure dependencies are always up-to-date when you create a worktree.
+
+**With the `--init` flag:**
+
+```bash
+autowt feature/new-ui --init "npm install"
+```
+
+**With `.autowt.toml`:**
+
+```toml
+# .autowt.toml
+[scripts]
+init = "npm install"
+```
+
+Now, `npm install` will run automatically every time you create a new worktree in this project.
+
+### Copying `.env` files
+
+Worktrees start as clean checkouts, which means untracked files like `.env` are not automatically carried over. You can use an init script to copy these files from your main worktree.
+
+autowt provides environment variables that make this easier, including `AUTOWT_MAIN_REPO_DIR` which points to the main repository directory.
+
+```toml
+# .autowt.toml
+[scripts]
+# Copy .env file from main worktree if it exists
+init = """
+if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
+  cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
+fi
+"""
+```
+
+**Combining commands:**
+
+```toml
+# .autowt.toml
+[scripts]
+init = """
+if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
+  cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
+fi;
+npm install
+"""
+```
+
+!!! tip "Overriding the Default"
+
+    If you have a `scripts.init` script in your `.autowt.toml` but want to do something different for a specific worktree, the `--init` flag will always take precedence.
+
+    ```bash
+    # This will run *only* `npm ci`, ignoring the default init script.
+    autowt feature/performance --init "npm ci"
+    ```
+
+## Complete Lifecycle Hooks
+
+Beyond init scripts, autowt supports 6 lifecycle hooks that run at specific points during worktree operations:
+
+| Hook | When it runs | Common use cases |
+|------|-------------|------------------|
+| `init` | After creating worktree (not when switching) | Install deps, copy configs |
+| `pre_cleanup` | Before cleaning up worktrees | Release ports, backup data |
+| `pre_process_kill` | Before killing processes | Graceful shutdown |
+| `post_cleanup` | After worktrees are removed | Clean volumes, update state |
+| `pre_switch` | Before switching worktrees | Stop current services |  
+| `post_switch` | After switching worktrees | Start new services |
 
 ## Configuration
 
@@ -47,7 +119,7 @@ post_cleanup = "echo 'Worktree cleanup complete'"
 
 **Both global and project hooks run** - global hooks execute first, then project hooks. This allows you to set up global defaults while still customizing behavior per project.
 
-### Environment variables
+## Environment Variables and Arguments
 
 All hooks receive the following environment variables:
 
@@ -55,8 +127,6 @@ All hooks receive the following environment variables:
 - `AUTOWT_MAIN_REPO_DIR`: Path to the main repository directory
 - `AUTOWT_BRANCH_NAME`: Name of the branch
 - `AUTOWT_HOOK_TYPE`: Type of hook being executed
-
-### Positional arguments
 
 Hooks also receive positional arguments in this order:
 
@@ -88,7 +158,7 @@ cd "$WORKTREE_DIR"
 
 ### `init` Hook
 
-**Timing**: After worktree creation/switch, before after-init commands  
+**Timing**: After worktree creation, before after-init commands  
 **Use cases**: Dependency installation, configuration setup
 
 ```toml
@@ -99,7 +169,14 @@ cp .env.example .env
 """
 ```
 
-The init hook is special - it's the only hook that runs in the terminal session context, allowing it to affect the user's environment.
+The init hook is special - it's the only hook that runs **inside the terminal session**. While other lifecycle hooks run as background subprocesses, init scripts are literally pasted/typed into the terminal using terminal automation (AppleScript on macOS, tmux send-keys, etc.). This allows init scripts to:
+
+- Set environment variables that persist in your shell session
+- Activate virtual environments (conda, venv, etc.)  
+- Start interactive processes
+- Inherit your shell configuration and aliases
+
+Other hooks run in isolated subprocesses and are better suited for file operations, Git commands, and non-interactive automation tasks.
 
 ### `pre_cleanup` Hook
 
@@ -263,23 +340,6 @@ See [Common Workflows](common-workflows.md) for real-world examples of using hoo
 - Service orchestration
 - External tool integration
 
-## Environment Variables
-
-### Available in all hooks
-
-- `AUTOWT_WORKTREE_DIR`: Absolute path to worktree directory
-- `AUTOWT_MAIN_REPO_DIR`: Absolute path to main repository  
-- `AUTOWT_BRANCH_NAME`: Branch name
-- `AUTOWT_HOOK_TYPE`: One of: `init`, `pre_cleanup`, `pre_process_kill`, `post_cleanup`, `pre_switch`, `post_switch`
-
-### Standard environment
-
-Hooks also inherit your standard shell environment, so you can access:
-
-- `PATH`, `HOME`, `USER` etc.
-- Project-specific variables from `.env` files (if loaded)
-- CI/CD environment variables
-
 ## Troubleshooting
 
 ### Hook not running
@@ -293,11 +353,3 @@ Hooks also inherit your standard shell environment, so you can access:
 1. Check autowt logs for error messages
 2. Test hook script independently: `AUTOWT_BRANCH_NAME=test ./my-hook.sh /path/to/worktree /path/to/main test`
 3. Add debug output to your hooks with `echo` statements
-
-### Performance
-
-Hooks run synchronously and can slow down autowt operations. For long-running tasks:
-
-1. Run tasks in background with `&`
-2. Use external job queues
-3. Keep hooks focused and fast

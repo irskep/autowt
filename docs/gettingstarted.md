@@ -88,7 +88,7 @@ The output will look something like this, with an arrow `→` indicating your cu
 
 !!! tip "Additional worktree setup"
 
-    If you want dependencies to be installed automatically, or need to copy over git-ignored files like `.env` from the main worktree, you can learn how to configure a setup script in the [Init Scripts guide](initscripts.md).
+    If you want dependencies to be installed automatically when creating new worktrees, or need to copy over git-ignored files like `.env` from the main worktree, you can learn how to configure lifecycle hooks in the [Lifecycle Hooks guide](lifecyclehooks.md).
 
 ## A typical workflow
 

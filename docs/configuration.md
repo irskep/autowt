@@ -87,7 +87,7 @@ Automate setup tasks with scripts.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `init` | string | `null` | A command or script to run automatically after creating or switching to a worktree. See the [Init Scripts guide](initscripts.md) for examples. <br> **ENV**: `AUTOWT_SCRIPTS_INIT` <br> **CLI**: `--init "<command>"` |
+| `init` | string | `null` | A command or script to run automatically after creating a worktree (not when switching to existing ones). See the [Lifecycle Hooks guide](lifecyclehooks.md) for examples. <br> **ENV**: `AUTOWT_SCRIPTS_INIT` <br> **CLI**: `--init "<command>"` |
 
 #### `[scripts.custom]`
 
