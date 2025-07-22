@@ -24,9 +24,22 @@ class GitService:
 
         current = start_path.resolve()
         while current != current.parent:
+            # Check for normal git repository (.git directory)
             if (current / ".git").exists():
                 logger.debug(f"Found repo root: {current}")
                 return current
+
+            # Check if current directory is a bare repository
+            if self._is_bare_repo(current):
+                logger.debug(f"Found bare repo root: {current}")
+                return current
+
+            # Check for bare repositories in subdirectories (*.git pattern)
+            bare_repo = self._find_bare_repo_in_dir(current)
+            if bare_repo:
+                logger.debug(f"Found bare repo in subdirectory: {bare_repo}")
+                return bare_repo
+
             current = current.parent
 
         logger.debug("No git repository found")
@@ -35,15 +48,21 @@ class GitService:
     def is_git_repo(self, path: Path) -> bool:
         """Check if the given path is a git repository."""
         try:
+            # Check for regular git repository
             result = run_command(
                 ["git", "rev-parse", "--git-dir"],
                 cwd=path,
                 timeout=10,
                 description="Check if directory is git repo",
             )
-            is_repo = result.returncode == 0
-            logger.debug(f"Path {path} is git repo: {is_repo}")
-            return is_repo
+            if result.returncode == 0:
+                logger.debug(f"Path {path} is regular git repo")
+                return True
+
+            # Check for bare repository
+            is_bare = self._is_bare_repo(path)
+            logger.debug(f"Path {path} is git repo (bare: {is_bare}): {is_bare}")
+            return is_bare
         except Exception as e:
             logger.debug(f"Error checking if {path} is git repo: {e}")
             return False
@@ -498,3 +517,28 @@ class GitService:
             return result.returncode == 0
         except Exception:
             return False
+
+    def _is_bare_repo(self, path: Path) -> bool:
+        """Check if the given path is a bare git repository."""
+        try:
+            result = run_command(
+                ["git", "rev-parse", "--is-bare-repository"],
+                cwd=path,
+                timeout=10,
+                description=f"Check if {path} is bare repo",
+            )
+            return result.returncode == 0 and result.stdout.strip() == "true"
+        except Exception:
+            return False
+
+    def _find_bare_repo_in_dir(self, path: Path) -> Path | None:
+        """Find bare git repositories in subdirectories (*.git pattern)."""
+        try:
+            # Look for directories ending in .git
+            for item in path.iterdir():
+                if item.is_dir() and item.name.endswith(".git"):
+                    if self._is_bare_repo(item):
+                        return item
+            return None
+        except Exception:
+            return None
