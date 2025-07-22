@@ -210,6 +210,7 @@ class AutowtGroup(ClickAliasedGroup):
                 or kwargs.get("ignore_same_session", False),
                 auto_confirm=kwargs.get("auto_confirm", kwargs.get("yes", False)),
                 debug=kwargs.get("debug", False),
+                custom_script=kwargs.get("custom_script"),
                 from_branch=kwargs.get("from_branch"),
             )
             checkout_branch(switch_cmd, services)
@@ -243,6 +244,10 @@ class AutowtGroup(ClickAliasedGroup):
                     ["--ignore-same-session"],
                     is_flag=True,
                     help="Always create new terminal, ignore existing sessions",
+                ),
+                click.Option(
+                    ["--custom-script"],
+                    help="Custom script to run with arguments (e.g., 'bugfix 123')",
                 ),
                 click.Option(
                     ["--from"],
@@ -504,6 +509,10 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
+@click.option(
+    "--custom-script",
+    help="Custom script to run with arguments (e.g., 'bugfix 123')",
+)
 def switch(
     branch: str | None,
     terminal: str | None,
@@ -515,6 +524,7 @@ def switch(
     latest: bool,
     from_branch: str | None,
     debug: bool,
+    custom_script: str | None,
 ) -> None:
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
@@ -546,6 +556,7 @@ def switch(
         init=init,
         after_init=after_init,
         ignore_same_session=ignore_same_session,
+        custom_script=custom_script,
     )
 
     # Initialize configuration with CLI overrides
@@ -564,6 +575,7 @@ def switch(
         ignore_same_session=config.terminal.always_new or ignore_same_session,
         auto_confirm=auto_confirm,
         debug=debug,
+        custom_script=custom_script,
         from_branch=from_branch,
     )
     checkout_branch(switch_cmd, services)
