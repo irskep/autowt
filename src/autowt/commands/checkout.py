@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from autowt.cli_config import resolve_custom_script_with_interpolation
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
 from autowt.models import Services, SwitchCommand, TerminalMode
@@ -12,6 +13,18 @@ from autowt.prompts import confirm_default_yes
 from autowt.utils import sanitize_branch_name
 
 logger = logging.getLogger(__name__)
+
+
+def _combine_after_init_and_custom_script(
+    after_init: str | None, custom_script: str | None
+) -> str | None:
+    """Combine after_init command with custom script."""
+    scripts = []
+    if after_init:
+        scripts.append(after_init)
+    if custom_script:
+        scripts.append(custom_script)
+    return "; ".join(scripts) if scripts else None
 
 
 def _generate_alternative_worktree_path(base_path: Path, git_worktrees: list) -> Path:
@@ -75,6 +88,15 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     if init_script is None:
         init_script = project_config.init
 
+    # Resolve custom script if provided
+    custom_script_resolved = None
+    if switch_cmd.custom_script:
+        custom_script_resolved = resolve_custom_script_with_interpolation(
+            switch_cmd.custom_script
+        )
+        if custom_script_resolved:
+            logger.debug(f"Resolved custom script: {custom_script_resolved}")
+
     # Use provided terminal mode or fall back to config
     terminal_mode = switch_cmd.terminal_mode
     if terminal_mode is None:
@@ -108,12 +130,17 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
         # Switch to existing worktree - no init script needed (worktree already set up)
         session_id = services.state.get_session_id(repo_path, switch_cmd.branch)
+        # Combine after_init and custom script for existing worktrees too
+        combined_after_init = _combine_after_init_and_custom_script(
+            switch_cmd.after_init, custom_script_resolved
+        )
         try:
             success = services.terminal.switch_to_worktree(
                 existing_worktree.path,
                 terminal_mode,
                 session_id,
                 None,  # No init script for existing worktrees
+                combined_after_init,
                 branch_name=switch_cmd.branch,
                 auto_confirm=options.auto_confirm,
                 ignore_same_session=switch_cmd.ignore_same_session,
@@ -137,6 +164,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             repo_path,
             terminal_mode,
             init_script,
+            custom_script_resolved,
         )
     finally:
         # Restore original suppression setting
@@ -149,6 +177,7 @@ def _create_new_worktree(
     repo_path: Path,
     terminal_mode,
     init_script: str | None = None,
+    custom_script_resolved: str | None = None,
 ) -> None:
     """Create a new worktree for the branch."""
     print_info("Fetching branches...")
@@ -203,12 +232,16 @@ def _create_new_worktree(
     print_success(f"✓ Worktree created at {worktree_path}")
 
     # Switch to the new worktree
+    # Combine after_init and custom script
+    combined_after_init = _combine_after_init_and_custom_script(
+        switch_cmd.after_init, custom_script_resolved
+    )
     success = services.terminal.switch_to_worktree(
         worktree_path,
         terminal_mode,
         None,
         init_script,
-        switch_cmd.after_init,
+        combined_after_init,
         branch_name=switch_cmd.branch,
         ignore_same_session=switch_cmd.ignore_same_session,
     )

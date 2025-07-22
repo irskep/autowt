@@ -6,6 +6,11 @@
 
 ### Added
 
+- Custom script argument interpolation with `--custom-script` option
+  - Run custom scripts with arguments: `autowt switch branch --custom-script="bugfix 123"`
+  - Arguments are interpolated into script templates using `$1`, `$2`, etc. placeholders
+  - Works with both new and existing worktrees
+
 ### Changed
 
 ### Fixed

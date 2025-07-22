@@ -143,6 +143,47 @@ def get_custom_script_from_config(script_name: str) -> str | None:
     return config.scripts.custom.get(script_name)
 
 
+def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
+    """Resolve a custom script specification with argument interpolation.
+
+    Args:
+        script_spec: Space-separated script specification like "bugfix 123"
+                    where first part is script name, rest are arguments
+
+    Returns:
+        The resolved script command with arguments interpolated, or None if script not found
+
+    Example:
+        script_spec = "bugfix 123"
+        config has: bugfix = 'claude "Fix bug described in issue $1"'
+        returns: 'claude "Fix bug described in issue 123"'
+    """
+    if not script_spec:
+        return None
+
+    # Parse script name and arguments
+    parts = script_spec.split()
+    if not parts:
+        return None
+
+    script_name = parts[0]
+    args = parts[1:]
+
+    # Get the script template from config
+    script_template = get_custom_script_from_config(script_name)
+    if not script_template:
+        logger.warning(f"Custom script '{script_name}' not found in configuration")
+        return None
+
+    # Perform argument interpolation
+    resolved_script = script_template
+    for i, arg in enumerate(args, 1):
+        placeholder = f"${i}"
+        resolved_script = resolved_script.replace(placeholder, arg)
+
+    return resolved_script
+
+
 def should_confirm_operation(operation_type: str) -> bool:
     """Check if an operation should require user confirmation.
 

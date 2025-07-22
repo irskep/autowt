@@ -201,6 +201,7 @@ class SwitchCommand:
     ignore_same_session: bool = False
     auto_confirm: bool = False
     debug: bool = False
+    custom_script: str | None = None
 
 
 @dataclass
