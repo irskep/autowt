@@ -41,8 +41,17 @@ def temp_git_repo():
             ["git", "commit", "-m", "Add feature implementation"], cwd=repo_path
         )
 
-        # Return to main
-        run_command(["git", "checkout", "main"], cwd=repo_path)
+        # Return to main - ensure this succeeds
+        result = run_command(["git", "checkout", "main"], cwd=repo_path)
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to checkout main branch: {result.stderr}")
+
+        # Verify we're actually on main
+        status_result = run_command(["git", "branch", "--show-current"], cwd=repo_path)
+        if status_result.returncode != 0 or status_result.stdout.strip() != "main":
+            raise RuntimeError(
+                f"Expected to be on main branch, but got: {status_result.stdout.strip()}"
+            )
 
         yield repo_path
 
