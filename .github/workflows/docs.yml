@@ -7,6 +7,7 @@ on:
     paths: 
       - 'docs/**'
       - 'README.md'
+      - 'CHANGELOG.md'
       - 'mkdocs.yml'
       - 'pyproject.toml'
       - 'requirements-docs.txt'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'docs/**'
       - 'README.md'
+      - 'CHANGELOG.md'
       - 'mkdocs.yml'
       - 'mkdocs-local.yml'
       - 'pyproject.toml'
