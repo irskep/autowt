@@ -46,13 +46,15 @@ class StateService:
             # Windows or other
             return Path.home() / ".autowt"
 
-    def load_config(self) -> Config:
+    def load_config(self, project_dir: Path | None = None) -> Config:
         """Load application configuration using new config system."""
-        logger.debug("Loading configuration via ConfigLoader")
+        logger.debug(
+            f"Loading configuration via ConfigLoader with project_dir={project_dir}"
+        )
 
         # Use the new configuration system
         config_loader = ConfigLoader(app_dir=self.app_dir)
-        return config_loader.load_config()
+        return config_loader.load_config(project_dir=project_dir)
 
     def load_project_config(self, cwd: Path) -> ProjectConfig:
         """Load project configuration from autowt.toml or .autowt.toml in current directory."""

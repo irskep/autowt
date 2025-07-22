@@ -63,7 +63,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
         return
 
     # Load configuration
-    config = services.state.load_config()
+    config = services.state.load_config(project_dir=repo_path)
     project_config = services.state.load_project_config(repo_path)
 
     # Use project config init as default if no init_script provided
@@ -223,7 +223,7 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
     import os  # noqa: PLC0415
 
     # Load configuration
-    config = services.state.load_config()
+    config = services.state.load_config(project_dir=repo_path)
 
     # Find the main repository path (not a worktree)
     worktrees = services.git.list_worktrees(repo_path)
@@ -248,6 +248,7 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
 
     # Get directory pattern from configuration
     directory_pattern = config.worktree.directory_pattern
+    logger.debug(f"Using directory pattern: {directory_pattern}")
 
     # Replace template variables
     pattern_with_vars = directory_pattern.format(
@@ -259,6 +260,7 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
 
     # Expand environment variables
     expanded_pattern = os.path.expandvars(pattern_with_vars)
+    logger.debug(f"Pattern after variable substitution: {expanded_pattern}")
 
     # Create path - handle both absolute and relative paths
     if os.path.isabs(expanded_pattern):
@@ -272,6 +274,7 @@ def _generate_worktree_path(services, repo_path: Path, branch: str) -> Path:
     # Ensure parent directory exists
     worktree_path.parent.mkdir(parents=True, exist_ok=True)
 
+    logger.debug(f"Final worktree path: {worktree_path}")
     return worktree_path
 
 

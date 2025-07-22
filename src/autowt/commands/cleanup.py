@@ -38,14 +38,14 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     """Clean up worktrees based on the specified mode."""
     logger.debug(f"Cleaning up worktrees with mode: {cleanup_cmd.mode}")
 
-    # Load config (still needed for other settings)
-    config = services.state.load_config()
-
     # Find git repository
     repo_path = services.git.find_repo_root()
     if not repo_path:
         print("Error: Not in a git repository")
         return
+
+    # Load config (still needed for other settings)
+    config = services.state.load_config(project_dir=repo_path)
 
     print("Fetching branches...")
     if not services.git.fetch_branches(repo_path):

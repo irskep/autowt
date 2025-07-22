@@ -25,7 +25,7 @@ class MockStateService:
         self.session_ids: dict[str, str] = {}
         self.app_state: dict[str, Any] = {}
 
-    def load_config(self) -> Config:
+    def load_config(self, project_dir: Path | None = None) -> Config:
         return self.configs.get("default", Config())
 
     def save_config(self, config: Config) -> None:
