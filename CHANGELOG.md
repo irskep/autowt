@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- Fixed git error output appearing during cleanup in bare repositories without remotes
+
 ## 0.3.5 - 2025-07-22
 
 ### Added

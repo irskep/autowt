@@ -384,12 +384,23 @@ class GitService:
         return False
 
     def analyze_branches_for_cleanup(
-        self, repo_path: Path, worktrees: list[WorktreeInfo]
+        self,
+        repo_path: Path,
+        worktrees: list[WorktreeInfo],
+        preferred_remote: str | None = None,
     ) -> list[BranchStatus]:
-        """Analyze branches to determine cleanup candidates."""
+        """Analyze branches to determine cleanup candidates.
+
+        Args:
+            repo_path: Repository path
+            worktrees: List of worktrees to analyze
+            preferred_remote: Preferred remote name (future --remote flag support)
+        """
         logger.debug("Analyzing branches for cleanup")
 
-        default_branch = self._prepare_default_branch_for_analysis(repo_path)
+        default_branch = self._prepare_default_branch_for_analysis(
+            repo_path, preferred_remote
+        )
         branch_statuses = [
             self._analyze_single_branch(repo_path, worktree, default_branch)
             for worktree in worktrees
@@ -398,15 +409,38 @@ class GitService:
         logger.debug(f"Analyzed {len(branch_statuses)} branches")
         return branch_statuses
 
-    def _prepare_default_branch_for_analysis(self, repo_path: Path) -> str | None:
-        """Prepare default branch reference for merge analysis."""
+    def _prepare_default_branch_for_analysis(
+        self, repo_path: Path, preferred_remote: str | None = None
+    ) -> str | None:
+        """Prepare default branch reference for merge analysis.
+
+        Args:
+            repo_path: Repository path
+            preferred_remote: Preferred remote name (future --remote flag support)
+
+        Returns:
+            Remote branch reference if remotes exist, otherwise local branch reference
+        """
         default_branch = self._get_default_branch(repo_path)
         if not default_branch:
             logger.warning(
                 "Could not determine default branch, skipping merge analysis"
             )
             return None
-        return f"origin/{default_branch}"
+
+        # Try to find a remote branch reference first
+        remote_ref = self._find_remote_branch_reference(
+            repo_path, default_branch, preferred_remote
+        )
+        if remote_ref:
+            logger.debug(f"Using remote branch reference: {remote_ref}")
+            return remote_ref
+
+        # Fall back to local branch for remoteless repos
+        logger.debug(
+            f"No remotes found, using local branch reference: {default_branch}"
+        )
+        return default_branch
 
     def _analyze_single_branch(
         self, repo_path: Path, worktree: WorktreeInfo, default_branch: str | None
@@ -478,6 +512,100 @@ class GitService:
             return result.stdout.strip()
         return None
 
+    def _get_available_remotes(self, repo_path: Path) -> list[str]:
+        """Get list of available remotes, with preferred remotes first."""
+        try:
+            result = run_command_quiet_on_failure(
+                ["git", "remote"],
+                cwd=repo_path,
+                timeout=10,
+                description="Get available remotes",
+            )
+            if result.returncode != 0:
+                return []
+
+            remotes = result.stdout.strip().split("\n") if result.stdout.strip() else []
+
+            # Prioritize common remote names
+            preferred_order = ["origin", "upstream"]
+            sorted_remotes = []
+
+            # Add preferred remotes first
+            for preferred in preferred_order:
+                if preferred in remotes:
+                    sorted_remotes.append(preferred)
+
+            # Add remaining remotes
+            for remote in remotes:
+                if remote not in sorted_remotes:
+                    sorted_remotes.append(remote)
+
+            return sorted_remotes
+        except Exception:
+            return []
+
+    def _get_remote_default_branch(self, repo_path: Path, remote: str) -> str | None:
+        """Get the default branch for a specific remote."""
+        try:
+            # Try to get from remote HEAD reference
+            result = run_command_quiet_on_failure(
+                ["git", "symbolic-ref", f"refs/remotes/{remote}/HEAD"],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Get default branch from {remote} HEAD",
+            )
+            if result.returncode == 0:
+                branch_ref = result.stdout.strip()
+                if branch_ref.startswith(f"refs/remotes/{remote}/"):
+                    return branch_ref[len(f"refs/remotes/{remote}/") :]
+            return None
+        except Exception:
+            return None
+
+    def _find_remote_branch_reference(
+        self, repo_path: Path, local_branch: str, preferred_remote: str | None = None
+    ) -> str | None:
+        """Find the best remote branch reference for comparison.
+
+        Args:
+            repo_path: Repository path
+            local_branch: Local branch name (e.g., "main")
+            preferred_remote: Preferred remote name (future --remote flag support)
+
+        Returns:
+            Remote branch reference (e.g., "origin/main") or None if no remotes exist
+        """
+        remotes = self._get_available_remotes(repo_path)
+        if not remotes:
+            return None
+
+        # If a specific remote is preferred (future --remote flag), try it first
+        if preferred_remote and preferred_remote in remotes:
+            candidate = f"{preferred_remote}/{local_branch}"
+            if self._remote_branch_exists(repo_path, candidate):
+                return candidate
+
+        # Try each available remote in priority order
+        for remote in remotes:
+            candidate = f"{remote}/{local_branch}"
+            if self._remote_branch_exists(repo_path, candidate):
+                return candidate
+
+        return None
+
+    def _remote_branch_exists(self, repo_path: Path, remote_branch: str) -> bool:
+        """Check if a remote branch reference exists."""
+        try:
+            result = run_command_quiet_on_failure(
+                ["git", "show-ref", "--verify", f"refs/remotes/{remote_branch}"],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Check if {remote_branch} exists",
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
+
     def _branch_has_remote(self, repo_path: Path, branch: str) -> bool:
         """Check if branch has a remote tracking branch."""
         try:
@@ -508,7 +636,7 @@ class GitService:
 
     def _get_commit_hash(self, repo_path: Path, branch: str) -> str | None:
         """Get commit hash for a branch."""
-        result = run_command(
+        result = run_command_quiet_on_failure(
             ["git", "rev-parse", branch],
             cwd=repo_path,
             timeout=10,
@@ -537,7 +665,7 @@ class GitService:
         self, repo_path: Path, branch: str, default_branch: str
     ) -> bool:
         """Check if branch is an ancestor of default branch (was merged)."""
-        result = run_command(
+        result = run_command_quiet_on_failure(
             ["git", "merge-base", "--is-ancestor", branch, default_branch],
             cwd=repo_path,
             timeout=10,
