@@ -167,7 +167,10 @@ class MockGitService:
         return True  # Always succeed for tests
 
     def analyze_branches_for_cleanup(
-        self, repo_path: Path, worktrees: list[WorktreeInfo]
+        self,
+        repo_path: Path,
+        worktrees: list[WorktreeInfo],
+        preferred_remote: str | None = None,
     ) -> list[BranchStatus]:
         return self.branch_statuses.copy()
 
