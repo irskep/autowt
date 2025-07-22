@@ -8,12 +8,7 @@
 
 ### Changed
 
-- Refactored test suite with modern pytest practices and better organization
-    - Reorganized tests into logical directory structure mirroring source code
-    - Replaced unittest.TestCase patterns with pytest fixtures and parametrization
-    - Reduced test boilerplate by ~70% through modernization
-    - Added comprehensive end-to-end test suite covering real CLI workflows
-    - Created centralized test fixtures for consistent test data
+- Modernized test suite with pytest patterns
 
 ### Fixed
 
