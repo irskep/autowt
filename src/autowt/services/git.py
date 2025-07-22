@@ -534,11 +534,26 @@ class GitService:
     def _find_bare_repo_in_dir(self, path: Path) -> Path | None:
         """Find bare git repositories in subdirectories (*.git pattern)."""
         try:
+            bare_repos = []
             # Look for directories ending in .git
             for item in path.iterdir():
                 if item.is_dir() and item.name.endswith(".git"):
                     if self._is_bare_repo(item):
-                        return item
-            return None
+                        bare_repos.append(item)
+
+            if len(bare_repos) == 0:
+                return None
+            elif len(bare_repos) == 1:
+                return bare_repos[0]
+            else:
+                # Multiple bare repositories found - this is ambiguous
+                repo_names = [repo.name for repo in bare_repos]
+                raise ValueError(
+                    f"Multiple bare git repositories found in {path}: {', '.join(repo_names)}. "
+                    f"Please run autowt from within one of the specific repository directories."
+                )
+        except ValueError:
+            # Re-raise ValueError to preserve the specific error message
+            raise
         except Exception:
             return None
