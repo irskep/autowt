@@ -23,16 +23,30 @@ class TestBranchSwitchingE2E:
     def test_switch_to_existing_branch(
         self, temp_git_repo, force_echo_mode, cli_runner
     ):
-        """Test switching to an existing branch."""
+        """Test switching to an existing branch that needs a worktree created."""
+        # Debug: Show git status before test
+        from autowt.utils import run_command
+
+        git_status = run_command(
+            ["git", "status", "--porcelain", "-b"], cwd=temp_git_repo
+        )
+        print(f"Git status before test: {git_status.stdout}")
+
+        git_worktree_list = run_command(["git", "worktree", "list"], cwd=temp_git_repo)
+        print(f"Git worktree list before test: {git_worktree_list.stdout}")
+
         # Change to the test repo directory
         with patch("os.getcwd", return_value=str(temp_git_repo)):
             result = cli_runner.invoke(main, ["feature/test-branch"])
 
+        print(f"Test result exit_code: {result.exit_code}")
+        print(f"Test result output: {repr(result.output)}")
+
         assert result.exit_code == 0
 
-        # Should contain cd command to the existing worktree directory in CLI output
-        assert "cd " in result.output
-        assert "feature-test-branch" in result.output or "test-branch" in result.output
+        # Should contain cd command since we're creating a new worktree
+        assert "cd " in result.output, f"Expected 'cd' in output: {repr(result.output)}"
+        assert "test-branch" in result.output
 
     def test_switch_with_init_script(self, temp_git_repo, force_echo_mode, cli_runner):
         """Test branch switching with init script."""
