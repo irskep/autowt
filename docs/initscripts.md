@@ -25,7 +25,7 @@ autowt feature/new-ui --init "npm install"
 
 This will run `npm install` in the `feature/new-ui` worktree right after it's created.
 
-### With `autowt.toml`:
+### With `.autowt.toml`:
 
 For a more permanent solution, create a `.autowt.toml` file in the root of your repository:
 

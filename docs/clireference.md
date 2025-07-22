@@ -19,6 +19,7 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 | `--ignore-same-session` | Forces `autowt` to create a new terminal, even if a session for that worktree already exists. |
 | `--from <branch>` | Source branch/commit to create worktree from. Accepts any git revision: branch names, tags, commit hashes, `HEAD`, etc. Only used when creating new worktrees. |
 | `--dir <path>` | Directory path for the new worktree. Overrides the configured directory pattern. Supports both absolute and relative paths. |
+| `--custom-script <script>` | Runs a named custom script with arguments. Scripts are defined in your configuration file. Example: `--custom-script="bugfix 123"`. |
 | `--waiting` | Switch to first agent waiting for input. |
 | `--latest` | Switch to most recently active agent. |
 | `-y`, `--yes` | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session. |
@@ -28,7 +29,7 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 
 Lists all worktrees for the current project, indicating the main worktree, your current location, and any active terminal sessions. Running `autowt` with no arguments is equivalent to `autowt ls`.
 
-The @ symbol indicates that there is an active terminal session for a worktree.
+The @ symbol indicates that there is an active terminal session for a worktree. When using Claude Code with agent monitoring enabled, you'll also see agent status indicators like `C?` (waiting), `C…` (working), `C~` (processing), and `C*` (subagent complete). See [AI Agents](agents.md) for detailed information about agent status monitoring.
 
 ```txt
 > autowt ls
@@ -65,7 +66,15 @@ Opens an interactive TUI to configure global `autowt` settings, such as the defa
 
 ### `autowt shellconfig`
 
-Displays a function you could choose to add to your shell config to cd to worktrees without needing autowt to control your terminal program. For example, if you use zsh, you'd see this:
+Displays a function you could choose to add to your shell config to cd to worktrees without needing autowt to control your terminal program.
+
+<div class="autowt-clitable-wrapper"></div>
+
+| Option | Description |
+|---|---|
+| `--shell <shell>` | Override shell detection. Supported shells: `bash`, `zsh`, `fish`, `tcsh`, `csh`, `nu`, `oil`, `elvish`. |
+
+For example, if you use zsh, you'd see this:
 
 ```zsh
 # Shell Integration for autowt
@@ -115,3 +124,4 @@ These options can be used with any `autowt` command.
 | `-y`, `--yes` | Automatically answers "yes" to all confirmation prompts. |
 | `--debug` | Enables verbose debug logging for troubleshooting. |
 | `-h`, `--help` | Shows the help message for `autowt` or a specific subcommand. |
+| `--version` | Shows the autowt version and exits. |

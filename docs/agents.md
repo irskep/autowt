@@ -34,11 +34,11 @@ When you run `autowt ls`, agent status indicators appear alongside terminal sess
   Worktrees:
 → ~/dev/my-project (main worktree)                            main ←
   ~/dev/my-project-worktrees/feature-new-ui @C?     feature-new-ui  
-  ~/dev/my-project-worktrees/hotfix-bug     @C+         hotfix-bug
+  ~/dev/my-project-worktrees/hotfix-bug     @C…         hotfix-bug
   ~/dev/my-project-worktrees/refactor-auth  @        refactor-auth
 ```
 
-The status indicators reveal agent activity at a glance. `C?` indicates a Claude agent waiting for your input, while `C+` shows an agent actively working on a task. `C-` means the agent is idle after recently completing work, `C!` signals notifications or errors, and `C*` indicates a subagent task has completed. A simple `@` shows an active terminal session without an agent.
+The status indicators reveal agent activity at a glance. `C?` indicates a Claude agent waiting for your input, while `C…` shows an agent actively working on a task. `C~` means the agent is processing (between user input and tool execution), and `C*` indicates a subagent task has completed. A simple `@` shows an active terminal session without an agent.
 
 ## Live monitoring dashboard
 
