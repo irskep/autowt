@@ -1,5 +1,7 @@
 # Project conventions
 
+Always read @mise.toml.
+
 - Python 3.10+ project using uv for dependency management
 - Setup: `mise install && uv sync`
 - Format: `mise run format` (ruff)
