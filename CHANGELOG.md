@@ -16,6 +16,9 @@
 - Worktree paths now respect custom `directory_pattern` settings in both global and project configs
 - Added support for template variables: `{repo_dir}`, `{repo_name}`, `{repo_parent_dir}`, `{branch}`
 - Added support for environment variable expansion in directory patterns (e.g., `$HOME`)
+- Added support for bare git repositories (#40)
+- autowt now works from directories containing bare repositories (*.git directories), matching `git worktree add` behavior
+- When multiple bare repositories exist in the same directory, autowt shows a clear error message instead of picking one arbitrarily
 
 ## 0.3.2 - 2025-07-21
 
