@@ -189,7 +189,6 @@ class GitService:
             if from_branch:
                 # User specified a source branch/commit - use it directly
                 logger.debug(f"Creating worktree from specified source: {from_branch}")
-                # Check if branch exists locally first
                 result = run_command_quiet_on_failure(
                     ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
                     cwd=repo_path,
@@ -198,7 +197,7 @@ class GitService:
                 )
 
                 if result.returncode == 0:
-                    # Branch exists locally, check out from from_branch
+                    # Branch exists locally
                     cmd = [
                         "git",
                         "worktree",
@@ -219,7 +218,7 @@ class GitService:
                         from_branch,
                     ]
             else:
-                # No source branch specified - use existing logic
+                # ORIGINAL LOGIC - unchanged from before
                 # Check if branch exists locally
                 result = run_command_quiet_on_failure(
                     ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
