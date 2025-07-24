@@ -3,7 +3,7 @@
 This page provides a comprehensive reference for all `autowt` commands, their options, and usage patterns. For a hands-on introduction, check out the [Getting Started](gettingstarted.md) guide.
 
 ### `autowt <branch-name>`
-*(Alias: `autowt switch <branch-name>`)*
+*(Aliases: `autowt switch <branch-name>`, `autowt sw <branch-name>`, `autowt checkout <branch-name>`, `autowt co <branch-name>`, `autowt goto <branch-name>`, `autowt go <branch-name>`)*
 
 This is the primary and most convenient way to use `autowt`. It's a dynamic command that intelligently handles switching to an existing worktree or creating a new one. `autowt` automatically determines whether the branch exists locally or on the remote, or if it needs to be created from your repository's main branch.
 
@@ -25,7 +25,7 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 | `-y`, `--yes` | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session. |
 
 ### `autowt ls`
-*(Alias: `list`)*
+*(Aliases: `list`, `ll`)*
 
 Lists all worktrees for the current project, indicating the main worktree, your current location, and any active terminal sessions. Running `autowt` with no arguments is equivalent to `autowt ls`.
 
@@ -41,6 +41,7 @@ The @ symbol indicates that there is an active terminal session for a worktree. 
 ```
 
 ### `autowt cleanup`
+*(Alias: `cl`)*
 
 Safely removes worktrees, their directories, and associated local git branches. By default, it launches an interactive TUI to let you select which worktrees to remove. For more on cleanup strategies, see the [Branch Management](branchmanagement.md) guide.
 
@@ -54,7 +55,7 @@ Safely removes worktrees, their directories, and associated local git branches. 
 | `--kill` / `--no-kill` | Overrides the configured behavior for terminating processes running in a worktree's directory before removal. |
 
 ### `autowt config`
-*(Aliases: `configure`, `settings`)*
+*(Aliases: `configure`, `settings`, `cfg`, `conf`)*
 
 Opens an interactive TUI to configure global `autowt` settings, such as the default terminal mode. Learn more in the [Configuration](configuration.md) guide.
 
@@ -65,6 +66,7 @@ Opens an interactive TUI to configure global `autowt` settings, such as the defa
 | `--show` | Display current configuration values from all sources (global and project). Useful for debugging configuration issues. |
 
 ### `autowt shellconfig`
+*(Alias: `shconf`)*
 
 Displays a function you could choose to add to your shell config to cd to worktrees without needing autowt to control your terminal program.
 

@@ -170,6 +170,14 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
     # Create new worktree
     try:
+        # If this is a dynamic command (not explicit 'switch'), prompt for confirmation
+        if switch_cmd.from_dynamic_command and not switch_cmd.auto_confirm:
+            if not confirm_default_yes(
+                f"Create a branch '{switch_cmd.branch}' and worktree?"
+            ):
+                print_info("Worktree creation cancelled.")
+                return
+
         _create_new_worktree(
             services,
             switch_cmd,
