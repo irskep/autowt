@@ -357,7 +357,9 @@ def ls(debug: bool) -> None:
     list_worktrees(services, debug=debug)
 
 
-@main.command(aliases=["cl"], context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    aliases=["cl", "clean"], context_settings={"help_option_names": ["-h", "--help"]}
+)
 @click.option(
     "--mode",
     type=click.Choice(["all", "remoteless", "merged", "interactive"]),

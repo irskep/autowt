@@ -41,7 +41,7 @@ The @ symbol indicates that there is an active terminal session for a worktree. 
 ```
 
 ### `autowt cleanup`
-*(Alias: `cl`)*
+*(Aliases: `cl`, `clean`)*
 
 Safely removes worktrees, their directories, and associated local git branches. By default, it launches an interactive TUI to let you select which worktrees to remove. For more on cleanup strategies, see the [Branch Management](branchmanagement.md) guide.
 

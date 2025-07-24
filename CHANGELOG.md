@@ -13,7 +13,7 @@
     - Comprehensive documentation with team workflow examples
 - Two-character command aliases for improved usability
     - `ls` → `list`, `ll`
-    - `cleanup` → `cl`
+    - `cleanup` → `cl`, `clean`
     - `config` → `configure`, `settings`, `cfg`, `conf`
     - `shellconfig` → `shconf`
     - `switch` → `sw`, `checkout`, `co`, `goto`, `go`
