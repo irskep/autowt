@@ -65,6 +65,7 @@ class CleanupConfig:
 class ScriptsConfig:
     """Lifecycle scripts and custom commands."""
 
+    pre_create: str | None = None
     post_create: str | None = None
     session_init: str | None = None
     pre_cleanup: str | None = None

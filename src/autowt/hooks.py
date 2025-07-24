@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class HookType:
     """Constants for hook types."""
 
+    PRE_CREATE = "pre_create"
     POST_CREATE = "post_create"
     SESSION_INIT = "session_init"
     PRE_CLEANUP = "pre_cleanup"
