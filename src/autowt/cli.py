@@ -358,7 +358,8 @@ def ls(debug: bool) -> None:
 
 
 @main.command(
-    aliases=["cl", "clean"], context_settings={"help_option_names": ["-h", "--help"]}
+    aliases=["cl", "clean", "prune"],
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.option(
     "--mode",
