@@ -187,6 +187,10 @@ If you need to use a different programming language, create a separate script fi
 **Execution Context**: Subprocess in parent directory (worktree doesn't exist yet)  
 **Use cases**: Pre-flight validation, resource availability checks, branch name validation, disk space checks
 
+!!! warning "Blocking Behavior"
+
+    The `pre_create` hook is the first hook that can **prevent worktree creation** by exiting with a non-zero status. Unlike other hooks that show error output but continue the operation, if a `pre_create` hook fails, autowt will completely abort worktree creation.
+
 ```toml
 [scripts]
 pre_create = """
@@ -392,7 +396,7 @@ post_cleanup = "./scripts/post-cleanup.sh"
 
 ### Error handling
 
-Hooks that fail (exit with non-zero status) will log an error but won't stop the autowt operation:
+Most hooks that fail (exit with non-zero status) will log an error but won't stop the autowt operation. However, the `pre_create` hook can abort worktree creation if it fails:
 
 ```bash
 #!/bin/bash
