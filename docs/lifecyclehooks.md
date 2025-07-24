@@ -76,10 +76,11 @@ npm install
 
 ## Complete Lifecycle Hooks
 
-Beyond session_init scripts, autowt supports 7 lifecycle hooks that run at specific points during worktree operations:
+Beyond session_init scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
 | Hook | When it runs | Execution Context | Common use cases |
 |------|-------------|------------------|------------------|
+| `pre_create` | Before creating worktree | Subprocess | Pre-flight validation, resource checks, setup preparation |
 | `post_create` | After creating worktree, before terminal switch | Subprocess | File operations, git setup, dependency installation |
 | `session_init` | In terminal session after switching to worktree | Terminal session | Environment setup, virtual env activation, shell config |
 | `pre_cleanup` | Before cleaning up worktrees | Subprocess | Release ports, backup data |
@@ -97,6 +98,7 @@ Configure hooks in your project's `.autowt.toml` file:
 ```toml
 # .autowt.toml
 [scripts]
+pre_create = "./scripts/validate-branch.sh"
 post_create = "npm install && cp .env.example .env"
 session_init = "source .env && npm run dev"
 pre_cleanup = "./scripts/release-ports.sh"
@@ -113,6 +115,7 @@ Configure hooks globally in `~/.config/autowt/config.toml` (Linux) or `~/Library
 ```toml
 # Global config
 [scripts]
+pre_create = "echo 'Preparing to create worktree...'"
 pre_cleanup = "echo 'Cleaning up worktree...'"
 post_cleanup = "echo 'Worktree cleanup complete'"
 ```
@@ -177,6 +180,37 @@ If you need to use a different programming language, create a separate script fi
 *Technical note: This uses Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`.*
 
 ## Hook Details
+
+### `pre_create` Hook
+
+**Timing**: Before worktree creation begins  
+**Execution Context**: Subprocess in parent directory (worktree doesn't exist yet)  
+**Use cases**: Pre-flight validation, resource availability checks, branch name validation, disk space checks
+
+!!! warning "Blocking Behavior"
+
+    The `pre_create` hook is the first hook that can **prevent worktree creation** by exiting with a non-zero status. Unlike other hooks that show error output but continue the operation, if a `pre_create` hook fails, autowt will completely abort worktree creation.
+
+```toml
+[scripts]
+pre_create = """
+# Validate branch naming convention
+if ! echo "$AUTOWT_BRANCH_NAME" | grep -q '^feature/\|^bugfix/\|^hotfix/'; then
+  echo "Error: Branch must start with feature/, bugfix/, or hotfix/"
+  exit 1
+fi
+"""
+```
+
+The pre_create hook runs before any worktree creation begins, making it perfect for:
+
+- Validating branch names against team conventions
+- Checking system resource availability (disk space, memory)
+- Validating permissions or access rights
+- Running pre-flight checks that could prevent worktree creation
+- Setting up external resources that the worktree will depend on
+
+**Important**: If the pre_create hook fails (exits with non-zero status), worktree creation will be aborted. The worktree directory path is provided but the directory doesn't exist yet, so file operations should target the parent directory or main repository.
 
 ### `post_create` Hook
 
@@ -362,7 +396,7 @@ post_cleanup = "./scripts/post-cleanup.sh"
 
 ### Error handling
 
-Hooks that fail (exit with non-zero status) will log an error but won't stop the autowt operation:
+Most hooks that fail (exit with non-zero status) will log an error but won't stop the autowt operation. However, the `pre_create` hook can abort worktree creation if it fails:
 
 ```bash
 #!/bin/bash
@@ -378,6 +412,85 @@ fi
 ```
 
 ## Real-World Examples
+
+### Branch Naming Validation and Resource Checks
+
+**Problem**: Teams need to enforce branch naming conventions and ensure sufficient system resources before creating expensive worktrees.
+
+**Solution**: Use pre_create hooks to validate requirements before worktree creation begins.
+
+#### Implementation
+
+Create validation scripts:
+
+```bash
+# scripts/validate-branch.sh
+#!/bin/bash
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+
+# Check branch naming convention
+if ! echo "$BRANCH_NAME" | grep -qE '^(feature|bugfix|hotfix|release)/' ; then
+    echo "❌ Error: Branch '$BRANCH_NAME' doesn't follow naming convention"
+    echo "   Branches must start with: feature/, bugfix/, hotfix/, or release/"
+    exit 1
+fi
+
+# Validate branch name length
+if [ ${#BRANCH_NAME} -gt 50 ]; then
+    echo "❌ Error: Branch name too long (${#BRANCH_NAME} chars, max 50)"
+    exit 1
+fi
+
+# Check for reserved branch names
+case "$BRANCH_NAME" in
+    */main | */master | */develop | */production)
+        echo "❌ Error: Cannot create worktree for reserved branch name"
+        exit 1
+        ;;
+esac
+
+echo "✅ Branch name validation passed"
+```
+
+```bash
+# scripts/check-resources.sh
+#!/bin/bash
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+BRANCH_NAME="$AUTOWT_BRANCH_NAME"
+
+# Check available disk space (in KB)
+available=$(df "$(dirname "$WORKTREE_DIR")" | tail -1 | awk '{print $4}')
+required=2097152  # 2GB in KB
+
+if [ "$available" -lt "$required" ]; then
+    echo "❌ Error: Insufficient disk space"
+    echo "   Available: $(echo "$available/1024/1024" | bc)GB"
+    echo "   Required: $(echo "$required/1024/1024" | bc)GB"
+    exit 1
+fi
+
+echo "✅ Resource checks passed"
+```
+
+Update your configuration:
+
+```toml
+# .autowt.toml
+[scripts]
+pre_create = """
+./scripts/validate-branch.sh
+./scripts/check-resources.sh
+
+# Log the worktree creation attempt
+echo "$(date): Creating worktree for $AUTOWT_BRANCH_NAME" >> ~/.autowt/creation.log
+"""
+
+post_create = """
+# Setup project after successful validation
+npm install
+cp .env.example .env
+"""
+```
 
 ### Docker Port Management
 
@@ -585,6 +698,9 @@ HOOK_TYPE="$AUTOWT_HOOK_TYPE"
 WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
 
 case "$HOOK_TYPE" in
+    "pre_create")
+        MESSAGE="🛠️ Preparing to create worktree for branch: $BRANCH_NAME"
+        ;;
     "post_switch")
         MESSAGE="🚀 Started working on branch: $BRANCH_NAME"
         ;;
@@ -610,6 +726,7 @@ curl -X POST "https://dev-tracker.company.com/api/branches" \
 ```toml
 # .autowt.toml
 [scripts] 
+pre_create = "./scripts/notify-team.sh"
 post_switch = "./scripts/notify-team.sh"
 pre_cleanup = "./scripts/notify-team.sh"
 ```

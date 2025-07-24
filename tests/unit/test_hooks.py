@@ -274,6 +274,8 @@ class TestExtractHookScripts:
         # Mock global config - need to set specific values to avoid MagicMock default behavior
         global_config = MagicMock()
         global_config.scripts = MagicMock()
+        global_config.scripts.pre_create = "global pre_create script"
+        global_config.scripts.post_create = None
         global_config.scripts.session_init = "global session_init script"
         global_config.scripts.pre_cleanup = "global pre_cleanup script"
         global_config.scripts.pre_process_kill = None
@@ -284,12 +286,28 @@ class TestExtractHookScripts:
         # Mock project config - need to set specific values to avoid MagicMock default behavior
         project_config = MagicMock()
         project_config.scripts = MagicMock()
+        project_config.scripts.pre_create = None
+        project_config.scripts.post_create = "project post_create script"
         project_config.scripts.session_init = "project session_init script"
         project_config.scripts.pre_cleanup = None
         project_config.scripts.pre_process_kill = None
         project_config.scripts.post_cleanup = None
         project_config.scripts.pre_switch = None
         project_config.scripts.post_switch = "project post_switch script"
+
+        # Test pre_create hook extraction
+        global_scripts, project_scripts = extract_hook_scripts(
+            global_config, project_config, HookType.PRE_CREATE
+        )
+        assert global_scripts == ["global pre_create script"]
+        assert project_scripts == []
+
+        # Test post_create hook extraction
+        global_scripts, project_scripts = extract_hook_scripts(
+            global_config, project_config, HookType.POST_CREATE
+        )
+        assert global_scripts == []
+        assert project_scripts == ["project post_create script"]
 
         # Test init hook extraction
         global_scripts, project_scripts = extract_hook_scripts(
@@ -347,6 +365,7 @@ class TestHookType:
 
     def test_hook_type_constants(self):
         """Test that all hook type constants are defined correctly."""
+        assert HookType.PRE_CREATE == "pre_create"
         assert HookType.POST_CREATE == "post_create"
         assert HookType.SESSION_INIT == "session_init"
         assert HookType.PRE_CLEANUP == "pre_cleanup"
