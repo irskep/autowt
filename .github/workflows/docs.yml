@@ -79,20 +79,6 @@ jobs:
           path: './site'
           retention-days: 30
 
-      - name: Post PR comment with artifact link
-        if: github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.number }}
-          body: |
-            📚 **Documentation Preview**
-
-            A preview of the documentation for this PR has been built successfully.
-
-            You can download the artifact with the built site files from the summary of this workflow run:
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            *Note: You must be logged into GitHub to download the artifact.*
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'

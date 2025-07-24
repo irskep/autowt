@@ -231,6 +231,7 @@ class SwitchCommand:
     custom_script: str | None = None
     from_branch: str | None = None
     dir: str | None = None
+    from_dynamic_command: bool = False
 
 
 @dataclass

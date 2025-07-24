@@ -15,7 +15,9 @@ class TestCLIOptionsE2E:
 
         for mode in terminal_modes:
             with patch("os.getcwd", return_value=str(temp_git_repo)):
-                result = cli_runner.invoke(main, ["test-branch", "--terminal", mode])
+                result = cli_runner.invoke(
+                    main, ["test-branch", "--terminal", mode, "-y"]
+                )
 
             assert result.exit_code == 0
 
@@ -27,7 +29,8 @@ class TestCLIOptionsE2E:
         """Test --init option processing."""
         with patch("os.getcwd", return_value=str(temp_git_repo)):
             result = cli_runner.invoke(
-                main, ["init-test-branch", "--init", "npm install && npm run build"]
+                main,
+                ["init-test-branch", "--init", "npm install && npm run build", "-y"],
             )
 
         assert result.exit_code == 0
@@ -45,6 +48,7 @@ class TestCLIOptionsE2E:
                     "after-init-branch",
                     "--after-init",
                     "code . && echo 'Ready to code!'",
+                    "-y",
                 ],
             )
 
@@ -65,6 +69,7 @@ class TestCLIOptionsE2E:
                     "echo 'Setting up environment'",
                     "--after-init",
                     "echo 'Opening editor'",
+                    "-y",
                 ],
             )
 
@@ -93,7 +98,7 @@ class TestCLIOptionsE2E:
         """Test --ignore-same-session option."""
         with patch("os.getcwd", return_value=str(temp_git_repo)):
             result = cli_runner.invoke(
-                main, ["ignore-session-branch", "--ignore-same-session"]
+                main, ["ignore-session-branch", "--ignore-same-session", "-y"]
             )
 
         assert result.exit_code == 0
@@ -104,7 +109,7 @@ class TestCLIOptionsE2E:
     def test_debug_option(self, temp_git_repo, force_echo_mode, cli_runner):
         """Test --debug option enables additional logging."""
         with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(main, ["debug-branch", "--debug"])
+            result = cli_runner.invoke(main, ["debug-branch", "--debug", "-y"])
 
         assert result.exit_code == 0
 
@@ -158,7 +163,12 @@ class TestCLIOptionsE2E:
         with patch("os.getcwd", return_value=str(temp_git_repo)):
             result = cli_runner.invoke(
                 main,
-                ["config-override-branch", "--init", "echo 'CLI overrides config'"],
+                [
+                    "config-override-branch",
+                    "--init",
+                    "echo 'CLI overrides config'",
+                    "-y",
+                ],
             )
 
         assert result.exit_code == 0

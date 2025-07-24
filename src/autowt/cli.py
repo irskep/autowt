@@ -213,6 +213,7 @@ class AutowtGroup(ClickAliasedGroup):
                 custom_script=kwargs.get("custom_script"),
                 from_branch=kwargs.get("from_branch"),
                 dir=kwargs.get("dir"),
+                from_dynamic_command=True,
             )
             checkout_branch(switch_cmd, services)
 
@@ -345,7 +346,7 @@ def register_session_for_path(debug: bool) -> None:
 
 
 @main.command(
-    aliases=["list"], context_settings={"help_option_names": ["-h", "--help"]}
+    aliases=["list", "ll"], context_settings={"help_option_names": ["-h", "--help"]}
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def ls(debug: bool) -> None:
@@ -356,7 +357,10 @@ def ls(debug: bool) -> None:
     list_worktrees(services, debug=debug)
 
 
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    aliases=["cl", "clean", "prune"],
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 @click.option(
     "--mode",
     type=click.Choice(["all", "remoteless", "merged", "interactive"]),
@@ -445,7 +449,7 @@ def cleanup(
 
 
 @main.command(
-    aliases=["configure", "settings"],
+    aliases=["configure", "settings", "cfg", "conf"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
@@ -462,7 +466,9 @@ def config(debug: bool, show: bool) -> None:
         configure_settings(services)
 
 
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    aliases=["shconf"], context_settings={"help_option_names": ["-h", "--help"]}
+)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option(
     "--shell",
@@ -475,7 +481,10 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     _show_shell_config(shell)
 
 
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    aliases=["sw", "checkout", "co", "goto", "go"],
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 @click.argument("branch", required=False)
 @click.option(
     "--terminal",
@@ -615,7 +624,10 @@ def agents(debug: bool) -> None:
             checkout_branch(switch_cmd, services)
 
 
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@main.command(
+    "hooks-install",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 @click.option(
     "--user", is_flag=True, help="Install hooks at user level (affects all projects)"
 )

@@ -13,7 +13,7 @@ class TestBranchSwitchingE2E:
         """Test creating a new worktree for a new branch."""
         # Change to the test repo directory
         with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(main, ["new-feature-branch"])
+            result = cli_runner.invoke(main, ["new-feature-branch", "-y"])
 
         assert result.exit_code == 0
 
@@ -36,7 +36,7 @@ class TestBranchSwitchingE2E:
 
         # Change to the test repo directory
         with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(main, ["feature/test-branch"])
+            result = cli_runner.invoke(main, ["feature/test-branch", "-y"])
 
         print(f"Test result exit_code: {result.exit_code}")
         print(f"Test result output: {repr(result.output)}")
@@ -51,7 +51,9 @@ class TestBranchSwitchingE2E:
         """Test branch switching with init script."""
         # Change to the test repo directory
         with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(main, ["script-branch", "--init", "npm install"])
+            result = cli_runner.invoke(
+                main, ["script-branch", "--init", "npm install", "-y"]
+            )
 
         assert result.exit_code == 0
 
@@ -66,7 +68,9 @@ class TestBranchSwitchingE2E:
         """Test that CLI terminal mode options are processed correctly."""
         # Change to the test repo directory
         with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(main, ["window-branch", "--terminal", "window"])
+            result = cli_runner.invoke(
+                main, ["window-branch", "--terminal", "window", "-y"]
+            )
 
         assert result.exit_code == 0
 
@@ -92,6 +96,7 @@ class TestBranchSwitchingE2E:
                     "echo 'Setting up'",
                     "--after-init",
                     "code .",
+                    "-y",
                 ],
             )
 

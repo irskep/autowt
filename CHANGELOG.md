@@ -6,6 +6,22 @@
 
 ### Added
 
+- `pre_create` lifecycle hook for worktree creation validation
+    - Runs before worktree creation begins in the parent directory
+    - Can abort worktree creation by exiting with non-zero status
+    - Perfect for branch naming validation, resource checks, and pre-flight validation
+    - Comprehensive documentation with team workflow examples
+- Two-character command aliases for improved usability
+    - `ls` → `list`, `ll`
+    - `cleanup` → `cl`, `clean`, `prune`
+    - `config` → `configure`, `settings`, `cfg`, `conf`
+    - `shellconfig` → `shconf`
+    - `switch` → `sw`, `checkout`, `co`, `goto`, `go`
+- Confirmation prompt for dynamic branch commands to prevent typos
+    - Prompts "Create a branch 'branch-name' and worktree? (Y/n)" for commands like `autowt swtch`
+    - Defaults to "yes" for quick confirmation
+    - Can be bypassed with `-y`/`--yes` flag
+
 ### Changed
 
 ### Fixed
