@@ -238,6 +238,14 @@ def _create_new_worktree(
 
     print_info(f"Creating worktree for {switch_cmd.branch}...")
 
+    # Load configuration for hooks
+    config = services.state.load_config(project_dir=repo_path)
+
+    # Run pre_create hooks before creating the worktree
+    if not _run_pre_create_hooks(worktree_path, repo_path, config, switch_cmd.branch):
+        print_error("pre_create hooks failed, aborting worktree creation")
+        return
+
     # Create the worktree
     if not services.git.create_worktree(
         repo_path, switch_cmd.branch, worktree_path, switch_cmd.from_branch
@@ -246,9 +254,6 @@ def _create_new_worktree(
         return
 
     print_success(f"✓ Worktree created at {worktree_path}")
-
-    # Load configuration for hooks
-    config = services.state.load_config(project_dir=repo_path)
 
     # Run post_create hooks after worktree creation
     if not _run_post_create_hooks(worktree_path, repo_path, config, switch_cmd.branch):
@@ -418,6 +423,42 @@ def find_latest_agent_branch(services: Services) -> str | None:
 
     print_info(f"Switching to most recent agent: {latest_agent.branch}")
     return latest_agent.branch
+
+
+def _run_pre_create_hooks(
+    worktree_path: Path,
+    repo_path: Path,
+    config,
+    branch_name: str,
+) -> bool:
+    """Run pre_create hooks before creating a worktree.
+
+    Returns:
+        True if all hooks succeeded, False if any failed
+    """
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.PRE_CREATE
+    )
+
+    if global_scripts or project_scripts:
+        print_info(f"Running pre_create hooks for {branch_name}")
+        return hook_runner.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.PRE_CREATE,
+            worktree_path,
+            repo_path,
+            branch_name,
+        )
+
+    return True
 
 
 def _run_post_create_hooks(
