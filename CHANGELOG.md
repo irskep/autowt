@@ -18,6 +18,7 @@
   - Auto-detects installation method (UV, Poetry, pip) from project files
   - Shows appropriate upgrade command for detected package manager
   - Rate-limited to check at most once per hour to avoid being intrusive
+- `autowt switch` without a branch name will let you choose or create a worktree interactively
 
 ### Changed
 
