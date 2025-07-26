@@ -1,0 +1,113 @@
+/* CSS for the switch TUI */
+
+#main {
+    height: 100%;
+    background: $surface;
+}
+
+#header-section {
+    height: auto;
+    dock: top;
+    padding: 1;
+    background: $surface;
+}
+
+#instructions {
+    color: $text;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#status-bar {
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+#branch-list {
+    height: 1fr;
+    scrollbar-background: $surface;
+    scrollbar-color: $primary;
+    scrollbar-color-hover: $primary-lighten-1;
+    scrollbar-color-active: $primary-lighten-2;
+}
+
+.section-header {
+    color: $accent;
+    text-style: bold;
+    padding: 1 0;
+    background: $surface-lighten-1;
+}
+
+.branch-row {
+    height: 2;
+    align: left middle;
+    background: $surface;
+}
+
+.branch-row:hover {
+    background: $surface-lighten-1;
+}
+
+.branch-info {
+    width: 1fr;
+    color: $text;
+    padding: 0 1;
+}
+
+.status-info {
+    width: auto;
+    min-width: 15;
+    color: $text-muted;
+    text-align: center;
+    padding: 0 1;
+}
+
+.selection-indicator {
+    width: auto;
+    min-width: 5;
+    color: $text-muted;
+    text-align: center;
+    padding: 0 1;
+}
+
+.selection-indicator:hover {
+    color: $primary;
+    text-style: bold;
+}
+
+#new-branch-input {
+    height: 3;
+    margin: 1;
+    border: solid $primary;
+}
+
+#button-row {
+    height: auto;
+    dock: bottom;
+    align: center bottom;
+    padding: 1;
+}
+
+#confirm {
+    margin-right: 2;
+}
+
+#cancel {
+    margin-left: 2;
+}
+
+#empty {
+    height: 100%;
+    content-align: center middle;
+    color: $text-muted;
+}
+
+/* Cursor styling */
+ListView > .option-list--option-highlighted {
+    background: $primary-lighten-3;
+}
+
+ListView > .option-list--option-highlighted .branch-info {
+    color: $text;
+    text-style: bold;
+}

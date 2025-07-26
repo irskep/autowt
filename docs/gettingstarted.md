@@ -86,6 +86,13 @@ The output will look something like this, with an arrow `→` indicating your cu
 
     `autowt` with no arguments is an alias for `autowt ls`.
 
+!!! tip "Interactive switching"
+
+    You can also use `autowt switch` with no arguments to open an interactive TUI that lets you:
+    - Select from existing worktrees to switch to
+    - Choose branches without worktrees (automatically creates a new worktree)
+    - Create a new branch by entering its name
+
 !!! tip "Additional worktree setup"
 
     If you want dependencies to be installed automatically when creating new worktrees, or need to copy over git-ignored files like `.env` from the main worktree, you can learn how to configure lifecycle hooks in the [Lifecycle Hooks guide](lifecyclehooks.md).

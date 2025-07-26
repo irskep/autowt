@@ -216,22 +216,24 @@ class TestAgentSwitching:
         # Test branch + waiting
         result = runner.invoke(main, ["switch", "my-branch", "--waiting"])
         assert result.exit_code != 0
-        assert "Must specify exactly one of" in result.output
+        assert "Must specify at most one of" in result.output
 
         # Test branch + latest
         result = runner.invoke(main, ["switch", "my-branch", "--latest"])
         assert result.exit_code != 0
-        assert "Must specify exactly one of" in result.output
+        assert "Must specify at most one of" in result.output
 
         # Test waiting + latest
         result = runner.invoke(main, ["switch", "--waiting", "--latest"])
         assert result.exit_code != 0
-        assert "Must specify exactly one of" in result.output
+        assert "Must specify at most one of" in result.output
 
-        # Test no options
-        result = runner.invoke(main, ["switch"])
-        assert result.exit_code != 0
-        assert "Must specify exactly one of" in result.output
+        # Test no options (should attempt interactive mode)
+        with patch("autowt.cli._run_interactive_switch") as mock_interactive:
+            mock_interactive.return_value = (None, False)  # User cancelled
+            result = runner.invoke(main, ["switch"])
+            # Should exit cleanly when user cancels
+            assert result.exit_code == 0
 
     def test_switch_help_shows_all_options(self):
         """Test that switch help shows all available options."""

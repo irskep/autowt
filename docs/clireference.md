@@ -2,10 +2,15 @@
 
 This page provides a comprehensive reference for all `autowt` commands, their options, and usage patterns. For a hands-on introduction, check out the [Getting Started](gettingstarted.md) guide.
 
-### `autowt <branch-name>`
+### `autowt <branch-name>` / `autowt switch`
 *(Aliases: `autowt switch <branch-name>`, `autowt sw <branch-name>`, `autowt checkout <branch-name>`, `autowt co <branch-name>`, `autowt goto <branch-name>`, `autowt go <branch-name>`)*
 
-This is the primary and most convenient way to use `autowt`. It's a dynamic command that intelligently handles switching to an existing worktree or creating a new one. `autowt` automatically determines whether the branch exists locally or on the remote, or if it needs to be created from your repository's main branch.
+This is the primary and most convenient way to use `autowt`. It intelligently handles switching to an existing worktree or creating a new one. `autowt` automatically determines whether the branch exists locally or on the remote, or if it needs to be created from your repository's main branch.
+
+**Interactive Mode**: Running `autowt switch` with no arguments opens an interactive TUI that shows:
+- Existing worktrees you can switch to
+- Branches without worktrees (creates a new worktree when selected)
+- Option to create a new branch interactively
 
 The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `switch` command if your branch name conflicts with another `autowt` command (e.g., `autowt switch cleanup`).
 
