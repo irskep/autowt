@@ -24,6 +24,13 @@ from autowt.commands.hooks import (
     show_installed_hooks,
 )
 from autowt.commands.ls import list_worktrees
+
+try:
+    from autowt.tui.switch import run_switch_tui
+
+    HAS_SWITCH_TUI = True
+except ImportError:
+    HAS_SWITCH_TUI = False
 from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
@@ -34,7 +41,7 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.services.version_check import VersionCheckService
-from autowt.utils import setup_command_logging
+from autowt.utils import run_command_quiet_on_failure, setup_command_logging
 
 
 def setup_logging(debug: bool) -> None:
@@ -195,6 +202,48 @@ def _show_shell_config(shell_override: str | None = None) -> None:
         print()
         print("# For other shells, adapt the above patterns or use manual eval:")
         print('# eval "$(autowt branch-name --terminal=echo)"')
+
+
+def _run_interactive_switch(services) -> tuple[str | None, bool]:
+    """Run interactive switch TUI and return selected branch and if it's new."""
+    if not HAS_SWITCH_TUI:
+        print("Interactive switch not available (Textual dependency missing)")
+        return None, False
+
+    # Find git repository
+    repo_path = services.git.find_repo_root()
+    if not repo_path:
+        print("Error: Not in a git repository")
+        return None, False
+
+    # Get worktrees
+    worktrees = services.git.list_worktrees(repo_path)
+
+    # Get all branches
+    print("Fetching branches...")
+    if not services.git.fetch_branches(repo_path):
+        print("Warning: Failed to fetch latest branches")
+
+    # Get all local branches
+    all_branches = _get_all_local_branches(repo_path)
+
+    return run_switch_tui(worktrees, all_branches)
+
+
+def _get_all_local_branches(repo_path: Path) -> list[str]:
+    """Get all local branch names."""
+    result = run_command_quiet_on_failure(
+        ["git", "branch", "--format=%(refname:short)"],
+        cwd=repo_path,
+        timeout=10,
+        description="Get all local branches",
+    )
+
+    if result.returncode == 0 and result.stdout.strip():
+        branches = [line.strip() for line in result.stdout.strip().split("\n")]
+        return [branch for branch in branches if branch and not branch.startswith("*")]
+
+    return []
 
 
 # Custom Group class that handles unknown commands as branch names and supports aliases
@@ -589,25 +638,38 @@ def switch(
 
     # Validate mutually exclusive options
     option_count = sum([bool(branch), waiting, latest])
-    if option_count != 1:
+    if option_count > 1:
         raise click.UsageError(
-            "Must specify exactly one of: branch name, --waiting, or --latest"
+            "Must specify at most one of: branch name, --waiting, or --latest"
         )
 
-    services = create_services()
-    auto_register_session(services)
-    check_for_version_updates(services)
+    # If no options provided, show interactive TUI
+    if option_count == 0:
+        services = create_services()
+        auto_register_session(services)
+        check_for_version_updates(services)
 
-    # Determine target branch
-    target_branch = branch
-    if waiting:
-        target_branch = find_waiting_agent_branch(services)
-        if not target_branch:
-            return
-    elif latest:
-        target_branch = find_latest_agent_branch(services)
-        if not target_branch:
-            return
+        selected_branch, is_new = _run_interactive_switch(services)
+        if not selected_branch:
+            return  # User cancelled
+
+        # Use the selected branch
+        target_branch = selected_branch
+    else:
+        services = create_services()
+        auto_register_session(services)
+        check_for_version_updates(services)
+
+        # Determine target branch
+        target_branch = branch
+        if waiting:
+            target_branch = find_waiting_agent_branch(services)
+            if not target_branch:
+                return
+        elif latest:
+            target_branch = find_latest_agent_branch(services)
+            if not target_branch:
+                return
 
     # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
