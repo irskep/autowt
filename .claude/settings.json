@@ -42,6 +42,15 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python .claude/hooks/validate-changelog.py"
+          }
+        ]
+      },
+      {
         "hooks": [
           {
             "type": "command",
