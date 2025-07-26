@@ -24,13 +24,6 @@ from autowt.commands.hooks import (
     show_installed_hooks,
 )
 from autowt.commands.ls import list_worktrees
-
-try:
-    from autowt.tui.switch import run_switch_tui
-
-    HAS_SWITCH_TUI = True
-except ImportError:
-    HAS_SWITCH_TUI = False
 from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
@@ -41,6 +34,7 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.services.version_check import VersionCheckService
+from autowt.tui.switch import run_switch_tui
 from autowt.utils import run_command_quiet_on_failure, setup_command_logging
 
 
@@ -206,10 +200,6 @@ def _show_shell_config(shell_override: str | None = None) -> None:
 
 def _run_interactive_switch(services) -> tuple[str | None, bool]:
     """Run interactive switch TUI and return selected branch and if it's new."""
-    if not HAS_SWITCH_TUI:
-        print("Interactive switch not available (Textual dependency missing)")
-        return None, False
-
     # Find git repository
     repo_path = services.git.find_repo_root()
     if not repo_path:
