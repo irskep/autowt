@@ -33,6 +33,7 @@ from autowt.models import (
     SwitchCommand,
     TerminalMode,
 )
+from autowt.services.version_check import VersionCheckService
 from autowt.utils import setup_command_logging
 
 
@@ -77,6 +78,40 @@ def auto_register_session(services: Services) -> None:
 
     except Exception:
         # Silently fail - session registration should never break the main command
+        pass
+
+
+def check_for_version_updates(services: Services) -> None:
+    """Check for version updates and show notification if available."""
+    try:
+        version_service = VersionCheckService(services.state.app_dir)
+
+        # Check for secret environment variable to force showing upgrade prompt
+        force_upgrade_prompt = os.getenv("AUTOWT_FORCE_UPGRADE_PROMPT")
+        if force_upgrade_prompt:
+            # Force display of upgrade prompt for testing
+            method = version_service._detect_installation_method()
+            click.echo(
+                "💡 Update available: autowt 0.99.0 (you have 0.4.2-dev) [FORCED]",
+                err=True,
+            )
+            click.echo(f"   Run: {method.command}", err=True)
+            click.echo("", err=True)
+            return
+
+        version_info = version_service.check_for_updates()
+
+        if version_info and version_info.update_available:
+            click.echo(
+                f"💡 Update available: autowt {version_info.latest} "
+                f"(you have {version_info.current})",
+                err=True,
+            )
+            if version_info.install_command:
+                click.echo(f"   Run: {version_info.install_command}", err=True)
+            click.echo("", err=True)  # Add blank line for spacing
+    except Exception:
+        # Silently fail - version checking should never break the main command
         pass
 
 
@@ -199,6 +234,7 @@ class AutowtGroup(ClickAliasedGroup):
 
             services = create_services()
             auto_register_session(services)
+            check_for_version_updates(services)
 
             # Create and execute SwitchCommand
             switch_cmd = SwitchCommand(
@@ -310,6 +346,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     if ctx.invoked_subcommand is None:
         services = create_services()
         auto_register_session(services)
+        check_for_version_updates(services)
         list_worktrees(services)
 
 
@@ -354,6 +391,7 @@ def ls(debug: bool) -> None:
     setup_logging(debug)
     services = create_services()
     auto_register_session(services)
+    check_for_version_updates(services)
     list_worktrees(services, debug=debug)
 
 
@@ -427,6 +465,7 @@ def cleanup(
 
     services = create_services()
     auto_register_session(services)
+    check_for_version_updates(services)
 
     # Determine kill_processes from configuration or override
     kill_processes = None
@@ -557,6 +596,7 @@ def switch(
 
     services = create_services()
     auto_register_session(services)
+    check_for_version_updates(services)
 
     # Determine target branch
     target_branch = branch
