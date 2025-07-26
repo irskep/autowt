@@ -19,6 +19,7 @@ class VersionInfo(NamedTuple):
     latest: str
     update_available: bool
     install_command: str | None
+    changelog_url: str | None
 
 
 class InstallationMethod(NamedTuple):
@@ -180,11 +181,17 @@ class VersionCheckService:
             method = self._detect_installation_method()
             install_command = method.command
 
+        # Generate changelog URL (GitHub releases page)
+        changelog_url = (
+            "https://github.com/irskep/autowt/releases" if update_available else None
+        )
+
         return VersionInfo(
             current=current,
             latest=latest,
             update_available=update_available,
             install_command=install_command,
+            changelog_url=changelog_url,
         )
 
     def get_cached_version_info(self) -> dict | None:
@@ -207,5 +214,6 @@ class VersionCheckService:
         if update_available:
             method = self._detect_installation_method()
             result["install_command"] = method.command
+            result["changelog_url"] = "https://github.com/irskep/autowt/releases"
 
         return result

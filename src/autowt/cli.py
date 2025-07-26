@@ -97,6 +97,9 @@ def check_for_version_updates(services: Services) -> None:
                 err=True,
             )
             click.echo(f"   Run: {method.command}", err=True)
+            click.echo(
+                "   Release notes: https://github.com/irskep/autowt/releases", err=True
+            )
             click.echo("", err=True)
             return
 
@@ -110,6 +113,8 @@ def check_for_version_updates(services: Services) -> None:
             )
             if version_info.install_command:
                 click.echo(f"   Run: {version_info.install_command}", err=True)
+            if version_info.changelog_url:
+                click.echo(f"   Release notes: {version_info.changelog_url}", err=True)
             click.echo("", err=True)  # Add blank line for spacing
     except Exception:
         # Silently fail - version checking should never break the main command
