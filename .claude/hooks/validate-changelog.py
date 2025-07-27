@@ -4,9 +4,9 @@ Claude Code hook to prevent writing to docs/CHANGELOG.md
 Only allows modifications to the root CHANGELOG.md
 """
 
+import json
 import os
 import sys
-import json
 
 
 def main():
