@@ -204,6 +204,22 @@ def _create_new_worktree(
     if not services.git.fetch_branches(repo_path):
         print_error("Warning: Failed to fetch latest branches")
 
+    # Check if branch exists on remote and prompt user if needed
+    if not switch_cmd.from_branch:  # Only check remote if no explicit source branch
+        remote_exists, remote_name = (
+            services.git.branch_resolver.check_remote_branch_availability(
+                repo_path, switch_cmd.branch
+            )
+        )
+
+        if remote_exists and not switch_cmd.auto_confirm:
+            if not confirm_default_yes(
+                f"Branch '{switch_cmd.branch}' exists on remote '{remote_name}'. "
+                f"Create a local worktree tracking the remote branch?"
+            ):
+                print_info("Worktree creation cancelled.")
+                return
+
     # Generate worktree path with sanitized branch name
     worktree_path = _generate_worktree_path(
         services, repo_path, switch_cmd.branch, switch_cmd.dir

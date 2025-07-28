@@ -18,6 +18,13 @@ class TestCheckoutConfirmation:
         self.mock_services.state.load_config.return_value = MagicMock()
         self.mock_services.state.load_project_config.return_value = MagicMock()
 
+        # Mock branch resolver for remote branch detection
+        self.mock_services.git.branch_resolver = MagicMock()
+        self.mock_services.git.branch_resolver.check_remote_branch_availability.return_value = (
+            False,
+            None,
+        )
+
         # Mock project config to return None for session_init
         project_config = MagicMock()
         project_config.session_init = None
@@ -145,3 +152,153 @@ class TestCheckoutConfirmation:
             mock_create_worktree.assert_not_called()
             # Should switch to existing worktree
             self.mock_services.terminal.switch_to_worktree.assert_called_once()
+
+    @patch("autowt.commands.checkout.confirm_default_yes")
+    @patch("autowt.commands.checkout._generate_worktree_path")
+    @patch("autowt.commands.checkout._run_pre_create_hooks")
+    @patch("autowt.commands.checkout._run_post_create_hooks")
+    @patch("autowt.commands.checkout._run_pre_switch_hooks")
+    @patch("autowt.commands.checkout._run_post_switch_hooks")
+    def test_remote_branch_prompts_for_confirmation(
+        self,
+        mock_post_switch,
+        mock_pre_switch,
+        mock_post_create,
+        mock_pre_create,
+        mock_generate_path,
+        mock_confirm,
+    ):
+        """Test that remote branches prompt for confirmation before creating worktree."""
+        mock_confirm.return_value = True
+        mock_generate_path.return_value = Path("/mock/worktree/path")
+        mock_pre_create.return_value = True
+        mock_post_create.return_value = True
+
+        # Mock terminal switch success
+        self.mock_services.terminal.switch_to_worktree.return_value = True
+
+        # Mock remote branch detection
+        self.mock_services.git.branch_resolver.check_remote_branch_availability.return_value = (
+            True,
+            "origin",
+        )
+
+        switch_cmd = SwitchCommand(
+            branch="remote-branch",
+            terminal_mode=TerminalMode.ECHO,
+            auto_confirm=False,
+        )
+
+        checkout_branch(switch_cmd, self.mock_services)
+
+        # Should prompt for remote branch confirmation
+        mock_confirm.assert_called_once_with(
+            "Branch 'remote-branch' exists on remote 'origin'. Create a local worktree tracking the remote branch?"
+        )
+        # Should proceed with git worktree creation
+        self.mock_services.git.create_worktree.assert_called_once()
+
+    @patch("autowt.commands.checkout.confirm_default_yes")
+    @patch("autowt.commands.checkout.print_info")
+    def test_remote_branch_cancels_when_user_declines(
+        self, mock_print_info, mock_confirm
+    ):
+        """Test that remote branch checkout cancels when user declines confirmation."""
+        mock_confirm.return_value = False
+
+        # Mock remote branch detection
+        self.mock_services.git.branch_resolver.check_remote_branch_availability.return_value = (
+            True,
+            "origin",
+        )
+
+        switch_cmd = SwitchCommand(
+            branch="remote-branch",
+            terminal_mode=TerminalMode.ECHO,
+            auto_confirm=False,
+        )
+
+        checkout_branch(switch_cmd, self.mock_services)
+
+        # Should prompt for remote branch confirmation
+        mock_confirm.assert_called_once_with(
+            "Branch 'remote-branch' exists on remote 'origin'. Create a local worktree tracking the remote branch?"
+        )
+        # Should not create git worktree when declined
+        self.mock_services.git.create_worktree.assert_not_called()
+        # Should show cancellation message
+        mock_print_info.assert_called_with("Worktree creation cancelled.")
+
+    @patch("autowt.commands.checkout.confirm_default_yes")
+    @patch("autowt.commands.checkout._create_new_worktree")
+    def test_remote_branch_with_auto_confirm_skips_prompt(
+        self, mock_create_worktree, mock_confirm
+    ):
+        """Test that remote branches with auto_confirm skip the confirmation prompt."""
+        # Mock remote branch detection
+        self.mock_services.git.branch_resolver.check_remote_branch_availability.return_value = (
+            True,
+            "origin",
+        )
+
+        switch_cmd = SwitchCommand(
+            branch="remote-branch",
+            terminal_mode=TerminalMode.ECHO,
+            auto_confirm=True,
+        )
+
+        checkout_branch(switch_cmd, self.mock_services)
+
+        # Should not prompt when auto_confirm is True
+        mock_confirm.assert_not_called()
+        # Should proceed with worktree creation
+        mock_create_worktree.assert_called_once()
+
+    @patch("autowt.commands.checkout.confirm_default_yes")
+    @patch("autowt.commands.checkout._create_new_worktree")
+    def test_remote_branch_detection_skipped_with_from_branch(
+        self, mock_create_worktree, mock_confirm
+    ):
+        """Test that remote branch detection is skipped when from_branch is specified."""
+        # Mock remote branch detection (shouldn't be called)
+        self.mock_services.git.branch_resolver.remote_branch_availability = (
+            True,
+            "origin",
+        )
+
+        switch_cmd = SwitchCommand(
+            branch="new-branch",
+            terminal_mode=TerminalMode.ECHO,
+            from_branch="main",
+            auto_confirm=False,
+        )
+
+        checkout_branch(switch_cmd, self.mock_services)
+
+        # Should not prompt for remote branch confirmation (from_branch specified)
+        mock_confirm.assert_not_called()
+        # Should proceed with worktree creation
+        mock_create_worktree.assert_called_once()
+
+    @patch("autowt.commands.checkout.confirm_default_yes")
+    @patch("autowt.commands.checkout._create_new_worktree")
+    def test_no_remote_branch_does_not_prompt(self, mock_create_worktree, mock_confirm):
+        """Test that when no remote branch exists, no prompt is shown."""
+        # Mock remote branch detection - no remote branch
+        self.mock_services.git.branch_resolver.check_remote_branch_availability.return_value = (
+            False,
+            None,
+        )
+
+        switch_cmd = SwitchCommand(
+            branch="new-branch",
+            terminal_mode=TerminalMode.ECHO,
+            auto_confirm=False,
+        )
+
+        checkout_branch(switch_cmd, self.mock_services)
+
+        # Should not prompt when no remote branch exists
+        mock_confirm.assert_not_called()
+        # Should proceed with worktree creation
+        mock_create_worktree.assert_called_once()
