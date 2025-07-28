@@ -8,7 +8,7 @@
 
 - Remote branch detection and confirmation prompts when creating worktrees
   - When attempting to create a worktree for a branch that doesn't exist locally, autowt now checks if it exists on remote
-  - Automatically fetches the specific branch from origin if available
+  - Automatically fetches the specific branch from origin if available (optimized to only fetch when not already cached)
   - Prompts user to confirm creating a local worktree that tracks the remote branch
   - Can be bypassed with `-y`/`--yes` flag for automated workflows
   - Only applies when no explicit `--from` branch is specified

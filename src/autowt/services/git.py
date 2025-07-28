@@ -68,7 +68,8 @@ class BranchResolver:
     ) -> tuple[bool, str | None]:
         """Check if branch exists on remote.
 
-        First tries to fetch the specific branch, then checks if it exists remotely.
+        First checks if branch exists remotely (from previous fetches), then tries to fetch
+        the specific branch if not found, and checks again.
 
         Returns:
             Tuple of (exists_remotely, remote_name)
@@ -76,7 +77,11 @@ class BranchResolver:
         if self._branch_exists_locally(repo_path, branch):
             return False, None
 
-        # Try to fetch the specific branch from origin first
+        # First check if branch already exists remotely (from previous fetches)
+        if self._branch_exists_remotely(repo_path, branch):
+            return True, "origin"
+
+        # If not found, try to fetch the specific branch and check again
         if self._try_fetch_specific_branch(repo_path, branch, "origin"):
             if self._branch_exists_remotely(repo_path, branch):
                 return True, "origin"

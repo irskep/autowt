@@ -260,8 +260,8 @@ class TestBranchResolver:
             )
             assert result == (False, None)
 
-    def test_check_remote_branch_availability_fetches_and_finds_remote(self):
-        """Test that check_remote_branch_availability fetches branch and finds it on remote."""
+    def test_check_remote_branch_availability_finds_existing_remote(self):
+        """Test that check_remote_branch_availability finds existing remote branch without fetching."""
         with (
             patch.object(
                 self.git_service.branch_resolver,
@@ -270,19 +270,51 @@ class TestBranchResolver:
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_try_fetch_specific_branch",
+                "_branch_exists_remotely",
                 return_value=True,
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_remotely",
-                return_value=True,
-            ),
+                "_try_fetch_specific_branch",
+            ) as mock_fetch,
         ):
             result = self.git_service.branch_resolver.check_remote_branch_availability(
                 self.repo_path, "feature-branch"
             )
             assert result == (True, "origin")
+            # Should not fetch if branch already exists remotely
+            mock_fetch.assert_not_called()
+
+    def test_check_remote_branch_availability_fetches_when_not_found_remotely(self):
+        """Test that check_remote_branch_availability fetches when branch not found remotely initially."""
+        with (
+            patch.object(
+                self.git_service.branch_resolver,
+                "_branch_exists_locally",
+                return_value=False,
+            ),
+            patch.object(
+                self.git_service.branch_resolver,
+                "_branch_exists_remotely",
+                side_effect=[
+                    False,
+                    True,
+                ],  # First call: not found, second call: found after fetch
+            ),
+            patch.object(
+                self.git_service.branch_resolver,
+                "_try_fetch_specific_branch",
+                return_value=True,
+            ) as mock_fetch,
+        ):
+            result = self.git_service.branch_resolver.check_remote_branch_availability(
+                self.repo_path, "feature-branch"
+            )
+            assert result == (True, "origin")
+            # Should fetch when branch not initially found remotely
+            mock_fetch.assert_called_once_with(
+                self.repo_path, "feature-branch", "origin"
+            )
 
     def test_check_remote_branch_availability_fetch_fails(self):
         """Test that check_remote_branch_availability returns False when fetch fails."""
@@ -291,6 +323,11 @@ class TestBranchResolver:
                 self.git_service.branch_resolver,
                 "_branch_exists_locally",
                 return_value=False,
+            ),
+            patch.object(
+                self.git_service.branch_resolver,
+                "_branch_exists_remotely",
+                return_value=False,  # Not found remotely initially or after fetch
             ),
             patch.object(
                 self.git_service.branch_resolver,
@@ -313,13 +350,13 @@ class TestBranchResolver:
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_try_fetch_specific_branch",
-                return_value=True,
+                "_branch_exists_remotely",
+                return_value=False,  # Not found remotely before or after fetch
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_remotely",
-                return_value=False,
+                "_try_fetch_specific_branch",
+                return_value=True,
             ),
         ):
             result = self.git_service.branch_resolver.check_remote_branch_availability(
