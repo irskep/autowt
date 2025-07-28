@@ -97,6 +97,19 @@ class MockStateService:
         self.app_state["experimental_terminal_warning_shown"] = True
 
 
+class MockBranchResolver:
+    """Mock branch resolver for testing."""
+
+    def __init__(self):
+        self.remote_branch_availability = (False, None)
+
+    def check_remote_branch_availability(
+        self, repo_path: Path, branch: str
+    ) -> tuple[bool, str | None]:
+        """Mock remote branch availability check."""
+        return self.remote_branch_availability
+
+
 class MockGitService:
     """Mock git service for testing."""
 
@@ -109,6 +122,7 @@ class MockGitService:
         self.create_success = True
         self.remove_success = True
         self.install_hooks_success = True
+        self.branch_resolver = MockBranchResolver()
 
         # Track method calls
         self.fetch_called = False

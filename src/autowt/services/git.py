@@ -63,6 +63,60 @@ class BranchResolver:
             )
         return self._build_command_from_branch_hierarchy(repo_path, branch)
 
+    def check_remote_branch_availability(
+        self, repo_path: Path, branch: str
+    ) -> tuple[bool, str | None]:
+        """Check if branch exists on remote.
+
+        First checks if branch exists remotely (from previous fetches), then tries to fetch
+        the specific branch if not found, and checks again.
+
+        Returns:
+            Tuple of (exists_remotely, remote_name)
+        """
+        if self._branch_exists_locally(repo_path, branch):
+            return False, None
+
+        # First check if branch already exists remotely (from previous fetches)
+        if self._branch_exists_remotely(repo_path, branch):
+            return True, "origin"
+
+        # If not found, try to fetch the specific branch and check again
+        if self._try_fetch_specific_branch(repo_path, branch, "origin"):
+            if self._branch_exists_remotely(repo_path, branch):
+                return True, "origin"
+
+        return False, None
+
+    def _try_fetch_specific_branch(
+        self, repo_path: Path, branch: str, remote: str
+    ) -> bool:
+        """Try to fetch a specific branch from remote.
+
+        Returns:
+            True if fetch succeeded, False otherwise
+        """
+        try:
+            result = run_command_quiet_on_failure(
+                ["git", "fetch", remote, f"{branch}:{branch}"],
+                cwd=repo_path,
+                timeout=30,
+                description=f"Fetch specific branch {branch} from {remote}",
+            )
+            return result.returncode == 0
+        except Exception:
+            # If fetch fails (e.g., no remote, network issue), try a simpler fetch
+            try:
+                result = run_command_quiet_on_failure(
+                    ["git", "fetch", remote, branch],
+                    cwd=repo_path,
+                    timeout=30,
+                    description=f"Fetch branch {branch} from {remote}",
+                )
+                return result.returncode == 0
+            except Exception:
+                return False
+
     def _build_command_from_specific_branch(
         self, repo_path: Path, branch: str, from_branch: str
     ) -> Callable[[Path], list[str]]:
