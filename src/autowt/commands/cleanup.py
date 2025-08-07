@@ -91,7 +91,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         return
 
     # Show what will be cleaned up and confirm
-    if not _confirm_cleanup(to_cleanup, cleanup_cmd.mode, cleanup_cmd.dry_run):
+    if not _confirm_cleanup(
+        to_cleanup, cleanup_cmd.mode, cleanup_cmd.dry_run, cleanup_cmd.auto_confirm
+    ):
         print("Cleanup cancelled.")
         return
 
@@ -109,12 +111,15 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         # Run pre_process_kill hooks for each worktree
         _run_pre_process_kill_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
-        # Determine auto_kill value based on CLI flags and config
+        # Determine auto_kill value based on CLI flags, config, and auto_confirm (-y flag)
         if cleanup_cmd.kill_processes is not None:
             # CLI flag specified: --kill (True) or --no-kill (False)
             auto_kill = cleanup_cmd.kill_processes
+        elif cleanup_cmd.auto_confirm:
+            # -y flag specified: auto-confirm process killing if config allows it
+            auto_kill = config.cleanup.kill_processes
         else:
-            # No CLI flag specified: use config default, but still prompt if config says kill
+            # No CLI flag and no -y: use config default, but still prompt if config says kill
             # If config says don't kill processes, auto-decline (like --no-kill)
             # If config says kill processes, prompt user (None)
             auto_kill = None if config.cleanup.kill_processes else False
@@ -217,7 +222,10 @@ def _select_branches_for_cleanup(
 
 
 def _confirm_cleanup(
-    to_cleanup: list[BranchStatus], mode: CleanupMode, dry_run: bool = False
+    to_cleanup: list[BranchStatus],
+    mode: CleanupMode,
+    dry_run: bool = False,
+    auto_confirm: bool = False,
 ) -> bool:
     """Show what will be cleaned up and get user confirmation."""
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
@@ -230,6 +238,10 @@ def _confirm_cleanup(
 
     # Interactive mode already confirmed during selection
     if mode == CleanupMode.INTERACTIVE:
+        return True
+
+    # Skip confirmation if auto_confirm is set (from -y flag)
+    if auto_confirm:
         return True
 
     prompt = f"Proceed with {'dry run' if dry_run else 'cleanup'}?"

@@ -36,8 +36,12 @@ class ProcessService:
             logger.error(f"Failed to find processes: {e}")
             return []
 
-        if result.returncode != 0 or not result.stdout.strip():
-            logger.debug("No processes found or lsof command failed")
+        if not result.stdout.strip():
+            logger.debug("No processes found")
+            return []
+
+        if result.returncode not in [0, 1]:
+            logger.warning(f"lsof command failed with exit code {result.returncode}")
             return []
 
         lines = result.stdout.strip().split("\n")
