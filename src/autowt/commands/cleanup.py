@@ -91,14 +91,16 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         return
 
     # Show what will be cleaned up and confirm
-    if not _confirm_cleanup(to_cleanup, cleanup_cmd.mode, cleanup_cmd.dry_run):
+    if not _confirm_cleanup(
+        to_cleanup, cleanup_cmd.mode, cleanup_cmd.dry_run, cleanup_cmd.auto_confirm
+    ):
         print("Cleanup cancelled.")
         return
 
     # Run pre_cleanup hooks for each worktree
     _run_pre_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
-    # Check for running processes in all worktrees to be removed
+    # Check for running shell processes in all worktrees to be removed
     all_processes = []
     for branch_status in to_cleanup:
         processes = services.process.find_processes_in_directory(branch_status.path)
@@ -109,18 +111,24 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         # Run pre_process_kill hooks for each worktree
         _run_pre_process_kill_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
-        # Determine auto_kill value based on CLI flags and config
+        # Determine auto_kill value based on CLI flags, config, and auto_confirm (-y flag)
         if cleanup_cmd.kill_processes is not None:
             # CLI flag specified: --kill (True) or --no-kill (False)
             auto_kill = cleanup_cmd.kill_processes
+        elif cleanup_cmd.auto_confirm:
+            # -y flag specified: auto-confirm process killing if config allows it
+            auto_kill = config.cleanup.kill_processes
         else:
-            # No CLI flag specified: use config default, but still prompt if config says kill
+            # No CLI flag and no -y: use config default, but still prompt if config says kill
             # If config says don't kill processes, auto-decline (like --no-kill)
             # If config says kill processes, prompt user (None)
             auto_kill = None if config.cleanup.kill_processes else False
 
         if not _handle_running_processes(
-            to_cleanup, services.process, cleanup_cmd.dry_run, auto_kill
+            to_cleanup,
+            services.process,
+            cleanup_cmd.dry_run,
+            auto_kill,
         ):
             print("Cleanup cancelled.")
             return
@@ -214,7 +222,10 @@ def _select_branches_for_cleanup(
 
 
 def _confirm_cleanup(
-    to_cleanup: list[BranchStatus], mode: CleanupMode, dry_run: bool = False
+    to_cleanup: list[BranchStatus],
+    mode: CleanupMode,
+    dry_run: bool = False,
+    auto_confirm: bool = False,
 ) -> bool:
     """Show what will be cleaned up and get user confirmation."""
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
@@ -229,6 +240,10 @@ def _confirm_cleanup(
     if mode == CleanupMode.INTERACTIVE:
         return True
 
+    # Skip confirmation if auto_confirm is set (from -y flag)
+    if auto_confirm:
+        return True
+
     prompt = f"Proceed with {'dry run' if dry_run else 'cleanup'}?"
     return confirm_default_yes(prompt)
 
@@ -239,7 +254,7 @@ def _handle_running_processes(
     dry_run: bool = False,
     auto_kill: bool | None = None,
 ) -> bool:
-    """Handle processes running in worktrees to be removed."""
+    """Handle shell processes running in worktrees to be removed."""
     all_processes = []
     for branch_status in to_cleanup:
         processes = process_service.find_processes_in_directory(branch_status.path)
@@ -250,9 +265,9 @@ def _handle_running_processes(
 
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
 
-    # Show list of processes that will be terminated
+    # Show list of shell processes that will be terminated
     print(
-        f"\n{dry_run_prefix}Found {len(all_processes)} running processes in worktrees to be removed:"
+        f"\n{dry_run_prefix}Found {len(all_processes)} running shell processes in worktrees to be removed:"
     )
     for process in all_processes:
         # Truncate long command lines for display

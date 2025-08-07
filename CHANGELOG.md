@@ -6,9 +6,18 @@
 
 ### Added
 
+- Shell-only process killing for faster and safer cleanup operations
+
 ### Changed
 
-### Fixed
+- Process killing now targets only shell processes (zsh, bash, sh, fish) running directly in worktree directories, using single `lsof +d` call for improved performance (fixes #60, #61, #62, #63)
+- Removed hardcoded 30-second timeout from process discovery (fixes #62)
+
+### Removed
+
+- `process_scan_max_depth` configuration option
+- Process hierarchy building and parent-only killing logic
+- PPID tracking and process relationship analysis
 
 ## 0.4.3 - 2025-07-28
 

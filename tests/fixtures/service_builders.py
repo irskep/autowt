@@ -248,7 +248,9 @@ class MockProcessService:
         self.find_calls = []
         self.terminate_calls = []
 
-    def find_processes_in_directory(self, directory: Path) -> list[ProcessInfo]:
+    def find_processes_in_directory(
+        self, directory: Path, max_depth: int = 2
+    ) -> list[ProcessInfo]:
         self.find_calls.append(directory)
         # Return processes that match this directory
         return [p for p in self.processes if p.working_dir == directory]
