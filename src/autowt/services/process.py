@@ -20,94 +20,69 @@ class ProcessService:
         logger.debug("Process service initialized")
 
     def find_processes_in_directory(self, directory: Path) -> list[ProcessInfo]:
-        """Find all processes running in the specified directory."""
-        logger.debug(f"Finding processes in directory: {directory}")
+        """Find shell processes working in the target directory (non-recursive)."""
+        logger.debug(f"Finding shell processes in directory: {directory}")
 
         if platform.system() == "Windows":
             logger.info("Windows process discovery not yet supported - skipping")
             return []
 
-        processes = []
-
         try:
-            # Use lsof to find processes with open files in the directory
             result = run_command(
-                ["lsof", "+D", str(directory)],
-                timeout=30,
-                description=f"Find processes in directory {directory}",
+                ["lsof", "+d", str(directory)],
+                description=f"Find processes working in {directory}",
             )
-
-            # lsof can return 1 even when it finds results, so check output content
-            if result.returncode != 0 and not result.stdout.strip():
-                logger.debug("No processes found in directory (no output)")
-                return processes
-            elif result.returncode not in [0, 1]:
-                logger.warning(
-                    f"lsof command failed with exit code {result.returncode}: {result.stderr}"
-                )
-                return processes
-
-            # Parse lsof output
-            lines = result.stdout.strip().split("\n")
-            if len(lines) < 2:  # Header line + at least one process
-                return processes
-
-            # Skip header line
-            for line in lines[1:]:
-                try:
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        command = parts[0]
-                        pid = int(parts[1])
-
-                        # Get more detailed process info
-                        process_info = self._get_process_details(
-                            pid, command, directory
-                        )
-                        if process_info:
-                            processes.append(process_info)
-
-                except (ValueError, IndexError) as e:
-                    logger.debug(f"Failed to parse lsof line: {line}, error: {e}")
-                    continue
-
-            logger.debug(f"Found {len(processes)} processes in directory")
-
         except Exception as e:
             logger.error(f"Failed to find processes: {e}")
+            return []
 
+        if result.returncode != 0 or not result.stdout.strip():
+            logger.debug("No processes found or lsof command failed")
+            return []
+
+        lines = result.stdout.strip().split("\n")
+        if len(lines) < 2:  # Need header + at least one process
+            logger.debug("No process data in lsof output")
+            return []
+
+        processes = []
+        seen_pids = set()
+
+        for line in lines[1:]:  # Skip header
+            try:
+                parts = line.strip().split(None, 8)
+                if len(parts) < 2:
+                    continue
+
+                command = parts[0]
+                pid = int(parts[1])
+
+                if not self._is_known_shell(command):
+                    continue
+
+                if pid in seen_pids:
+                    continue
+
+                process_info = ProcessInfo(
+                    pid=pid,
+                    command=command,
+                    working_dir=directory,
+                )
+                processes.append(process_info)
+                seen_pids.add(pid)
+
+            except (ValueError, IndexError):
+                continue
+
+        logger.debug(f"Found {len(processes)} shell processes in directory")
         return processes
 
-    def _get_process_details(
-        self, pid: int, command: str, working_dir: Path
-    ) -> ProcessInfo:
-        """Get detailed information about a process."""
-        try:
-            # Get the full command line
-            result = run_command(
-                ["ps", "-p", str(pid), "-o", "command="],
-                timeout=10,
-                description=f"Get command details for PID {pid}",
-            )
-
-            if result.returncode == 0:
-                full_command = result.stdout.strip()
-            else:
-                full_command = command
-
-            return ProcessInfo(
-                pid=pid,
-                command=full_command,
-                working_dir=working_dir,
-            )
-
-        except Exception as e:
-            logger.debug(f"Failed to get process details for PID {pid}: {e}")
-            return ProcessInfo(
-                pid=pid,
-                command=command,
-                working_dir=working_dir,
-            )
+    def _is_known_shell(self, command: str) -> bool:
+        """Check if a command is a known shell we want to kill."""
+        shell_names = {"zsh", "bash", "sh", "fish"}
+        # Extract just the command name (remove paths and arguments)
+        cmd_name = command.split("/")[-1].split()[0]
+        return cmd_name in shell_names
 
     def terminate_processes(self, processes: list[ProcessInfo]) -> bool:
         """Terminate the given processes with SIGINT then SIGKILL if needed."""
@@ -225,17 +200,17 @@ class ProcessService:
             return False
 
     def print_process_summary(self, processes: list[ProcessInfo]) -> None:
-        """Print a summary of processes that will be terminated."""
+        """Print a summary of shell processes that will be terminated."""
         if not processes:
-            print_plain("No processes found running in worktrees to be deleted.")
+            print_plain("No shell processes found running in worktrees to be deleted.")
             return
 
-        print_output("Shutting down processes operating in worktrees to be deleted...")
+        print_output("Shell processes to be terminated:")
         for process in processes:
             # Truncate long command lines for display
             command = process.command
-            if len(command) > 60:
-                command = command[:57] + "..."
+            if len(command) > 80:
+                command = command[:77] + "..."
 
-            print_output(f"  {command} {process.pid}")
-        print_output("  ...done")
+            print_output(f"  PID {process.pid}: {command}")
+        print_output("")

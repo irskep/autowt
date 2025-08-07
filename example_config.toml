@@ -80,7 +80,8 @@ lowercase = false
 # ============================================================================
 
 [cleanup]
-# Kill processes running in worktrees during cleanup
+# Kill shell processes (zsh, bash, sh, fish) running in worktree directories during cleanup
+# Only looks in the main worktree directory (non-recursive)
 # CLI: --kill / --no-kill
 # ENV: AUTOWT_CLEANUP_KILL_PROCESSES=false
 kill_processes = true

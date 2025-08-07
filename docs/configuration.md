@@ -77,7 +77,7 @@ Configures the `autowt cleanup` command.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `kill_processes` | boolean | `true` | If `true`, automatically kills processes running in a worktree's directory before cleanup. <br> **ENV**: `AUTOWT_CLEANUP_KILL_PROCESSES` <br> **CLI**: `--kill` / `--no-kill` |
+| `kill_processes` | boolean | `true` | If `true`, automatically kills shell processes (zsh, bash, sh, fish) running directly in the worktree directory before cleanup. Only looks in the main directory (non-recursive for speed). <br> **ENV**: `AUTOWT_CLEANUP_KILL_PROCESSES` <br> **CLI**: `--kill` / `--no-kill` |
 | `kill_process_timeout` | integer | `10` | The timeout in seconds to wait when killing processes. <br> **ENV**: `AUTOWT_CLEANUP_KILL_PROCESS_TIMEOUT` |
 | `default_mode` | string | `"interactive"` | The default mode for the `cleanup` command. <br> • `interactive`: (Default in a TTY) Opens a TUI to let you choose what to remove. <br> • `merged`: Selects branches that have been merged into your main branch. <br> • `remoteless`: Selects local branches that don't have an upstream remote. <br> • `all`: Non-interactively selects all merged and remoteless branches. <br> **ENV**: `AUTOWT_CLEANUP_DEFAULT_MODE` <br> **CLI**: `--mode <mode>` |
 

@@ -8,6 +8,7 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "click-aliases" },
+    { name = "gitignore-parser" },
     { name = "rich" },
     { name = "textual" },
     { name = "toml" },
@@ -49,6 +50,7 @@ docs = [
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
     { name = "click-aliases", specifier = ">=1.0.0" },
+    { name = "gitignore-parser", specifier = ">=0.1.12" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.5.3" },
     { name = "mkdocs-github-admonitions-plugin", marker = "extra == 'docs'" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.4.6" },
@@ -382,6 +384,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/72/94/63b0fc47eb32792c7
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/61/5c78b91c3143ed5c14207f463aecfc8f9dbb5092fb2869baf37c273b2705/gitdb-4.0.12-py3-none-any.whl", hash = "sha256:67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf", size = 62794 },
 ]
+
+[[package]]
+name = "gitignore-parser"
+version = "0.1.12"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/a8/faf07759672973362e3f1f9742281a90aec7846e8a4043c4df5652990054/gitignore_parser-0.1.12.tar.gz", hash = "sha256:78b22243adc0f02102c56c5e8c9a1d9121394142ca6143a90daa7f8d7a07a17e", size = 5407 }
 
 [[package]]
 name = "gitpython"

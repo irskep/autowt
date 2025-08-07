@@ -98,7 +98,7 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     # Run pre_cleanup hooks for each worktree
     _run_pre_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
-    # Check for running processes in all worktrees to be removed
+    # Check for running shell processes in all worktrees to be removed
     all_processes = []
     for branch_status in to_cleanup:
         processes = services.process.find_processes_in_directory(branch_status.path)
@@ -120,7 +120,10 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
             auto_kill = None if config.cleanup.kill_processes else False
 
         if not _handle_running_processes(
-            to_cleanup, services.process, cleanup_cmd.dry_run, auto_kill
+            to_cleanup,
+            services.process,
+            cleanup_cmd.dry_run,
+            auto_kill,
         ):
             print("Cleanup cancelled.")
             return
@@ -239,7 +242,7 @@ def _handle_running_processes(
     dry_run: bool = False,
     auto_kill: bool | None = None,
 ) -> bool:
-    """Handle processes running in worktrees to be removed."""
+    """Handle shell processes running in worktrees to be removed."""
     all_processes = []
     for branch_status in to_cleanup:
         processes = process_service.find_processes_in_directory(branch_status.path)
@@ -250,9 +253,9 @@ def _handle_running_processes(
 
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
 
-    # Show list of processes that will be terminated
+    # Show list of shell processes that will be terminated
     print(
-        f"\n{dry_run_prefix}Found {len(all_processes)} running processes in worktrees to be removed:"
+        f"\n{dry_run_prefix}Found {len(all_processes)} running shell processes in worktrees to be removed:"
     )
     for process in all_processes:
         # Truncate long command lines for display
