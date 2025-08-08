@@ -682,6 +682,47 @@ post_switch = "./scripts/start-services.sh"
 pre_cleanup = "./scripts/stop-services.sh"
 ```
 
+### Killing Processes Running in Worktrees Before Cleanup
+
+Development servers like `npm run dev` continue running after switching away from a worktree, leaving orphaned processes that reference files in directories about to be removed. Use pre_cleanup hooks to terminate these processes before worktree cleanup.
+
+#### Simple approach
+
+Kills all `npm run dev` processes system-wide:
+
+```toml
+# .autowt.toml
+[scripts]
+pre_cleanup = """
+pkill -f "npm run dev" || true
+sleep 2
+"""
+```
+
+#### Directory-based approach
+
+For multiple worktrees, filter processes by directory to avoid killing the wrong ones:
+
+```bash
+# scripts/stop-dev-server.sh
+#!/bin/bash
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
+
+# Find Node processes running in this worktree
+# lsof +d lists all processes with open files in the directory
+PIDS=$(lsof +d "$WORKTREE_DIR" 2>/dev/null | awk '$1=="node" {print $2}' | sort -u)
+
+for pid in $PIDS; do
+    kill "$pid" 2>/dev/null || true
+done
+```
+
+```toml
+# .autowt.toml
+[scripts]
+pre_cleanup = "./scripts/stop-dev-server.sh"
+```
+
 ### External Tool Integration
 
 **Problem**: Need to integrate with external tools like monitoring, deployment pipelines, or team notifications.
