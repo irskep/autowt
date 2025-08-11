@@ -394,7 +394,7 @@ class GitService:
 
         try:
             cmd = self.commands.worktree_remove(worktree_path, force)
-            result = run_command_visible(cmd, cwd=repo_path, timeout=30)
+            result = run_command_visible(cmd, cwd=repo_path)
 
             if result.returncode == 0:
                 logger.debug("Worktree removed successfully")
