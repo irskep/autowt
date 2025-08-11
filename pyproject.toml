@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autowt"
-version = "0.4.5-dev"
+version = "0.4.5"
 description = "Customizable git worktree manager"
 readme = "README.md"
 license = "MIT"
