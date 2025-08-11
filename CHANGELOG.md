@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Removed 30-second timeout from git worktree remove operations
+
 ## 0.4.4 - 2025-08-07
 
 ### Added
