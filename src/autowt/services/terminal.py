@@ -1495,15 +1495,33 @@ class WindowsTerminalTerminal(Terminal):
             return False
 
 
-class VSCodeTerminal(Terminal):
-    """VSCode terminal implementation using 'code' CLI command."""
+class EditorTerminal(Terminal):
+    """Abstract base class for editor terminal implementations (VSCode, Cursor, etc.)."""
+
+    @property
+    @abstractmethod
+    def cli_command(self) -> str:
+        """CLI command name (e.g., 'code', 'cursor')."""
+        pass
+
+    @property
+    @abstractmethod
+    def app_names(self) -> list[str]:
+        """Application process names for AppleScript detection."""
+        pass
+
+    @property
+    @abstractmethod
+    def display_name(self) -> str:
+        """Human-readable name for logging and error messages."""
+        pass
 
     def get_current_session_id(self) -> str | None:
-        """VSCode doesn't have session IDs."""
+        """Editors don't have session IDs."""
         return None
 
     def supports_session_management(self) -> bool:
-        """VSCode supports window detection on macOS."""
+        """Editors support window detection on macOS."""
         return self.is_macos
 
     def _path_to_file_url(self, path: Path) -> str:
@@ -1512,16 +1530,13 @@ class VSCodeTerminal(Terminal):
         return f"file://{quote(str(path), safe='/')}"
 
     def _find_window_with_path(self, worktree_path: Path) -> bool:
-        """Find and activate VSCode window containing the target path."""
+        """Find and activate editor window containing the target path."""
         if not self.is_macos:
             return False
 
         target_url = self._path_to_file_url(worktree_path)
 
-        # Try "Code" first (standard VSCode), then "Visual Studio Code"
-        app_names = ["Code", "Visual Studio Code"]
-
-        for app_name in app_names:
+        for app_name in self.app_names:
             applescript = f'''
             tell application "System Events"
                 if not (exists process "{app_name}") then
@@ -1567,11 +1582,11 @@ class VSCodeTerminal(Terminal):
     def switch_to_session(
         self, session_id: str, session_init_script: str | None = None
     ) -> bool:
-        """Try to switch to existing VSCode window with the given path."""
+        """Try to switch to existing editor window with the given path."""
         if not self.is_macos:
             return False
 
-        # For VSCode, session_id is the worktree path
+        # For editors, session_id is the worktree path
         try:
             worktree_path = Path(session_id)
             return self._find_window_with_path(worktree_path)
@@ -1581,141 +1596,65 @@ class VSCodeTerminal(Terminal):
     def open_new_tab(
         self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
-        """Open new VSCode window (VSCode doesn't support tabs via CLI)."""
+        """Open new editor window (editors don't support tabs via CLI)."""
         return self.open_new_window(worktree_path, session_init_script)
 
     def open_new_window(
         self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
-        """Open a new VSCode window."""
-        logger.debug(f"Opening new VSCode window for {worktree_path}")
+        """Open a new editor window."""
+        logger.debug(f"Opening new {self.display_name} window for {worktree_path}")
 
         if session_init_script:
             logger.warning(
-                "VSCode doesn't support running init scripts via CLI. "
+                f"{self.display_name} doesn't support running init scripts via CLI. "
                 "The init script will not be executed."
             )
 
         try:
-            cmd = ["code", "-n", str(worktree_path)]
+            cmd = [self.cli_command, "-n", str(worktree_path)]
             result = run_command(
                 cmd,
                 timeout=10,
-                description="Open VSCode window",
+                description=f"Open {self.display_name} window",
             )
             return result.returncode == 0
 
         except Exception as e:
-            logger.error(f"Failed to open VSCode window: {e}")
+            logger.error(f"Failed to open {self.display_name} window: {e}")
             return False
 
 
-class CursorTerminal(Terminal):
+class VSCodeTerminal(EditorTerminal):
+    """VSCode terminal implementation using 'code' CLI command."""
+
+    @property
+    def cli_command(self) -> str:
+        return "code"
+
+    @property
+    def app_names(self) -> list[str]:
+        return ["Code", "Visual Studio Code"]
+
+    @property
+    def display_name(self) -> str:
+        return "VSCode"
+
+
+class CursorTerminal(EditorTerminal):
     """Cursor terminal implementation using 'cursor' CLI command."""
 
-    def get_current_session_id(self) -> str | None:
-        """Cursor doesn't have session IDs."""
-        return None
+    @property
+    def cli_command(self) -> str:
+        return "cursor"
 
-    def supports_session_management(self) -> bool:
-        """Cursor supports window detection on macOS."""
-        return self.is_macos
+    @property
+    def app_names(self) -> list[str]:
+        return ["Cursor"]
 
-    def _path_to_file_url(self, path: Path) -> str:
-        """Convert absolute path to file:// URL format."""
-        path = path.resolve()
-        return f"file://{quote(str(path), safe='/')}"
-
-    def _find_window_with_path(self, worktree_path: Path) -> bool:
-        """Find and activate Cursor window containing the target path."""
-        if not self.is_macos:
-            return False
-
-        target_url = self._path_to_file_url(worktree_path)
-
-        applescript = f'''
-        tell application "System Events"
-            if not (exists process "Cursor") then
-                return false
-            end if
-
-            tell process "Cursor"
-                set targetURL to "{target_url}"
-                set foundWindow to missing value
-                set windowIndex to 0
-
-                repeat with w in windows
-                    set windowIndex to windowIndex + 1
-                    try
-                        set docPath to value of attribute "AXDocument" of w
-                        if docPath starts with targetURL or targetURL starts with docPath then
-                            set foundWindow to windowIndex
-                            exit repeat
-                        end if
-                    on error
-                        -- window has no document attribute
-                    end try
-                end repeat
-
-                if foundWindow is not missing value then
-                    -- Activate the window
-                    set frontmost to true
-                    click window foundWindow
-                    return true
-                else
-                    return false
-                end if
-            end tell
-        end tell
-        '''
-
-        result = self._run_applescript_with_result(applescript)
-        return result == "true" if result else False
-
-    def switch_to_session(
-        self, session_id: str, session_init_script: str | None = None
-    ) -> bool:
-        """Try to switch to existing Cursor window with the given path."""
-        if not self.is_macos:
-            return False
-
-        # For Cursor, session_id is the worktree path
-        try:
-            worktree_path = Path(session_id)
-            return self._find_window_with_path(worktree_path)
-        except Exception:
-            return False
-
-    def open_new_tab(
-        self, worktree_path: Path, session_init_script: str | None = None
-    ) -> bool:
-        """Open new Cursor window (Cursor doesn't support tabs via CLI)."""
-        return self.open_new_window(worktree_path, session_init_script)
-
-    def open_new_window(
-        self, worktree_path: Path, session_init_script: str | None = None
-    ) -> bool:
-        """Open a new Cursor window."""
-        logger.debug(f"Opening new Cursor window for {worktree_path}")
-
-        if session_init_script:
-            logger.warning(
-                "Cursor doesn't support running init scripts via CLI. "
-                "The init script will not be executed."
-            )
-
-        try:
-            cmd = ["cursor", "-n", str(worktree_path)]
-            result = run_command(
-                cmd,
-                timeout=10,
-                description="Open Cursor window",
-            )
-            return result.returncode == 0
-
-        except Exception as e:
-            logger.error(f"Failed to open Cursor window: {e}")
-            return False
+    @property
+    def display_name(self) -> str:
+        return "Cursor"
 
 
 class GenericTerminal(Terminal):
