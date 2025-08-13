@@ -2,13 +2,13 @@
 
 `autowt`’s intended user experience is that it will open terminal tabs on your behalf. However, the author only has a Mac and only so much energy for testing terminals, so a lot of support is “experimental,” i.e. vibecoded. This page captures explicitly how well each terminal has been tested.
 
-tl;dr iTerm2 and Terminal.app on macOS work great, everything else is experimental.
+tl;dr iTerm2, Terminal.app, VSCode, and Cursor work great. Everything else is experimental.
 
 ## Support levels
 
 | Level | Description | Terminals |
 | --- | --- | --- |
-| ✅ **Fully Supported** | Full integration, including session management, and tab/window control. | iTerm2 (macOS), Terminal.app (macOS) |
+| ✅ **Fully Supported** | Full integration, including session management, and tab/window control. | iTerm2 (macOS), Terminal.app (macOS), VSCode, Cursor |
 | ⚠️ **Experimental** | Basic integration is in place, but with limited testing. May be unstable. | tmux, Linux terminals, Windows Terminal |
 | 📋 **Basic** | `autowt` can open new terminal processes, but without session tracking. | Alacritty, Kitty, WezTerm, Hyper |
 
@@ -18,6 +18,8 @@ tl;dr iTerm2 and Terminal.app on macOS work great, everything else is experiment
 | --- | --- | --- |
 | **iTerm2** | ✅ Fully Supported | The recommended terminal for `autowt`. Offers precise session tracking and robust control. |
 | **Terminal.app** | ✅ Fully Supported | Excellent support for the built-in macOS terminal. |
+| **VSCode** | ✅ Fully Supported | Opens worktrees in new VSCode windows. On macOS, can switch to existing windows. Use `--terminal=vscode`. |
+| **Cursor** | ✅ Fully Supported | Opens worktrees in new Cursor windows. On macOS, can switch to existing windows. Use `--terminal=cursor`. |
 
 !!! info "Permissions on macOS"
 
