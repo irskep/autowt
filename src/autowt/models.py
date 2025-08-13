@@ -22,6 +22,8 @@ class TerminalMode(Enum):
     WINDOW = "window"
     INPLACE = "inplace"
     ECHO = "echo"
+    VSCODE = "vscode"
+    CURSOR = "cursor"
 
 
 class CleanupMode(Enum):

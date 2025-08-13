@@ -12,7 +12,7 @@ While powerful for any developer, `autowt` is a game-changer for those working w
 
 **Seamless Terminal Integration**
 
-Switching branches is as simple as typing `autowt <branch-name>`. `autowt` intelligently manages your terminal sessions, automatically switching to the correct tab or window, or creating a new one if needed.
+Switching branches is as simple as typing `autowt <branch-name>`. `autowt` intelligently manages your terminal sessions, automatically switching to the correct tab or window, or creating a new one if needed. Supports all major terminals including iTerm2, Terminal.app, VSCode, and Cursor.
 
 **AI Agent Ready**
 

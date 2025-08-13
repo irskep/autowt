@@ -7,6 +7,7 @@ import shlex
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
+from urllib.parse import quote
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
@@ -1494,6 +1495,168 @@ class WindowsTerminalTerminal(Terminal):
             return False
 
 
+class EditorTerminal(Terminal):
+    """Abstract base class for editor terminal implementations (VSCode, Cursor, etc.)."""
+
+    @property
+    @abstractmethod
+    def cli_command(self) -> str:
+        """CLI command name (e.g., 'code', 'cursor')."""
+        pass
+
+    @property
+    @abstractmethod
+    def app_names(self) -> list[str]:
+        """Application process names for AppleScript detection."""
+        pass
+
+    @property
+    @abstractmethod
+    def display_name(self) -> str:
+        """Human-readable name for logging and error messages."""
+        pass
+
+    def get_current_session_id(self) -> str | None:
+        """Editors don't have session IDs."""
+        return None
+
+    def supports_session_management(self) -> bool:
+        """Editors support window detection on macOS."""
+        return self.is_macos
+
+    def _path_to_file_url(self, path: Path) -> str:
+        """Convert absolute path to file:// URL format."""
+        path = path.resolve()
+        return f"file://{quote(str(path), safe='/')}"
+
+    def _find_window_with_path(self, worktree_path: Path) -> bool:
+        """Find and activate editor window containing the target path."""
+        if not self.is_macos:
+            return False
+
+        target_url = self._path_to_file_url(worktree_path)
+
+        for app_name in self.app_names:
+            applescript = f'''
+            tell application "System Events"
+                if not (exists process "{app_name}") then
+                    return false
+                end if
+
+                tell process "{app_name}"
+                    set targetURL to "{target_url}"
+                    set foundWindow to missing value
+                    set windowIndex to 0
+
+                    repeat with w in windows
+                        set windowIndex to windowIndex + 1
+                        try
+                            set docPath to value of attribute "AXDocument" of w
+                            if docPath starts with targetURL or targetURL starts with docPath then
+                                set foundWindow to windowIndex
+                                exit repeat
+                            end if
+                        on error
+                            -- window has no document attribute
+                        end try
+                    end repeat
+
+                    if foundWindow is not missing value then
+                        -- Activate the window
+                        set frontmost to true
+                        click window foundWindow
+                        return true
+                    else
+                        return false
+                    end if
+                end tell
+            end tell
+            '''
+
+            result = self._run_applescript_with_result(applescript)
+            if result == "true":
+                return True
+
+        return False
+
+    def switch_to_session(
+        self, session_id: str, session_init_script: str | None = None
+    ) -> bool:
+        """Try to switch to existing editor window with the given path."""
+        if not self.is_macos:
+            return False
+
+        # For editors, session_id is the worktree path
+        try:
+            worktree_path = Path(session_id)
+            return self._find_window_with_path(worktree_path)
+        except Exception:
+            return False
+
+    def open_new_tab(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
+        """Open new editor window (editors don't support tabs via CLI)."""
+        return self.open_new_window(worktree_path, session_init_script)
+
+    def open_new_window(
+        self, worktree_path: Path, session_init_script: str | None = None
+    ) -> bool:
+        """Open a new editor window."""
+        logger.debug(f"Opening new {self.display_name} window for {worktree_path}")
+
+        if session_init_script:
+            logger.warning(
+                f"{self.display_name} doesn't support running init scripts via CLI. "
+                "The init script will not be executed."
+            )
+
+        try:
+            cmd = [self.cli_command, "-n", str(worktree_path)]
+            result = run_command(
+                cmd,
+                timeout=10,
+                description=f"Open {self.display_name} window",
+            )
+            return result.returncode == 0
+
+        except Exception as e:
+            logger.error(f"Failed to open {self.display_name} window: {e}")
+            return False
+
+
+class VSCodeTerminal(EditorTerminal):
+    """VSCode terminal implementation using 'code' CLI command."""
+
+    @property
+    def cli_command(self) -> str:
+        return "code"
+
+    @property
+    def app_names(self) -> list[str]:
+        return ["Code", "Visual Studio Code"]
+
+    @property
+    def display_name(self) -> str:
+        return "VSCode"
+
+
+class CursorTerminal(EditorTerminal):
+    """Cursor terminal implementation using 'cursor' CLI command."""
+
+    @property
+    def cli_command(self) -> str:
+        return "cursor"
+
+    @property
+    def app_names(self) -> list[str]:
+        return ["Cursor"]
+
+    @property
+    def display_name(self) -> str:
+        return "Cursor"
+
+
 class GenericTerminal(Terminal):
     """Generic terminal implementation for fallback - echoes commands instead of executing them."""
 
@@ -1660,7 +1823,12 @@ class TerminalService:
             return False
 
         # Fully supported terminals
-        fully_supported = (ITerm2Terminal, TerminalAppTerminal)
+        fully_supported = (
+            ITerm2Terminal,
+            TerminalAppTerminal,
+            VSCodeTerminal,
+            CursorTerminal,
+        )
         return not isinstance(self.terminal, fully_supported)
 
     def _get_terminal_github_url(self) -> str:
@@ -1720,6 +1888,13 @@ class TerminalService:
             return ITerm2Terminal()
         elif term_program == "Apple_Terminal":
             return TerminalAppTerminal()
+        elif term_program == "vscode":
+            # Both VSCode and Cursor set TERM_PROGRAM to "vscode"
+            # Check for Cursor-specific environment variable
+            if os.getenv("CURSOR_TRACE_ID"):
+                return CursorTerminal()
+            else:
+                return VSCodeTerminal()
         elif term_program == "WezTerm":
             return WezTermTerminal()
         elif term_program == "Hyper":
@@ -1857,6 +2032,36 @@ class TerminalService:
                 auto_confirm,
                 ignore_same_session,
             )
+        elif mode == TerminalMode.VSCODE:
+            # Force use of VSCodeTerminal regardless of detected terminal
+            vscode_terminal = VSCodeTerminal()
+
+            # Try to switch to existing window first on macOS
+            if vscode_terminal.supports_session_management():
+                if vscode_terminal.switch_to_session(str(worktree_path)):
+                    print(
+                        f"Switched to existing VSCode window for {branch_name or 'worktree'}"
+                    )
+                    return True
+
+            # Fall back to opening new window
+            combined_script = self._combine_scripts(session_init_script, after_init)
+            return vscode_terminal.open_new_window(worktree_path, combined_script)
+        elif mode == TerminalMode.CURSOR:
+            # Force use of CursorTerminal regardless of detected terminal
+            cursor_terminal = CursorTerminal()
+
+            # Try to switch to existing window first on macOS
+            if cursor_terminal.supports_session_management():
+                if cursor_terminal.switch_to_session(str(worktree_path)):
+                    print(
+                        f"Switched to existing Cursor window for {branch_name or 'worktree'}"
+                    )
+                    return True
+
+            # Fall back to opening new window
+            combined_script = self._combine_scripts(session_init_script, after_init)
+            return cursor_terminal.open_new_window(worktree_path, combined_script)
         else:
             logger.error(f"Unknown terminal mode: {mode}")
             return False

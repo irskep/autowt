@@ -6,6 +6,9 @@
 
 ### Added
 
+- VSCode and Cursor support as terminal options - use `--terminal=vscode` or `--terminal=cursor` to open worktrees directly in editor windows
+- Window detection for VSCode and Cursor on macOS - switches to existing editor windows when possible instead of opening duplicates
+
 ### Changed
 
 ### Fixed
