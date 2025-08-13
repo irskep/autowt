@@ -304,7 +304,9 @@ class AutowtGroup(ClickAliasedGroup):
             params=[
                 click.Option(
                     ["--terminal"],
-                    type=click.Choice(["tab", "window", "inplace", "echo"]),
+                    type=click.Choice(
+                        ["tab", "window", "inplace", "echo", "vscode", "cursor"]
+                    ),
                     help="How to open the worktree terminal",
                 ),
                 click.Option(
@@ -571,7 +573,7 @@ def shellconfig(debug: bool, shell: str | None) -> None:
 @click.argument("branch", required=False)
 @click.option(
     "--terminal",
-    type=click.Choice(["tab", "window", "inplace", "echo"]),
+    type=click.Choice(["tab", "window", "inplace", "echo", "vscode", "cursor"]),
     help="How to open the worktree terminal",
 )
 @click.option(
