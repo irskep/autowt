@@ -49,6 +49,15 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     # Load config (still needed for other settings)
     config = services.state.load_config(project_dir=repo_path)
 
+    # For GitHub mode, check gh availability early
+    if cleanup_cmd.mode == CleanupMode.GITHUB:
+        try:
+            # This will raise RuntimeError if gh is not available
+            services.git.analyze_branches_for_github_cleanup(repo_path, [])
+        except RuntimeError as e:
+            print(f"Error: {e}")
+            return
+
     print("Fetching branches...")
     if not services.git.fetch_branches(repo_path):
         print("Warning: Failed to fetch latest branches")
@@ -68,15 +77,44 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         return
 
     # Analyze branches
-    branch_statuses = services.git.analyze_branches_for_cleanup(repo_path, worktrees)
+    if cleanup_cmd.mode == CleanupMode.GITHUB:
+        branch_statuses = services.git.analyze_branches_for_github_cleanup(
+            repo_path, worktrees
+        )
+    else:
+        branch_statuses = services.git.analyze_branches_for_cleanup(
+            repo_path, worktrees
+        )
 
     # Categorize branches
-    remoteless_branches = [bs for bs in branch_statuses if not bs.has_remote]
-    identical_branches = [bs for bs in branch_statuses if bs.is_identical]
-    merged_branches = [bs for bs in branch_statuses if bs.is_merged]
+    if cleanup_cmd.mode == CleanupMode.GITHUB:
+        # For GitHub mode, categorize based on PR status
+        github_merged_branches = [bs for bs in branch_statuses if bs.is_merged]
+        github_open_branches = [bs for bs in branch_statuses if not bs.is_merged]
 
-    # Display status
-    _display_branch_status(remoteless_branches, identical_branches, merged_branches)
+        # Display GitHub-specific status
+        if github_merged_branches:
+            print("Branches with merged or closed PRs:")
+            for branch_status in github_merged_branches:
+                print(f"- {branch_status.branch}")
+            print()
+
+        if github_open_branches:
+            print("Branches with open or no PRs (will be kept):")
+            for branch_status in github_open_branches:
+                print(f"- {branch_status.branch}")
+            print()
+
+        remoteless_branches = []
+        identical_branches = []
+        merged_branches = github_merged_branches
+    else:
+        remoteless_branches = [bs for bs in branch_statuses if not bs.has_remote]
+        identical_branches = [bs for bs in branch_statuses if bs.is_identical]
+        merged_branches = [bs for bs in branch_statuses if bs.is_merged]
+
+        # Display status
+        _display_branch_status(remoteless_branches, identical_branches, merged_branches)
 
     # Determine what to clean up based on mode
     to_cleanup = _select_branches_for_cleanup(
@@ -204,6 +242,9 @@ def _select_branches_for_cleanup(
                 to_cleanup.append(branch_status)
                 seen_branches.add(branch_status.branch)
         return _filter_clean_worktrees(to_cleanup)
+    elif mode == CleanupMode.GITHUB:
+        # For GitHub mode, use branches marked as merged (which are those with merged/closed PRs)
+        return _filter_clean_worktrees(merged_branches)
     elif mode == CleanupMode.INTERACTIVE:
         # Interactive mode shows all worktrees including those with uncommitted changes
         # Users can make informed decisions about what to clean up

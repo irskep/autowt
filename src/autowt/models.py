@@ -31,6 +31,7 @@ class CleanupMode(Enum):
     REMOTELESS = "remoteless"
     MERGED = "merged"
     INTERACTIVE = "interactive"
+    GITHUB = "github"
 
 
 @dataclass

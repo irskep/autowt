@@ -445,7 +445,7 @@ def ls(debug: bool) -> None:
 )
 @click.option(
     "--mode",
-    type=click.Choice(["all", "remoteless", "merged", "interactive"]),
+    type=click.Choice(["all", "remoteless", "merged", "interactive", "github"]),
     default=None,
     help="Cleanup mode (default: interactive in TTY, required otherwise)",
 )
@@ -504,7 +504,7 @@ def cleanup(
             # Non-interactive environment (script, CI, etc.) - require explicit mode
             raise click.UsageError(
                 "No TTY detected. Please specify --mode explicitly when running in scripts or CI. "
-                "Available modes: all, remoteless, merged, interactive"
+                "Available modes: all, remoteless, merged, interactive, github"
             )
 
     services = create_services()
