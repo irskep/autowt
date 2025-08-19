@@ -53,7 +53,7 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     if cleanup_cmd.mode == CleanupMode.GITHUB:
         try:
             # This will raise RuntimeError if gh is not available
-            services.git.analyze_branches_for_github_cleanup(repo_path, [])
+            services.github.analyze_branches_for_cleanup(repo_path, [], services.git)
         except RuntimeError as e:
             print(f"Error: {e}")
             return
@@ -78,8 +78,8 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
 
     # Analyze branches
     if cleanup_cmd.mode == CleanupMode.GITHUB:
-        branch_statuses = services.git.analyze_branches_for_github_cleanup(
-            repo_path, worktrees
+        branch_statuses = services.github.analyze_branches_for_cleanup(
+            repo_path, worktrees, services.git
         )
     else:
         branch_statuses = services.git.analyze_branches_for_cleanup(

@@ -20,8 +20,8 @@ class TestGitHubCleanupMode:
         mock_services.git.find_repo_root.return_value = Path("/test/repo")
         mock_services.state.load_config.return_value = Mock()
 
-        # Mock analyze_branches_for_github_cleanup to raise error
-        mock_services.git.analyze_branches_for_github_cleanup.side_effect = RuntimeError(
+        # Mock analyze_branches_for_cleanup to raise error
+        mock_services.github.analyze_branches_for_cleanup.side_effect = RuntimeError(
             "GitHub cleanup requires 'gh' CLI tool to be installed.\n"
             "Install it from: https://cli.github.com/\n"
             "Or use a different cleanup mode: --mode merged, --mode remoteless, etc."
@@ -89,9 +89,7 @@ class TestGitHubCleanupMode:
                 has_uncommitted_changes=False,
             ),
         ]
-        mock_services.git.analyze_branches_for_github_cleanup.return_value = (
-            github_statuses
-        )
+        mock_services.github.analyze_branches_for_cleanup.return_value = github_statuses
 
         # Mock process service
         mock_services.process.find_processes_in_directory.return_value = []
@@ -151,9 +149,7 @@ class TestGitHubCleanupMode:
                 has_uncommitted_changes=True,  # Has uncommitted changes
             ),
         ]
-        mock_services.git.analyze_branches_for_github_cleanup.return_value = (
-            github_statuses
-        )
+        mock_services.github.analyze_branches_for_cleanup.return_value = github_statuses
 
         # Mock process and git services
         mock_services.process.find_processes_in_directory.return_value = []
@@ -216,9 +212,7 @@ class TestGitHubCleanupMode:
                 has_uncommitted_changes=False,
             ),
         ]
-        mock_services.git.analyze_branches_for_github_cleanup.return_value = (
-            github_statuses
-        )
+        mock_services.github.analyze_branches_for_cleanup.return_value = github_statuses
 
         # Mock process service
         mock_services.process.find_processes_in_directory.return_value = []

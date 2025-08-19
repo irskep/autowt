@@ -516,13 +516,8 @@ def cleanup(
                     "You can change this later using 'autowt config' or by editing config.toml\n"
                 )
             else:
-                # User has configured preference - use it or GitHub for GitHub repos
-                repo_path = services.git.find_repo_root()
-                if repo_path and services.git.is_github_repo(repo_path):
-                    # Default to github mode for GitHub repos
-                    mode = "github"
-                else:
-                    mode = config.cleanup.default_mode.value
+                # User has configured preference - use it
+                mode = config.cleanup.default_mode.value
         else:
             # Non-interactive environment (script, CI, etc.) - require explicit mode
             raise click.UsageError(
