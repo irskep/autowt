@@ -7,6 +7,8 @@
 ### Added
 
 - GitHub cleanup mode: A new `--mode github` option for the `cleanup` command that uses the GitHub CLI (`gh`) to identify branches with merged or closed pull requests. This provides more accurate cleanup decisions for GitHub-based workflows. Requires `gh` CLI to be installed.
+  - Automatically defaults to GitHub mode for repositories with a GitHub origin remote (when in TTY)
+  - Falls back gracefully with helpful error messages if `gh` is not installed
 
 ### Changed
 

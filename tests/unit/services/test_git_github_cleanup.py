@@ -42,6 +42,46 @@ class TestGitHubCleanup:
         with patch("shutil.which", return_value=None):
             assert self.git_service._check_gh_available() is False
 
+    def test_is_github_repo_with_github_url(self):
+        """Test that is_github_repo returns True for GitHub URLs."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = "https://github.com/user/repo.git"
+
+        with patch(
+            "autowt.services.git.run_command_quiet_on_failure", return_value=mock_result
+        ):
+            assert self.git_service.is_github_repo(self.repo_path) is True
+
+        # Test with SSH URL
+        mock_result.stdout = "git@github.com:user/repo.git"
+        with patch(
+            "autowt.services.git.run_command_quiet_on_failure", return_value=mock_result
+        ):
+            assert self.git_service.is_github_repo(self.repo_path) is True
+
+    def test_is_github_repo_with_non_github_url(self):
+        """Test that is_github_repo returns False for non-GitHub URLs."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = "https://gitlab.com/user/repo.git"
+
+        with patch(
+            "autowt.services.git.run_command_quiet_on_failure", return_value=mock_result
+        ):
+            assert self.git_service.is_github_repo(self.repo_path) is False
+
+    def test_is_github_repo_with_no_origin(self):
+        """Test that is_github_repo returns False when no origin remote exists."""
+        mock_result = Mock()
+        mock_result.returncode = 1
+        mock_result.stdout = ""
+
+        with patch(
+            "autowt.services.git.run_command_quiet_on_failure", return_value=mock_result
+        ):
+            assert self.git_service.is_github_repo(self.repo_path) is False
+
     def test_get_pr_status_merged(self):
         """Test getting PR status for a merged PR."""
         mock_result = Mock()

@@ -496,18 +496,24 @@ def cleanup(
     # Get configuration values
     config = get_config()
 
+    services = create_services()
+
     # Use configured mode if not specified
     if mode is None:
         if is_interactive_terminal():
-            mode = config.cleanup.default_mode.value
+            # Check if origin remote is GitHub
+            repo_path = services.git.find_repo_root()
+            if repo_path and services.git.is_github_repo(repo_path):
+                # Default to github mode for GitHub repos
+                mode = "github"
+            else:
+                mode = config.cleanup.default_mode.value
         else:
             # Non-interactive environment (script, CI, etc.) - require explicit mode
             raise click.UsageError(
                 "No TTY detected. Please specify --mode explicitly when running in scripts or CI. "
                 "Available modes: all, remoteless, merged, interactive, github"
             )
-
-    services = create_services()
     auto_register_session(services)
     check_for_version_updates(services)
 

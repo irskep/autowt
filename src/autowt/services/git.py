@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
@@ -808,6 +809,25 @@ class GitService:
             raise
         except Exception:
             return None
+
+    def is_github_repo(self, repo_path: Path) -> bool:
+        """Check if the repository's origin remote is a GitHub URL."""
+        try:
+            result = run_command_quiet_on_failure(
+                ["git", "remote", "get-url", "origin"],
+                cwd=repo_path,
+                timeout=10,
+                description="Get origin remote URL",
+            )
+
+            if result.returncode != 0:
+                return False
+
+            origin_url = result.stdout.strip()
+            # Check if the URL contains github.com
+            return bool(re.search(r"\bgithub\.com\b", origin_url))
+        except Exception:
+            return False
 
     def _check_gh_available(self) -> bool:
         """Check if the GitHub CLI (gh) is available in PATH."""
