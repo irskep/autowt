@@ -7,8 +7,12 @@
 ### Added
 
 - GitHub cleanup mode: A new `--mode github` option for the `cleanup` command that uses the GitHub CLI (`gh`) to identify branches with merged or closed pull requests. This provides more accurate cleanup decisions for GitHub-based workflows. Requires `gh` CLI to be installed.
-  - Automatically defaults to GitHub mode for repositories with a GitHub origin remote (when in TTY)
   - Falls back gracefully with helpful error messages if `gh` is not installed
+- First-run cleanup mode selection: When running `autowt cleanup` for the first time, users are now prompted to select their preferred cleanup mode
+  - Interactive prompt shows available modes with descriptions
+  - GitHub mode is offered if `gh` CLI is available, otherwise a note mentions it would be available if `gh` were installed
+  - User's selection is saved to config and used as the default for future runs
+  - Can be changed later via `autowt config` or by editing config.toml
 
 ### Changed
 

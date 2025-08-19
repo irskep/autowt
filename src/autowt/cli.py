@@ -24,7 +24,7 @@ from autowt.commands.hooks import (
     show_installed_hooks,
 )
 from autowt.commands.ls import list_worktrees
-from autowt.config import get_config
+from autowt.config import get_config, get_config_loader
 from autowt.global_config import options
 from autowt.models import (
     CleanupCommand,
@@ -33,6 +33,7 @@ from autowt.models import (
     SwitchCommand,
     TerminalMode,
 )
+from autowt.prompts import prompt_cleanup_mode_selection
 from autowt.services.version_check import VersionCheckService
 from autowt.tui.switch import run_switch_tui
 from autowt.utils import run_command_quiet_on_failure, setup_command_logging
@@ -495,19 +496,33 @@ def cleanup(
 
     # Get configuration values
     config = get_config()
+    config_loader = get_config_loader()
 
     services = create_services()
 
     # Use configured mode if not specified
     if mode is None:
         if is_interactive_terminal():
-            # Check if origin remote is GitHub
-            repo_path = services.git.find_repo_root()
-            if repo_path and services.git.is_github_repo(repo_path):
-                # Default to github mode for GitHub repos
-                mode = "github"
+            # Check if user has ever configured a cleanup mode preference
+            if not config_loader.has_user_configured_cleanup_mode():
+                # First run - prompt for preference
+                selected_mode = prompt_cleanup_mode_selection()
+                mode = selected_mode.value
+
+                # Save preference for future use
+                print(f"\nSaving '{mode}' as your default cleanup mode...")
+                config_loader.save_cleanup_mode(selected_mode)
+                print(
+                    "You can change this later using 'autowt config' or by editing config.toml\n"
+                )
             else:
-                mode = config.cleanup.default_mode.value
+                # User has configured preference - use it or GitHub for GitHub repos
+                repo_path = services.git.find_repo_root()
+                if repo_path and services.git.is_github_repo(repo_path):
+                    # Default to github mode for GitHub repos
+                    mode = "github"
+                else:
+                    mode = config.cleanup.default_mode.value
         else:
             # Non-interactive environment (script, CI, etc.) - require explicit mode
             raise click.UsageError(
