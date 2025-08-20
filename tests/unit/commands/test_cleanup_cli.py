@@ -58,7 +58,7 @@ class TestCleanupCLI:
             mock_create_services.return_value = mock_services
 
             # Double-check that GitHub repo detection is False
-            assert mock_services.github.is_github_repo.return_value == False
+            assert mock_services.github.is_github_repo.return_value is False
 
             # Mock config loader to indicate user has configured cleanup mode
             mock_config_loader.return_value.has_user_configured_cleanup_mode.return_value = True

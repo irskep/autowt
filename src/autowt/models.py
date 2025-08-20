@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from autowt.services.agent import AgentService
     from autowt.services.git import GitService
+    from autowt.services.github import GitHubService
     from autowt.services.process import ProcessService
     from autowt.services.state import StateService
     from autowt.services.terminal import TerminalService
