@@ -450,6 +450,43 @@ class ConfigLoader:
 
         return result
 
+    def has_user_configured_cleanup_mode(self) -> bool:
+        """Check if user has explicitly configured a cleanup mode."""
+        if not self.global_config_file.exists():
+            return False
+
+        try:
+            data = toml.load(self.global_config_file)
+            return "cleanup" in data and "default_mode" in data.get("cleanup", {})
+        except Exception:
+            return False
+
+    def save_cleanup_mode(self, mode: CleanupMode) -> None:
+        """Save just the cleanup mode preference, preserving other settings."""
+        logger.debug(f"Saving cleanup mode preference: {mode.value}")
+
+        # Load existing config or start with empty
+        existing_data = {}
+        if self.global_config_file.exists():
+            try:
+                existing_data = toml.load(self.global_config_file)
+            except Exception as e:
+                logger.warning(f"Could not load existing config, will create new: {e}")
+
+        # Update just the cleanup mode
+        if "cleanup" not in existing_data:
+            existing_data["cleanup"] = {}
+        existing_data["cleanup"]["default_mode"] = mode.value
+
+        # Save back
+        try:
+            with open(self.global_config_file, "w") as f:
+                toml.dump(existing_data, f)
+            logger.debug("Cleanup mode preference saved successfully")
+        except Exception as e:
+            logger.error(f"Failed to save cleanup mode preference: {e}")
+            raise
+
     def save_config(self, config: Config) -> None:
         """Save configuration to global config file."""
         logger.debug("Saving global configuration")

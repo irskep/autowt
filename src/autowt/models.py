@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from autowt.services.agent import AgentService
     from autowt.services.git import GitService
+    from autowt.services.github import GitHubService
     from autowt.services.process import ProcessService
     from autowt.services.state import StateService
     from autowt.services.terminal import TerminalService
@@ -33,6 +34,7 @@ class CleanupMode(Enum):
     REMOTELESS = "remoteless"
     MERGED = "merged"
     INTERACTIVE = "interactive"
+    GITHUB = "github"
 
 
 @dataclass
@@ -198,6 +200,7 @@ class Services:
     terminal: "TerminalService"
     process: "ProcessService"
     agent: "AgentService"
+    github: "GitHubService"
 
     @classmethod
     def create(cls) -> "Services":
@@ -205,6 +208,7 @@ class Services:
         # Import here to avoid circular imports
         from autowt.services.agent import AgentService  # noqa: PLC0415
         from autowt.services.git import GitService  # noqa: PLC0415
+        from autowt.services.github import GitHubService  # noqa: PLC0415
         from autowt.services.process import ProcessService  # noqa: PLC0415
         from autowt.services.state import StateService  # noqa: PLC0415
         from autowt.services.terminal import TerminalService  # noqa: PLC0415
@@ -216,6 +220,7 @@ class Services:
             terminal=TerminalService(state_service),
             process=ProcessService(),
             agent=AgentService(),
+            github=GitHubService(),
         )
 
 

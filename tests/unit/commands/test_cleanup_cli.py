@@ -26,6 +26,8 @@ class TestCleanupCLI:
         mock_services.git.find_repo_root.return_value = Path("/mock/repo")
         mock_services.git.fetch_branches.return_value = True
         mock_services.git.list_worktrees.return_value = []
+        mock_services.github = Mock()
+        mock_services.github.is_github_repo.return_value = False  # Not a GitHub repo
 
         # Mock state service methods
         mock_config = Mock(spec=Config)
@@ -43,14 +45,29 @@ class TestCleanupCLI:
         # Instead of mocking the whole cleanup function, just mock the CLI behavior
         # by checking that the correct CleanupCommand is created with interactive mode
         with (
-            patch(
-                "autowt.cli.create_services", return_value=self._create_mock_services()
-            ),
+            patch("autowt.cli.create_services") as mock_create_services,
             patch(
                 "autowt.cli.is_interactive_terminal", return_value=True
             ),  # Simulate TTY
             patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
+            patch("autowt.cli.get_config_loader") as mock_config_loader,
+            patch("autowt.cli.get_config") as mock_get_config,
         ):
+            # Set up create_services to return our mock
+            mock_services = self._create_mock_services()
+            mock_create_services.return_value = mock_services
+
+            # Double-check that GitHub repo detection is False
+            assert mock_services.github.is_github_repo.return_value is False
+
+            # Mock config loader to indicate user has configured cleanup mode
+            mock_config_loader.return_value.has_user_configured_cleanup_mode.return_value = True
+
+            # Mock get_config to return config with INTERACTIVE as default
+            mock_config = Mock()
+            mock_config.cleanup.default_mode = CleanupMode.INTERACTIVE
+            mock_get_config.return_value = mock_config
+
             result = runner.invoke(main, ["cleanup"])
 
             if result.exit_code != 0:

@@ -264,6 +264,33 @@ class MockProcessService:
         pass
 
 
+class MockGitHubService:
+    """Mock GitHub service for testing."""
+
+    def __init__(self):
+        self.is_github = False
+        self.gh_available = False
+        self.pr_statuses: dict[str, str | None] = {}
+        self.analyze_result: list[BranchStatus] = []
+
+    def is_github_repo(self, repo_path: Path) -> bool:
+        return self.is_github
+
+    def check_gh_available(self) -> bool:
+        return self.gh_available
+
+    def get_pr_status_for_branch(self, repo_path: Path, branch: str) -> str | None:
+        return self.pr_statuses.get(branch)
+
+    def analyze_branches_for_cleanup(
+        self,
+        repo_path: Path,
+        worktrees: list[WorktreeInfo],
+        git_service,
+    ) -> list[BranchStatus]:
+        return self.analyze_result.copy()
+
+
 class MockAgentService:
     """Mock agent service for testing."""
 
@@ -331,3 +358,4 @@ class MockServices:
         self.terminal = MockTerminalService()
         self.process = MockProcessService()
         self.agent = MockAgentService()
+        self.github = MockGitHubService()
