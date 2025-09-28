@@ -26,6 +26,7 @@ class TestCLIRouting:
             patch("autowt.cli.is_interactive_terminal", return_value=True),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
+            patch("autowt.cli.get_config_loader") as mock_config_loader,
         ):
             # Setup mock services
             mock_services = MockServices()
@@ -35,6 +36,9 @@ class TestCLIRouting:
             mock_config = Mock()
             mock_config.cleanup.default_mode = CleanupMode.INTERACTIVE
             mock_get_config.return_value = mock_config
+
+            # Mock config loader to indicate user has configured cleanup mode
+            mock_config_loader.return_value.has_user_configured_cleanup_mode.return_value = True
             # Test ls command
             result = runner.invoke(main, ["ls"])
             if result.exit_code != 0:

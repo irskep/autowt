@@ -147,7 +147,7 @@ This will show you a list of branches that are safe to remove. When you're ready
 autowt cleanup
 ```
 
-`autowt` will remove the worktree and, if the branch is merged, will also offer to delete the local git branch.
+On first run, `autowt` will ask you to select your preferred cleanup mode (interactive, merged, remoteless, or github if the GitHub CLI is available). Your choice will be saved for future use. After that, `autowt` will remove the worktree and, if the branch is merged, will also offer to delete the local git branch.
 
 ---
 *[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
