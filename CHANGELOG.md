@@ -13,6 +13,8 @@
   - GitHub mode is offered if `gh` CLI is available, otherwise a note mentions it would be available if `gh` were installed
   - User's selection is saved to config and used as the default for future runs
   - Can be changed later via `autowt config` or by editing config.toml
+- Removed vibecoded terminal support
+- Added Ghostty terminal support
 
 ### Changed
 
