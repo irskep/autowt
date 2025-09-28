@@ -12,7 +12,7 @@ from autowt.services.state import StateService
 from autowt.services.terminals.apple import TerminalAppTerminal
 from autowt.services.terminals.base import BaseTerminal
 from autowt.services.terminals.echo import EchoTerminal
-from autowt.services.terminals.ghostty import GhosttyTerminal
+from autowt.services.terminals.ghostty import GhosttyMacTerminal
 from autowt.services.terminals.iterm2 import ITerm2Terminal
 from autowt.services.terminals.vscode import CursorTerminal, VSCodeTerminal
 
@@ -48,8 +48,8 @@ class TerminalService:
                 return CursorTerminal()
             else:
                 return VSCodeTerminal()
-        elif term_program == "ghostty":
-            return GhosttyTerminal()
+        elif term_program == "ghostty" and self.is_macos:
+            return GhosttyMacTerminal()
 
         # Platform-specific detection
         if platform.system() == "Windows":

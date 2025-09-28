@@ -9,7 +9,7 @@ from autowt.services.terminals.base import BaseTerminal
 logger = logging.getLogger(__name__)
 
 
-class GhosttyTerminal(BaseTerminal):
+class GhosttyMacTerminal(BaseTerminal):
     """Ghostty implementation. Ghostty has no AppleScript support, so it's bare-bones."""
 
     def get_current_session_id(self) -> str | None:
