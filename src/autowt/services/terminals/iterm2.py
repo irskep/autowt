@@ -84,7 +84,7 @@ class ITerm2Terminal(BaseTerminal):
         return result == "true" if result else False
 
     def switch_to_session(
-        self, session_id: str, session_session_init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Switch to an existing iTerm2 session."""
         logger.debug(f"Switching to iTerm2 session: {session_id}")
@@ -102,10 +102,10 @@ class ITerm2Terminal(BaseTerminal):
                             select theTab
                             select theWindow"""
 
-        if session_session_init_script:
+        if session_init_script:
             applescript += f"""
                             tell theSession
-                                write text "{self._escape_for_applescript(session_session_init_script)}"
+                                write text "{self._escape_for_applescript(session_init_script)}"
                             end tell"""
 
         applescript += """
@@ -120,7 +120,7 @@ class ITerm2Terminal(BaseTerminal):
         return self._run_applescript(applescript)
 
     def open_new_tab(
-        self, worktree_path: Path, session_session_init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open a new iTerm2 tab."""
         logger.debug(f"Opening new iTerm2 tab for {worktree_path}")
@@ -139,8 +139,8 @@ class ITerm2Terminal(BaseTerminal):
         # Add session registration command (uses current working directory)
         commands.append(f"{escaped_autowt_path} register-session-for-path")
 
-        if session_session_init_script:
-            commands.append(session_session_init_script)
+        if session_init_script:
+            commands.append(session_init_script)
 
         applescript = f"""
         tell application "iTerm2"

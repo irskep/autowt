@@ -24,21 +24,21 @@ class BaseTerminal(ABC):
 
     @abstractmethod
     def switch_to_session(
-        self, session_id: str, session_session_init_script: str | None = None
+        self, session_id: str, session_init_script: str | None = None
     ) -> bool:
         """Switch to existing session if supported."""
         pass
 
     @abstractmethod
     def open_new_tab(
-        self, worktree_path: Path, session_session_init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open new tab in current window."""
         pass
 
     @abstractmethod
     def open_new_window(
-        self, worktree_path: Path, session_session_init_script: str | None = None
+        self, worktree_path: Path, session_init_script: str | None = None
     ) -> bool:
         """Open new window."""
         pass
