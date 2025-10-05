@@ -95,14 +95,6 @@ class TerminalService:
         if os.getenv("AUTOWT_TEST_FORCE_ECHO"):
             mode = TerminalMode.ECHO
 
-        # Check for experimental terminal warning on first use
-        if self._is_experimental_terminal():
-            if not self.state_service.has_shown_experimental_terminal_warning():
-                if not self._show_experimental_terminal_warning():
-                    # User declined to continue with experimental terminal
-                    return False
-                self.state_service.mark_experimental_terminal_warning_shown()
-
         if mode == TerminalMode.INPLACE:
             return self._change_directory_inplace(
                 worktree_path, session_init_script, after_init

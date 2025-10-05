@@ -59,11 +59,11 @@ def mock_terminal_operations():
     """Automatically mock potentially harmful terminal operations in all tests."""
     with (
         patch(
-            "autowt.services.terminal.Terminal._run_applescript",
+            "autowt.services.terminals.base.BaseTerminal._run_applescript",
             return_value=True,
         ) as mock_applescript,
         patch(
-            "autowt.services.terminal.run_command", return_value=Mock(returncode=0)
+            "autowt.utils.run_command", return_value=Mock(returncode=0)
         ) as mock_run_command,
         patch("platform.system", return_value="Darwin") as mock_platform,
     ):
