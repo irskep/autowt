@@ -1,47 +1,28 @@
 # Terminal support
 
-`autowt`’s intended user experience is that it will open terminal tabs on your behalf. However, the author only has a Mac and only so much energy for testing terminals, so a lot of support is “experimental,” i.e. vibecoded. This page captures explicitly how well each terminal has been tested.
+`autowt`'s intended user experience is that it will open terminal tabs on your behalf. However, the author only has a Mac and only so much energy for testing terminals, so support varies by terminal.
 
-tl;dr iTerm2, Terminal.app, VSCode, and Cursor work great. Everything else is experimental.
+tl;dr iTerm2, Terminal.app, Ghostty, VSCode, and Cursor work great on macOS. Other terminals fall back to echo mode.
 
-## Support levels
+## macOS terminals
 
-| Level | Description | Terminals |
+All macOS terminals listed below work well with `autowt`. The main difference is whether they support session tracking.
+
+| Terminal | Session Tracking | Notes |
 | --- | --- | --- |
-| ✅ **Fully Supported** | Full integration, including session management, and tab/window control. | iTerm2 (macOS), Terminal.app (macOS), VSCode, Cursor |
-| ⚠️ **Experimental** | Basic integration is in place, but with limited testing. May be unstable. | tmux, Linux terminals, Windows Terminal |
-| 📋 **Basic** | `autowt` can open new terminal processes, but without session tracking. | Alacritty, Kitty, WezTerm, Hyper |
-
-## macOS
-
-| Terminal | Support Level | Notes |
-| --- | --- | --- |
-| **iTerm2** | ✅ Fully Supported | The recommended terminal for `autowt`. Offers precise session tracking and robust control. |
-| **Terminal.app** | ✅ Fully Supported | Excellent support for the built-in macOS terminal. |
-| **VSCode** | ✅ Fully Supported | Opens worktrees in new VSCode windows. On macOS, can switch to existing windows. Use `--terminal=vscode`. |
-| **Cursor** | ✅ Fully Supported | Opens worktrees in new Cursor windows. On macOS, can switch to existing windows. Use `--terminal=cursor`. |
+| **iTerm2** | ✅ Yes | The recommended terminal. Full session management with precise tracking. |
+| **Terminal.app** | ✅ Yes | Apple's built-in terminal with excellent support. |
+| **VSCode** | ⚠️ Window detection only | Opens worktrees in new VSCode windows. Can switch to existing windows on macOS. Use `--terminal=vscode`. |
+| **Cursor** | ⚠️ Window detection only | Opens worktrees in new Cursor windows. Can switch to existing windows on macOS. Use `--terminal=cursor`. |
+| **Ghostty** | ❌ No | Tab and window creation works via AppleScript (requires accessibility permissions). |
 
 !!! info "Permissions on macOS"
 
     The first time you run `autowt` on macOS, you may be prompted to grant Accessibility and Automation permissions for your terminal application. This is necessary for `autowt` to control your terminal.
 
-## Linux
+## Linux and Windows
 
-Support for Linux terminals is experimental. While basic functionality should work, session management may not be reliable.
-
-| Terminal | Support Level | Notes |
-| --- | --- | --- |
-| **tmux** | ⚠️ Experimental | In theory, provides robust, cross-platform session management. |
-| **GNOME Terminal** | ⚠️ Experimental | Basic integration is available. |
-| **Konsole** | ⚠️ Experimental | Basic integration is available. |
-
-## Windows
-
-Windows support is in the early experimental stages.
-
-| Terminal | Support Level | Notes |
-| --- | --- | --- |
-| **Windows Terminal** | ⚠️ Experimental | Basic integration is available. |
+All Linux and Windows terminals use echo mode. `autowt` will print commands for you to run instead of controlling the terminal directly.
 
 ## Fallback and overrides
 
