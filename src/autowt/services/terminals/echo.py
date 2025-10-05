@@ -62,11 +62,9 @@ class EchoTerminal(BaseTerminal):
         for terminal in terminal_programs:
             try:
                 result = run_command(
-                    (
-                        ["which", terminal]
-                        if not platform.system() == "Windows"
-                        else ["where", terminal]
-                    ),
+                    ["which", terminal]
+                    if not platform.system() == "Windows"
+                    else ["where", terminal],
                     timeout=2,
                     description=f"Check for {terminal}",
                 )
