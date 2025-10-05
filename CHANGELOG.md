@@ -2,6 +2,14 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.4.8 - Unreleased
+
+### Added
+
+### Changed
+
+### Fixed
+
 ## 0.4.7 - 2025-10-05
 
 ### Added
