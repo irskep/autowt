@@ -13,7 +13,15 @@
 
 ### Fixed
 
-- Autowt sets the correct base branch at all times instead of just when using `switch`
+## 0.4.8 - 2025-11-08
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Autowt sets the correct base branch at all times instead of just when using `switch` (fix #71)
 
 ## 0.4.7 - 2025-10-05
 
