@@ -5,7 +5,7 @@ requires-python = ">=3.10"
 [[package]]
 name = "autowt"
 version = "0.5.0.dev0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "click-aliases" },
