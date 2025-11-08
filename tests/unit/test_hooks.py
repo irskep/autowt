@@ -278,7 +278,6 @@ class TestExtractHookScripts:
         global_config.scripts.post_create = None
         global_config.scripts.session_init = "global session_init script"
         global_config.scripts.pre_cleanup = "global pre_cleanup script"
-        global_config.scripts.pre_process_kill = None
         global_config.scripts.post_cleanup = None
         global_config.scripts.pre_switch = None
         global_config.scripts.post_switch = None
@@ -290,7 +289,6 @@ class TestExtractHookScripts:
         project_config.scripts.post_create = "project post_create script"
         project_config.scripts.session_init = "project session_init script"
         project_config.scripts.pre_cleanup = None
-        project_config.scripts.pre_process_kill = None
         project_config.scripts.post_cleanup = None
         project_config.scripts.pre_switch = None
         project_config.scripts.post_switch = "project post_switch script"
@@ -329,13 +327,6 @@ class TestExtractHookScripts:
         )
         assert global_scripts == []
         assert project_scripts == ["project post_switch script"]
-
-        # Test hook that doesn't exist in either config
-        global_scripts, project_scripts = extract_hook_scripts(
-            global_config, project_config, HookType.PRE_PROCESS_KILL
-        )
-        assert global_scripts == []
-        assert project_scripts == []
 
     def test_extract_with_none_configs(self):
         """Test extracting when configs are None."""

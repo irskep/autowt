@@ -45,7 +45,7 @@ class TestConfigTUIBusinessLogic:
         app.config = Config(
             terminal=TerminalConfig(mode=TerminalMode.TAB, always_new=False),
             worktree=WorktreeConfig(auto_fetch=True),
-            cleanup=CleanupConfig(kill_processes=True),
+            cleanup=CleanupConfig(),
         )
 
         # Mock the UI widgets to simulate user selections
@@ -61,8 +61,6 @@ class TestConfigTUIBusinessLogic:
             mock_always_new_switch.value = True
             mock_auto_fetch_switch = MagicMock()
             mock_auto_fetch_switch.value = False
-            mock_kill_processes_switch = MagicMock()
-            mock_kill_processes_switch.value = False
 
             # Configure query_one to return appropriate mocks
             def query_side_effect(selector, widget_type=None):
@@ -72,8 +70,6 @@ class TestConfigTUIBusinessLogic:
                     return mock_always_new_switch
                 elif selector == "#auto-fetch":
                     return mock_auto_fetch_switch
-                elif selector == "#kill-processes":
-                    return mock_kill_processes_switch
 
             mock_query.side_effect = query_side_effect
 
@@ -88,7 +84,6 @@ class TestConfigTUIBusinessLogic:
             assert saved_config.terminal.mode == TerminalMode.ECHO
             assert saved_config.terminal.always_new is True
             assert saved_config.worktree.auto_fetch is False
-            assert saved_config.cleanup.kill_processes is False
 
     def test_save_config_preserves_unchanged_settings(self):
         """Test that _save_config preserves settings not exposed in TUI."""
@@ -120,7 +115,6 @@ class TestConfigTUIBusinessLogic:
             mock_switches = {
                 "#always-new": MagicMock(value=False),
                 "#auto-fetch": MagicMock(value=True),
-                "#kill-processes": MagicMock(value=True),
             }
 
             def query_side_effect(selector, widget_type=None):
@@ -155,7 +149,7 @@ class TestConfigTUIUserWorkflows:
         test_config = Config(
             terminal=TerminalConfig(mode=TerminalMode.TAB, always_new=False),
             worktree=WorktreeConfig(auto_fetch=True),
-            cleanup=CleanupConfig(kill_processes=True),
+            cleanup=CleanupConfig(),
         )
         mock_state.load_config.return_value = test_config
 
@@ -216,7 +210,7 @@ class TestConfigTUIUserWorkflows:
         test_config = Config(
             terminal=TerminalConfig(always_new=False),
             worktree=WorktreeConfig(auto_fetch=True),
-            cleanup=CleanupConfig(kill_processes=True),
+            cleanup=CleanupConfig(),
         )
         mock_state.load_config.return_value = test_config
 
@@ -237,7 +231,6 @@ class TestConfigTUIUserWorkflows:
             saved_config = mock_state.save_config.call_args[0][0]
             assert saved_config.terminal.always_new is True  # Was False, now True
             assert saved_config.worktree.auto_fetch is False  # Was True, now False
-            assert saved_config.cleanup.kill_processes is True  # Unchanged
 
     async def test_cancel_button_exits_without_saving(self):
         """Test that cancel button exits without calling save."""
