@@ -9,6 +9,7 @@
 ### Changed
 
 - Removed all agent-related functionality. I haven't found value in it and I don't think anyone is using it.
+- Remove process killing functionality. It has too many pitfalls.
 
 ### Fixed
 
