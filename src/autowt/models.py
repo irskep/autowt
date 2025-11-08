@@ -203,4 +203,3 @@ class CleanupCommand:
     auto_confirm: bool = False
     force: bool = False
     debug: bool = False
-    kill_processes: bool | None = None  # None = use config, True/False = CLI override

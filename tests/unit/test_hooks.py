@@ -369,7 +369,6 @@ class TestHookType:
         assert HookType.POST_CREATE == "post_create"
         assert HookType.SESSION_INIT == "session_init"
         assert HookType.PRE_CLEANUP == "pre_cleanup"
-        assert HookType.PRE_PROCESS_KILL == "pre_process_kill"
         assert HookType.POST_CLEANUP == "post_cleanup"
         assert HookType.PRE_SWITCH == "pre_switch"
         assert HookType.POST_SWITCH == "post_switch"

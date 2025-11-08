@@ -56,8 +56,6 @@ class WorktreeConfig:
 class CleanupConfig:
     """Cleanup behavior configuration."""
 
-    kill_processes: bool = True
-    kill_process_timeout: int = 10
     default_mode: CleanupMode = CleanupMode.INTERACTIVE
 
 
@@ -69,7 +67,6 @@ class ScriptsConfig:
     post_create: str | None = None
     session_init: str | None = None
     pre_cleanup: str | None = None
-    pre_process_kill: str | None = None
     post_cleanup: str | None = None
     pre_switch: str | None = None
     post_switch: str | None = None
@@ -137,8 +134,6 @@ class Config:
             )
 
         cleanup_config = CleanupConfig(
-            kill_processes=cleanup_data.get("kill_processes", True),
-            kill_process_timeout=cleanup_data.get("kill_process_timeout", 10),
             default_mode=CleanupMode(cleanup_data.get("default_mode", "interactive")),
         )
 
@@ -170,7 +165,6 @@ class Config:
             post_create=scripts_data.get("post_create"),
             session_init=session_init_value,
             pre_cleanup=scripts_data.get("pre_cleanup"),
-            pre_process_kill=scripts_data.get("pre_process_kill"),
             post_cleanup=scripts_data.get("post_cleanup"),
             pre_switch=scripts_data.get("pre_switch"),
             post_switch=scripts_data.get("post_switch"),
@@ -211,15 +205,12 @@ class Config:
                 },
             },
             "cleanup": {
-                "kill_processes": self.cleanup.kill_processes,
-                "kill_process_timeout": self.cleanup.kill_process_timeout,
                 "default_mode": self.cleanup.default_mode.value,
             },
             "scripts": {
                 "post_create": self.scripts.post_create,
                 "session_init": self.scripts.session_init,
                 "pre_cleanup": self.scripts.pre_cleanup,
-                "pre_process_kill": self.scripts.pre_process_kill,
                 "post_cleanup": self.scripts.post_cleanup,
                 "pre_switch": self.scripts.pre_switch,
                 "post_switch": self.scripts.post_switch,
@@ -363,13 +354,10 @@ class ConfigLoader:
                 "branch_sanitization",
                 "lowercase",
             ],
-            "CLEANUP_KILL_PROCESSES": ["cleanup", "kill_processes"],
-            "CLEANUP_KILL_PROCESS_TIMEOUT": ["cleanup", "kill_process_timeout"],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
             "SCRIPTS_SESSION_INIT": ["scripts", "session_init"],
             "SCRIPTS_PRE_CLEANUP": ["scripts", "pre_cleanup"],
-            "SCRIPTS_PRE_PROCESS_KILL": ["scripts", "pre_process_kill"],
             "SCRIPTS_POST_CLEANUP": ["scripts", "post_cleanup"],
             "SCRIPTS_PRE_SWITCH": ["scripts", "pre_switch"],
             "SCRIPTS_POST_SWITCH": ["scripts", "post_switch"],

@@ -449,36 +449,20 @@ def ls(debug: bool) -> None:
 @click.option(
     "--force", is_flag=True, help="Force remove worktrees with modified files"
 )
-@click.option(
-    "--kill", is_flag=True, help="Force kill processes in worktrees (override config)"
-)
-@click.option(
-    "--no-kill",
-    is_flag=True,
-    help="Skip killing processes in worktrees (override config)",
-)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def cleanup(
     mode: str | None,
     dry_run: bool,
     yes: bool,
     force: bool,
-    kill: bool,
-    no_kill: bool,
     debug: bool,
 ) -> None:
     """Clean up merged or remoteless worktrees."""
-    # Validate mutually exclusive options
-    if kill and no_kill:
-        raise click.UsageError("Cannot specify both --kill and --no-kill")
-
     setup_logging(debug)
 
     # Create CLI overrides for cleanup command
     cli_overrides = create_cli_config_overrides(
         mode=mode,
-        kill=kill,
-        no_kill=no_kill,
     )
 
     # Initialize configuration with CLI overrides
@@ -517,22 +501,12 @@ def cleanup(
     auto_register_session(services)
     check_for_version_updates(services)
 
-    # Determine kill_processes from configuration or override
-    kill_processes = None
-    if kill:
-        kill_processes = True
-    elif no_kill:
-        kill_processes = False
-    # Note: When no CLI flags are specified, pass None to allow prompting
-    # The cleanup logic will use config.cleanup.kill_processes for the default
-
     cleanup_cmd = CleanupCommand(
         mode=CleanupMode(mode),
         dry_run=dry_run,
         auto_confirm=yes,
         force=force,
         debug=debug,
-        kill_processes=kill_processes,
     )
     cleanup_worktrees(cleanup_cmd, services)
 

@@ -77,14 +77,6 @@ class ConfigApp(App):
             yield Label("")
 
             with Horizontal():
-                yield Switch(
-                    value=self.config.cleanup.kill_processes, id="kill-processes"
-                )
-                yield Label("Kill processes during cleanup")
-
-            yield Label("")
-
-            with Horizontal():
                 yield Button("Save", id="save")
                 yield Button("Cancel", id="cancel")
 
@@ -142,10 +134,6 @@ class ConfigApp(App):
         auto_fetch_switch = self.query_one("#auto-fetch", Switch)
         auto_fetch = auto_fetch_switch.value
 
-        # Get kill processes setting
-        kill_processes_switch = self.query_one("#kill-processes", Switch)
-        kill_processes = kill_processes_switch.value
-
         # Create new config with updated values (immutable dataclasses)
 
         new_config = Config(
@@ -162,8 +150,6 @@ class ConfigApp(App):
                 branch_sanitization=self.config.worktree.branch_sanitization,
             ),
             cleanup=CleanupConfig(
-                kill_processes=kill_processes,
-                kill_process_timeout=self.config.cleanup.kill_process_timeout,
                 default_mode=self.config.cleanup.default_mode,
             ),
             scripts=self.config.scripts,
@@ -203,8 +189,6 @@ def show_config(services: Services) -> None:
     print()
 
     print("Cleanup:")
-    print(f"  kill_processes: {config.cleanup.kill_processes}")
-    print(f"  kill_process_timeout: {config.cleanup.kill_process_timeout}")
     print(f"  default_mode: {config.cleanup.default_mode.value}")
     print()
 
