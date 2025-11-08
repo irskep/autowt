@@ -11,7 +11,7 @@ _.python.venv = { path = ".venv" }
 _.file = ".env"
 
 [tasks]
-install = "uv sync --extra=docs"
+install = "uv sync"
 test = "uv run pytest"
 lint = "uv run ruff check"
 format = "uv run ruff format"
