@@ -14,20 +14,6 @@ dependencies = [
     { name = "toml" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-github-admonitions-plugin" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-mermaid2-plugin" },
-    { name = "mkdocstrings", extra = ["python"] },
-    { name = "pymdown-extensions" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "cimonitor" },
@@ -50,19 +36,10 @@ docs = [
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
     { name = "click-aliases", specifier = ">=1.0.0" },
-    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.5.3" },
-    { name = "mkdocs-github-admonitions-plugin", marker = "extra == 'docs'" },
-    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.4.6" },
-    { name = "mkdocs-mermaid2-plugin", marker = "extra == 'docs'", specifier = ">=1.1.1" },
-    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.23.0" },
-    { name = "pymdown-extensions", marker = "extra == 'docs'", specifier = ">=10.3.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "textual", specifier = ">=0.50.0" },
     { name = "toml", specifier = ">=0.10.0" },
 ]
-provides-extras = ["dev", "docs"]
 
 [package.metadata.requires-dev]
 dev = [

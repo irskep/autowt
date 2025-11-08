@@ -13,14 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install mise
-        uses: jdx/mise-action@v2
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: mise run install
+        run: uv sync
 
       - name: Run tests
-        run: mise run test
+        run: uv run pytest
 
   lint:
     runs-on: ubuntu-latest
@@ -28,14 +32,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install mise
-        uses: jdx/mise-action@v2
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: mise run install
+        run: uv sync
 
       - name: Run linter
-        run: mise run lint
+        run: uv run ruff check
 
       - name: Check formatting
-        run: mise run format-check
+        run: uv run ruff format --check
