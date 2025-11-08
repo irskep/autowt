@@ -18,26 +18,6 @@
             "command": "mise claude-hook-lint"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"processing\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
-          }
-        ],
-        "autowt_hook_id": "agent_status_posttooluse"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"waiting\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
-          }
-        ],
-        "autowt_hook_id": "agent_status_stop"
       }
     ],
     "PreToolUse": [
@@ -49,37 +29,6 @@
             "command": "uv run python .claude/hooks/validate-changelog.py"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"working\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
-          }
-        ],
-        "autowt_hook_id": "agent_status_pretooluse"
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"subagent_complete\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
-          }
-        ],
-        "autowt_hook_id": "agent_status_subagent_stop"
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && mkdir -p \"$ROOT/.claude/autowt\" && echo \"{\\\"status\\\":\\\"processing\\\",\\\"last_activity\\\":\\\"$(date -Iseconds)\\\"}\" > \"$ROOT/.claude/autowt/status\""
-          }
-        ],
-        "autowt_hook_id": "agent_status_userpromptsubmit"
       }
     ]
   }

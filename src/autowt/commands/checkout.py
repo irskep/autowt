@@ -3,8 +3,6 @@
 import logging
 from pathlib import Path
 
-import click
-
 from autowt.cli_config import resolve_custom_script_with_interpolation
 from autowt.config import get_config_loader
 from autowt.console import print_error, print_info, print_success
@@ -390,63 +388,6 @@ def _generate_worktree_path(
 
     logger.debug(f"Final worktree path: {worktree_path}")
     return worktree_path
-
-
-def find_waiting_agent_branch(services: Services) -> str | None:
-    """Find the branch of an agent waiting for input."""
-    repo_path = services.git.find_repo_root()
-    if not repo_path:
-        print_error("Error: Not in a git repository")
-        return None
-
-    git_worktrees = services.git.list_worktrees(repo_path)
-    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, services.state, repo_path
-    )
-
-    waiting_agents = services.agent.find_waiting_agents(enhanced_worktrees)
-
-    if not waiting_agents:
-        print_info("No agents are currently waiting for input")
-        return None
-
-    if len(waiting_agents) == 1:
-        # Return the only waiting agent's branch
-        return waiting_agents[0].branch
-    else:
-        # Show interactive choice
-        print_info("Multiple agents waiting for input:")
-        for i, agent in enumerate(waiting_agents, 1):
-            print_info(
-                f"{i}. {agent.branch} (waiting since {agent.agent_status.last_activity})"
-            )
-
-        choice = click.prompt(
-            "Choose agent", type=click.IntRange(1, len(waiting_agents))
-        )
-        return waiting_agents[choice - 1].branch
-
-
-def find_latest_agent_branch(services: Services) -> str | None:
-    """Find the branch of the most recently active agent."""
-    repo_path = services.git.find_repo_root()
-    if not repo_path:
-        print_error("Error: Not in a git repository")
-        return None
-
-    git_worktrees = services.git.list_worktrees(repo_path)
-    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, services.state, repo_path
-    )
-
-    latest_agent = services.agent.find_latest_active_agent(enhanced_worktrees)
-
-    if not latest_agent:
-        print_info("No recently active agents found")
-        return None
-
-    print_info(f"Switching to most recent agent: {latest_agent.branch}")
-    return latest_agent.branch
 
 
 def _run_pre_create_hooks(

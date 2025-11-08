@@ -10,19 +10,9 @@ import click
 from click_aliases import ClickAliasedGroup
 
 from autowt.cli_config import create_cli_config_overrides, initialize_config
-from autowt.commands.agents import show_agent_dashboard
-from autowt.commands.checkout import (
-    checkout_branch,
-    find_latest_agent_branch,
-    find_waiting_agent_branch,
-)
+from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
-from autowt.commands.hooks import (
-    install_hooks_command,
-    remove_hooks_command,
-    show_installed_hooks,
-)
 from autowt.commands.ls import list_worktrees
 from autowt.config import get_config, get_config_loader
 from autowt.global_config import options
@@ -607,16 +597,6 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     "-y", "--yes", "auto_confirm", is_flag=True, help="Auto-confirm all prompts"
 )
 @click.option(
-    "--waiting",
-    is_flag=True,
-    help="Switch to first agent waiting for input",
-)
-@click.option(
-    "--latest",
-    is_flag=True,
-    help="Switch to most recently active agent",
-)
-@click.option(
     "--from",
     "from_branch",
     help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
@@ -637,8 +617,6 @@ def switch(
     after_init: str | None,
     ignore_same_session: bool,
     auto_confirm: bool,
-    waiting: bool,
-    latest: bool,
     from_branch: str | None,
     debug: bool,
     custom_script: str | None,
@@ -647,15 +625,8 @@ def switch(
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
 
-    # Validate mutually exclusive options
-    option_count = sum([bool(branch), waiting, latest])
-    if option_count > 1:
-        raise click.UsageError(
-            "Must specify at most one of: branch name, --waiting, or --latest"
-        )
-
-    # If no options provided, show interactive TUI
-    if option_count == 0:
+    # If no branch provided, show interactive TUI
+    if not branch:
         services = create_services()
         auto_register_session(services)
         check_for_version_updates(services)
@@ -667,20 +638,17 @@ def switch(
         # Use the selected branch
         target_branch = selected_branch
     else:
+        # Branch was provided as argument
+        target_branch = branch
+
+    # Create services if not already created
+    if not branch:
+        # services was already created above for interactive mode
+        pass
+    else:
         services = create_services()
         auto_register_session(services)
         check_for_version_updates(services)
-
-        # Determine target branch
-        target_branch = branch
-        if waiting:
-            target_branch = find_waiting_agent_branch(services)
-            if not target_branch:
-                return
-        elif latest:
-            target_branch = find_latest_agent_branch(services)
-            if not target_branch:
-                return
 
     # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
@@ -712,85 +680,6 @@ def switch(
         dir=dir,
     )
     checkout_branch(switch_cmd, services)
-
-
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def agents(debug: bool) -> None:
-    """Show live agent monitoring dashboard."""
-    setup_logging(debug)
-    services = create_services()
-    auto_register_session(services)
-
-    result = show_agent_dashboard(services)
-
-    # Handle dashboard exit actions
-    if result and result.get("action") == "switch":
-        branch = result.get("branch")
-        if branch:
-            config = get_config()
-            switch_cmd = SwitchCommand(
-                branch=branch,
-                terminal_mode=config.terminal.mode,
-                init_script=config.scripts.session_init,
-            )
-            checkout_branch(switch_cmd, services)
-
-
-@main.command(
-    "hooks-install",
-    context_settings={"help_option_names": ["-h", "--help"]},
-)
-@click.option(
-    "--user", is_flag=True, help="Install hooks at user level (affects all projects)"
-)
-@click.option(
-    "--project", is_flag=True, help="Install hooks at project level (this project only)"
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would be installed without making changes",
-)
-@click.option(
-    "--show",
-    is_flag=True,
-    help="Show currently installed autowt hooks at user and project levels",
-)
-@click.option(
-    "--remove",
-    is_flag=True,
-    help="Remove autowt hooks instead of installing them",
-)
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def hooks_install(
-    user: bool, project: bool, dry_run: bool, show: bool, remove: bool, debug: bool
-) -> None:
-    """Install Claude Code hooks for agent monitoring."""
-    if user and project:
-        raise click.UsageError("Cannot specify both --user and --project")
-
-    if show and (user or project or dry_run or remove):
-        raise click.UsageError("--show cannot be combined with other options")
-
-    if remove and not (user or project):
-        raise click.UsageError("--remove requires either --user or --project")
-
-    level = None
-    if user:
-        level = "user"
-    elif project:
-        level = "project"
-
-    setup_logging(debug)
-    services = create_services()
-
-    if show:
-        show_installed_hooks(services)
-    elif remove:
-        remove_hooks_command(level, services, dry_run=dry_run)
-    else:
-        install_hooks_command(level, services, dry_run=dry_run)
 
 
 if __name__ == "__main__":

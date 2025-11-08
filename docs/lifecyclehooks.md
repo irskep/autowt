@@ -1,19 +1,19 @@
 # Lifecycle Hooks and Init Scripts
 
-`autowt` allows you to run custom commands at specific points during worktree operations. This enables powerful automation for everything from dependency installation to resource management and service orchestration.
+`autowt` allows you to run custom commands at specific points during worktree operations. The motivating use cases are installing dependencies, copying secrets, and cleaning up resources.
 
-## Getting Started with Init Scripts
+## Example: installing dependencies and copying secrets
 
-The most common hook is the **session_init script**, which runs in your terminal session after creating a new worktree. This is perfect for setting up your shell environment, activating virtual environments, and running interactive setup tasks.
+The most common hook is the **`session_init` script**, which runs in your new terminal session after creating a new worktree. This is perfect for setting up your shell environment, activating virtual environments, and running interactive setup tasks.
 
 ### Configuration
 
-You can specify a session_init script in two ways:
+You can specify a `session_init` script in two ways:
 
 1. **Command-line flag**: Use the `--init` flag for a one-time script (maps to session_init)
 2. **Configuration file**: Set the `scripts.session_init` key in your `.autowt.toml` file for a project-wide default
 
-The session_init script is executed in your terminal session *after* `autowt` has switched to the worktree, but *before* any `--after-init` script is run.
+The `session_init` script is executed in your terminal session _after_ `autowt` has switched to the worktree, but _before_ any `--after-init` script is run.
 
 ### Installing dependencies
 
@@ -52,42 +52,20 @@ fi
 """
 ```
 
-**Combining commands:**
-
-```toml
-# .autowt.toml
-[scripts]
-session_init = """
-if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
-  cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
-fi;
-npm install
-"""
-```
-
-!!! tip "Overriding the Default"
-
-    If you have a `scripts.session_init` script in your `.autowt.toml` but want to do something different for a specific worktree, the `--init` flag will always take precedence.
-
-    ```bash
-    # This will run *only* `npm ci`, ignoring the default session_init script.
-    autowt feature/performance --init "npm ci"
-    ```
-
 ## Complete Lifecycle Hooks
 
 Beyond session_init scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
-| Hook | When it runs | Execution Context | Common use cases |
-|------|-------------|------------------|------------------|
-| `pre_create` | Before creating worktree | Subprocess | Pre-flight validation, resource checks, setup preparation |
-| `post_create` | After creating worktree, before terminal switch | Subprocess | File operations, git setup, dependency installation |
-| `session_init` | In terminal session after switching to worktree | Terminal session | Environment setup, virtual env activation, shell config |
-| `pre_cleanup` | Before cleaning up worktrees | Subprocess | Release ports, backup data |
-| `pre_process_kill` | Before killing processes | Subprocess | Graceful shutdown |
-| `post_cleanup` | After worktrees are removed | Subprocess | Clean volumes, update state |
-| `pre_switch` | Before switching worktrees | Subprocess | Stop current services |  
-| `post_switch` | After switching worktrees | Subprocess | Start new services |
+| Hook               | When it runs                                    | Execution Context | Common use cases                                          |
+| ------------------ | ----------------------------------------------- | ----------------- | --------------------------------------------------------- |
+| `pre_create`       | Before creating worktree                        | Subprocess        | Pre-flight validation, resource checks, setup preparation |
+| `post_create`      | After creating worktree, before terminal switch | Subprocess        | File operations, git setup, dependency installation       |
+| `session_init`     | In terminal session after switching to worktree | Terminal session  | Environment setup, virtual env activation, shell config   |
+| `pre_cleanup`      | Before cleaning up worktrees                    | Subprocess        | Release ports, backup data                                |
+| `pre_process_kill` | Before killing processes                        | Subprocess        | Graceful shutdown                                         |
+| `post_cleanup`     | After worktrees are removed                     | Subprocess        | Clean volumes, update state                               |
+| `pre_switch`       | Before switching worktrees                      | Subprocess        | Stop current services                                     |
+| `post_switch`      | After switching worktrees                       | Subprocess        | Start new services                                        |
 
 ## Configuration
 
@@ -138,7 +116,7 @@ All hooks receive the following environment variables:
 ```bash
 # Hook script using environment variables
 echo "Hook type: $AUTOWT_HOOK_TYPE"
-echo "Worktree: $AUTOWT_WORKTREE_DIR" 
+echo "Worktree: $AUTOWT_WORKTREE_DIR"
 echo "Branch: $AUTOWT_BRANCH_NAME"
 
 cd "$AUTOWT_WORKTREE_DIR"
@@ -153,6 +131,7 @@ done
 **How hook scripts are executed**: Hook scripts are executed by passing the script text directly to the system shell (`/bin/sh` on Unix systems) rather than creating a temporary file. This is equivalent to running `/bin/sh -c "your_script_here"`.
 
 This execution model means:
+
 - **Multi-line scripts work naturally**—the shell handles newlines and command separation
 - **All shell features are available**—variables, conditionals, loops, pipes, redirections, etc.
 - **Shebangs are ignored**—since no file is created, `#!/bin/bash` lines are treated as comments
@@ -177,7 +156,7 @@ import sys  # Shell doesn't understand this!
 
 If you need to use a different programming language, create a separate script file and call it from your hook. The external file can use shebangs normally.
 
-*Technical note: This uses Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`.*
+_Technical note: This uses Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`._
 
 ## Hook Details
 
@@ -252,7 +231,7 @@ export DEV_MODE=true
 The session_init hook is special—it's the only hook that runs **inside the terminal session**. While other lifecycle hooks run as background subprocesses, session_init scripts are literally pasted/typed into the terminal using terminal automation (AppleScript on macOS, tmux send-keys, etc.). This allows session_init scripts to:
 
 - Set environment variables that persist in your shell session
-- Activate virtual environments (conda, venv, etc.)  
+- Activate virtual environments (conda, venv, etc.)
 - Start interactive processes
 - Inherit your shell configuration and aliases
 
@@ -553,7 +532,7 @@ pre_process_kill = "docker-compose down"
 Update your `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   api:
     ports:
@@ -591,7 +570,7 @@ npm run db:migrate
 ```
 
 ```bash
-# scripts/cleanup-db.sh  
+# scripts/cleanup-db.sh
 #!/bin/bash
 BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 DB_NAME="myapp_$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/_/g')"
@@ -637,7 +616,7 @@ echo "Starting services for $BRANCH_NAME"
 nohup npm run api -- --name "worktree:$BRANCH_NAME" > logs/api.log 2>&1 &
 echo $! > .pids/api.pid
 
-# Start frontend dev server  
+# Start frontend dev server
 nohup npm run dev -- --name "worktree:$BRANCH_NAME" > logs/frontend.log 2>&1 &
 echo $! > .pids/frontend.pid
 
@@ -651,7 +630,7 @@ echo "Services started for $BRANCH_NAME"
 ```bash
 # scripts/stop-services.sh
 #!/bin/bash
-WORKTREE_DIR="$AUTOWT_WORKTREE_DIR" 
+WORKTREE_DIR="$AUTOWT_WORKTREE_DIR"
 BRANCH_NAME="$AUTOWT_BRANCH_NAME"
 
 cd "$WORKTREE_DIR"
@@ -670,7 +649,7 @@ pkill -f "worktree:$BRANCH_NAME" 2>/dev/null || true
 ```
 
 ```toml
-# .autowt.toml  
+# .autowt.toml
 [scripts]
 init = """
 npm install
@@ -766,7 +745,7 @@ curl -X POST "https://dev-tracker.company.com/api/branches" \
 
 ```toml
 # .autowt.toml
-[scripts] 
+[scripts]
 pre_create = "./scripts/notify-team.sh"
 post_switch = "./scripts/notify-team.sh"
 pre_cleanup = "./scripts/notify-team.sh"
@@ -775,6 +754,7 @@ pre_cleanup = "./scripts/notify-team.sh"
 ### Tips for Implementation
 
 #### 1. Make scripts idempotent
+
 Ensure scripts can run multiple times safely:
 
 ```bash
@@ -791,6 +771,7 @@ pkill myservice || true
 ```
 
 #### 2. Add error handling
+
 ```bash
 #!/bin/bash
 set -e  # Exit on error
@@ -803,6 +784,7 @@ fi
 ```
 
 #### 3. Use configuration files
+
 Store settings in dedicated config files:
 
 ```bash
@@ -813,6 +795,7 @@ export REDIS_URL=redis://localhost:6379
 ```
 
 #### 4. Log hook execution
+
 Add logging to debug issues:
 
 ```bash
@@ -821,6 +804,7 @@ echo "$(date): Running $AUTOWT_HOOK_TYPE for $AUTOWT_BRANCH_NAME" >> "$LOG_FILE"
 ```
 
 #### 5. Test hooks independently
+
 Create a test script:
 
 ```bash
