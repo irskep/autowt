@@ -311,8 +311,7 @@ class AutowtGroup(ClickAliasedGroup):
                     help="How to open the worktree terminal",
                 ),
                 click.Option(
-                    ["-y", "--yes"],
-                    "auto_confirm",
+                    ["-y", "--yes", "auto_confirm"],
                     is_flag=True,
                     help="Automatically confirm all prompts",
                 ),
@@ -335,8 +334,7 @@ class AutowtGroup(ClickAliasedGroup):
                     help="Custom script to run with arguments (e.g., 'bugfix 123')",
                 ),
                 click.Option(
-                    ["--from"],
-                    "from_branch",
+                    ["--from", "from_branch"],
                     help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
                 ),
                 click.Option(
