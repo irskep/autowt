@@ -10,7 +10,7 @@ The most common hook is the **`session_init` script**, which runs in your new te
 
 You can specify a `session_init` script in two ways:
 
-1. **Command-line flag**: Use the `--init` flag for a one-time script (maps to session_init)
+1. **Command-line flag**: Use the `--init` flag for a one-time script (maps to `session_init`)
 2. **Configuration file**: Set the `scripts.session_init` key in your `.autowt.toml` file for a project-wide default
 
 The `session_init` script is executed in your terminal session _after_ `autowt` has switched to the worktree, but _before_ any `--after-init` script is run.
@@ -46,6 +46,7 @@ autowt provides environment variables that make this easier, including `AUTOWT_M
 [scripts]
 # Copy .env file from main worktree if it exists
 session_init = """
+npm install # kept from before
 if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
   cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
 fi
@@ -54,7 +55,7 @@ fi
 
 ## Complete Lifecycle Hooks
 
-Beyond session_init scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
+Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
 | Hook               | When it runs                                    | Execution Context | Common use cases                                          |
 | ------------------ | ----------------------------------------------- | ----------------- | --------------------------------------------------------- |
@@ -67,7 +68,11 @@ Beyond session_init scripts, autowt supports 8 lifecycle hooks that run at speci
 | `pre_switch`       | Before switching worktrees                      | Subprocess        | Stop current services                                     |
 | `post_switch`      | After switching worktrees                       | Subprocess        | Start new services                                        |
 
+Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
+
 ## Configuration
+
+Project-level and global hooks run independently and do not override each other.
 
 ### Project-level hooks
 
@@ -98,10 +103,6 @@ pre_cleanup = "echo 'Cleaning up worktree...'"
 post_cleanup = "echo 'Worktree cleanup complete'"
 ```
 
-### Hook execution order
-
-**Both global and project hooks run**—global hooks execute first, then project hooks. This allows you to set up global defaults while still customizing behavior per project.
-
 ## Environment Variables and Arguments
 
 All hooks receive the following environment variables:
@@ -128,13 +129,16 @@ for file in *.txt; do
 done
 ```
 
-**How hook scripts are executed**: Hook scripts are executed by passing the script text directly to the system shell (`/bin/sh` on Unix systems) rather than creating a temporary file. This is equivalent to running `/bin/sh -c "your_script_here"`.
+### Hooks are executing using the system shell
+
+Hook scripts are executed by passing the script text directly to the system shell (`/bin/sh` on Unix systems) rather than creating a temporary file. This is equivalent to running `/bin/sh -c "your_script_here"`.
 
 This execution model means:
 
 - **Multi-line scripts work naturally**—the shell handles newlines and command separation
 - **All shell features are available**—variables, conditionals, loops, pipes, redirections, etc.
 - **Shebangs are ignored**—since no file is created, `#!/bin/bash` lines are treated as comments
+- **Cross-platform behavior is tricky**—PowerShell and bash are quite different! GitHub issues and pull requests on this topic are welcome.
 
 ```toml
 [scripts]
@@ -156,7 +160,9 @@ import sys  # Shell doesn't understand this!
 
 If you need to use a different programming language, create a separate script file and call it from your hook. The external file can use shebangs normally.
 
-_Technical note: This uses Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`._
+!!! note "Why does it work like this?"
+
+    This behavior is identical to Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`.
 
 ## Hook Details
 
@@ -164,11 +170,9 @@ _Technical note: This uses Python's [`subprocess.run()`](https://docs.python.org
 
 **Timing**: Before worktree creation begins  
 **Execution Context**: Subprocess in parent directory (worktree doesn't exist yet)  
-**Use cases**: Pre-flight validation, resource availability checks, branch name validation, disk space checks
+**Use cases**: Pre-flight validation, resource availability checks, branch name validation
 
-!!! warning "Blocking Behavior"
-
-    The `pre_create` hook is the first hook that can **prevent worktree creation** by exiting with a non-zero status. Unlike other hooks that show error output but continue the operation, if a `pre_create` hook fails, autowt will completely abort worktree creation.
+The `pre_create` hook is the first hook that can **prevent worktree creation** by exiting with a non-zero status. Unlike other hooks that show error output but continue the operation, if a `pre_create` hook fails, autowt will completely abort worktree creation.
 
 ```toml
 [scripts]
@@ -181,16 +185,6 @@ fi
 """
 ```
 
-The pre_create hook runs before any worktree creation begins, making it perfect for:
-
-- Validating branch names against team conventions
-- Checking system resource availability (disk space, memory)
-- Validating permissions or access rights
-- Running pre-flight checks that could prevent worktree creation
-- Setting up external resources that the worktree will depend on
-
-**Important**: If the pre_create hook fails (exits with non-zero status), worktree creation will be aborted. The worktree directory path is provided but the directory doesn't exist yet, so file operations should target the parent directory or main repository.
-
 ### `post_create` Hook
 
 **Timing**: After worktree creation, before terminal switch  
@@ -202,7 +196,6 @@ The pre_create hook runs before any worktree creation begins, making it perfect 
 post_create = """
 npm install
 cp .env.example .env
-git config user.email "dev@example.com"
 """
 ```
 
@@ -217,7 +210,7 @@ The post_create hook runs as a subprocess after the worktree is created but befo
 
 **Timing**: In terminal session after switching to worktree  
 **Execution Context**: Terminal session (pasted/typed into terminal)  
-**Use cases**: Environment setup, virtual environment activation, shell configuration
+**Use cases**: Virtual environment activation, shell configuration
 
 ```toml
 [scripts]
@@ -228,14 +221,7 @@ export DEV_MODE=true
 """
 ```
 
-The session_init hook is special—it's the only hook that runs **inside the terminal session**. While other lifecycle hooks run as background subprocesses, session_init scripts are literally pasted/typed into the terminal using terminal automation (AppleScript on macOS, tmux send-keys, etc.). This allows session_init scripts to:
-
-- Set environment variables that persist in your shell session
-- Activate virtual environments (conda, venv, etc.)
-- Start interactive processes
-- Inherit your shell configuration and aliases
-
-Other hooks run in isolated subprocesses and are better suited for file operations, Git commands, and non-interactive automation tasks.
+The `session_init` hook is special—it's the only hook that runs **inside the new terminal session**. While other lifecycle hooks run inside the initial `autowt create` process, `session_init` scripts are literally pasted/typed into the terminal using terminal automation (i.e. AppleScript). This allows `session_init` scripts to: activate virtual environments or start interactive processes.
 
 ### `pre_cleanup` Hook
 
@@ -248,8 +234,7 @@ pre_cleanup = """
 # Release allocated ports
 ./scripts/release-ports.sh $AUTOWT_BRANCH_NAME
 
-# Backup important data
-rsync -av data/ ../backup/
+docker-compose down --timeout 30
 """
 ```
 
@@ -262,7 +247,6 @@ rsync -av data/ ../backup/
 [scripts]
 pre_process_kill = """
 # Gracefully stop docker containers
-docker-compose down --timeout 30
 
 # Close database connections
 ./scripts/cleanup-db-connections.sh
