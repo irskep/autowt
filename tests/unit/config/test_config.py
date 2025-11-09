@@ -56,7 +56,6 @@ class TestConfigDataClasses:
         """Test WorktreeConfig default values."""
         config = WorktreeConfig()
         assert config.directory_pattern == "../{repo_name}-worktrees/{branch}"
-        assert config.max_worktrees is None
         assert config.auto_fetch is True
         assert config.default_remote == "origin"
         assert isinstance(config.branch_sanitization, BranchSanitizationConfig)
@@ -118,7 +117,6 @@ class TestConfigFromDict:
             "terminal": {"mode": "window", "always_new": True, "program": "iterm2"},
             "worktree": {
                 "directory_pattern": "$HOME/worktrees/{repo_name}/{branch}",
-                "max_worktrees": 20,
                 "auto_fetch": False,
                 "default_remote": "upstream",
                 "branch_sanitization": {
@@ -152,7 +150,6 @@ class TestConfigFromDict:
         assert (
             config.worktree.directory_pattern == "$HOME/worktrees/{repo_name}/{branch}"
         )
-        assert config.worktree.max_worktrees == 20
         assert config.worktree.auto_fetch is False
         assert config.worktree.default_remote == "upstream"
         assert config.worktree.branch_sanitization.replace_chars == "/@#"
@@ -192,7 +189,6 @@ class TestConfigToDict:
             "terminal": {"mode": "tab", "always_new": False, "program": None},
             "worktree": {
                 "directory_pattern": "../{repo_name}-worktrees/{branch}",
-                "max_worktrees": None,
                 "auto_fetch": True,
                 "default_remote": "origin",
                 "branch_sanitization": {

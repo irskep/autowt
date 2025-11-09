@@ -44,7 +44,6 @@ class WorktreeConfig:
     """Worktree management configuration."""
 
     directory_pattern: str = "../{repo_name}-worktrees/{branch}"
-    max_worktrees: int | None = None
     auto_fetch: bool = True
     default_remote: str = "origin"
     branch_sanitization: BranchSanitizationConfig = field(
@@ -113,7 +112,6 @@ class Config:
             directory_pattern=worktree_data.get(
                 "directory_pattern", "../{repo_name}-worktrees/{branch}"
             ),
-            max_worktrees=worktree_data.get("max_worktrees"),
             auto_fetch=worktree_data.get("auto_fetch", True),
             default_remote=worktree_data.get("default_remote", "origin"),
             branch_sanitization=branch_sanitization,
@@ -195,7 +193,6 @@ class Config:
             },
             "worktree": {
                 "directory_pattern": self.worktree.directory_pattern,
-                "max_worktrees": self.worktree.max_worktrees,
                 "auto_fetch": self.worktree.auto_fetch,
                 "default_remote": self.worktree.default_remote,
                 "branch_sanitization": {
@@ -336,7 +333,6 @@ class ConfigLoader:
             "TERMINAL_ALWAYS_NEW": ["terminal", "always_new"],
             "TERMINAL_PROGRAM": ["terminal", "program"],
             "WORKTREE_DIRECTORY_PATTERN": ["worktree", "directory_pattern"],
-            "WORKTREE_MAX_WORKTREES": ["worktree", "max_worktrees"],
             "WORKTREE_AUTO_FETCH": ["worktree", "auto_fetch"],
             "WORKTREE_DEFAULT_REMOTE": ["worktree", "default_remote"],
             "WORKTREE_BRANCH_SANITIZATION_REPLACE_CHARS": [

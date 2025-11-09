@@ -144,7 +144,6 @@ class ConfigApp(App):
             ),
             worktree=WorktreeConfig(
                 directory_pattern=self.config.worktree.directory_pattern,
-                max_worktrees=self.config.worktree.max_worktrees,
                 auto_fetch=auto_fetch,
                 default_remote=self.config.worktree.default_remote,
                 branch_sanitization=self.config.worktree.branch_sanitization,
@@ -182,7 +181,6 @@ def show_config(services: Services) -> None:
 
     print("Worktree:")
     print(f"  directory_pattern: {config.worktree.directory_pattern}")
-    print(f"  max_worktrees: {config.worktree.max_worktrees}")
     print(f"  auto_fetch: {config.worktree.auto_fetch}")
     print(f"  default_remote: {config.worktree.default_remote}")
     print(f"  branch_sanitization: {config.worktree.branch_sanitization}")

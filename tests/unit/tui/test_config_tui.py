@@ -103,7 +103,6 @@ class TestConfigTUIBusinessLogic:
             worktree=WorktreeConfig(
                 auto_fetch=True,
                 directory_pattern="custom/{branch}",  # Not in TUI
-                max_worktrees=5,  # Not in TUI
             ),
         )
 
@@ -130,7 +129,6 @@ class TestConfigTUIBusinessLogic:
             saved_config = mock_state.save_config.call_args[0][0]
             assert saved_config.terminal.program == "custom_terminal"
             assert saved_config.worktree.directory_pattern == "custom/{branch}"
-            assert saved_config.worktree.max_worktrees == 5
 
 
 @pytest.mark.asyncio
@@ -191,7 +189,7 @@ class TestConfigTUIUserWorkflows:
 
                 # Find labels containing config path info
                 labels = app.query("Label")
-                label_texts = [str(label.renderable) for label in labels]
+                label_texts = [str(label.render()) for label in labels]
 
                 # Should show global config path without crashing
                 global_labels = [text for text in label_texts if "Global:" in text]

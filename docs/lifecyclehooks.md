@@ -55,18 +55,17 @@ fi
 
 ## Complete Lifecycle Hooks
 
-Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
+Beyond `session_init` scripts, autowt supports 7 lifecycle hooks that run at specific points during worktree operations:
 
-| Hook               | When it runs                                    | Execution Context | Common use cases                                          |
-| ------------------ | ----------------------------------------------- | ----------------- | --------------------------------------------------------- |
-| `pre_create`       | Before creating worktree                        | Subprocess        | Pre-flight validation, resource checks, setup preparation |
-| `post_create`      | After creating worktree, before terminal switch | Subprocess        | File operations, git setup, dependency installation       |
-| `session_init`     | In terminal session after switching to worktree | Terminal session  | Environment setup, virtual env activation, shell config   |
-| `pre_cleanup`      | Before cleaning up worktrees                    | Subprocess        | Release ports, backup data                                |
-| `pre_process_kill` | Before killing processes                        | Subprocess        | Graceful shutdown                                         |
-| `post_cleanup`     | After worktrees are removed                     | Subprocess        | Clean volumes, update state                               |
-| `pre_switch`       | Before switching worktrees                      | Subprocess        | Stop current services                                     |
-| `post_switch`      | After switching worktrees                       | Subprocess        | Start new services                                        |
+| Hook           | When it runs                                    | Execution Context | Common use cases                                          |
+| -------------- | ----------------------------------------------- | ----------------- | --------------------------------------------------------- |
+| `pre_create`   | Before creating worktree                        | Subprocess        | Pre-flight validation, resource checks, setup preparation |
+| `post_create`  | After creating worktree, before terminal switch | Subprocess        | File operations, git setup, dependency installation       |
+| `session_init` | In terminal session after switching to worktree | Terminal session  | Environment setup, virtual env activation, shell config   |
+| `pre_cleanup`  | Before cleaning up worktrees                    | Subprocess        | Release ports, backup data                                |
+| `post_cleanup` | After worktrees are removed                     | Subprocess        | Clean volumes, update state                               |
+| `pre_switch`   | Before switching worktrees                      | Subprocess        | Stop current services                                     |
+| `post_switch`  | After switching worktrees                       | Subprocess        | Start new services                                        |
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
 
@@ -85,7 +84,6 @@ pre_create = "./scripts/validate-branch.sh"
 post_create = "npm install && cp .env.example .env"
 session_init = "source .env && npm run dev"
 pre_cleanup = "./scripts/release-ports.sh"
-pre_process_kill = "docker-compose down"
 post_cleanup = "./scripts/cleanup-volumes.sh"
 pre_switch = "pkill -f 'npm run dev'"
 post_switch = "npm run dev &"
