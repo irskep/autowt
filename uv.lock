@@ -3,10 +3,16 @@ revision = 3
 requires-python = ">=3.10"
 
 [[package]]
+name = "automate-terminal"
+version = "0.1.3.dev0"
+source = { git = "https://github.com/irskep/automate-terminal.git#e258b474f79ea5a97ac28c0d8e48e0172d2f984c" }
+
+[[package]]
 name = "autowt"
 version = "0.5.0.dev0"
 source = { editable = "." }
 dependencies = [
+    { name = "automate-terminal" },
     { name = "click" },
     { name = "click-aliases" },
     { name = "rich" },
@@ -34,6 +40,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
+    { name = "automate-terminal", git = "https://github.com/irskep/automate-terminal.git" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "click-aliases", specifier = ">=1.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
