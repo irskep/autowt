@@ -10,7 +10,8 @@ This module provides type-safe configuration management with support for:
 import logging
 import os
 import platform
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -185,40 +186,12 @@ class Config:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary for serialization."""
-        return {
-            "terminal": {
-                "mode": self.terminal.mode.value,
-                "always_new": self.terminal.always_new,
-                "program": self.terminal.program,
-            },
-            "worktree": {
-                "directory_pattern": self.worktree.directory_pattern,
-                "auto_fetch": self.worktree.auto_fetch,
-                "default_remote": self.worktree.default_remote,
-                "branch_sanitization": {
-                    "replace_chars": self.worktree.branch_sanitization.replace_chars,
-                    "max_length": self.worktree.branch_sanitization.max_length,
-                    "lowercase": self.worktree.branch_sanitization.lowercase,
-                },
-            },
-            "cleanup": {
-                "default_mode": self.cleanup.default_mode.value,
-            },
-            "scripts": {
-                "post_create": self.scripts.post_create,
-                "session_init": self.scripts.session_init,
-                "pre_cleanup": self.scripts.pre_cleanup,
-                "post_cleanup": self.scripts.post_cleanup,
-                "pre_switch": self.scripts.pre_switch,
-                "post_switch": self.scripts.post_switch,
-                "custom": self.scripts.custom,
-            },
-            "confirmations": {
-                "cleanup_multiple": self.confirmations.cleanup_multiple,
-                "kill_process": self.confirmations.kill_process,
-                "force_operations": self.confirmations.force_operations,
-            },
-        }
+
+        def convert_value(items):
+            """Convert enum values to their string representation."""
+            return {k: v.value if isinstance(v, Enum) else v for k, v in items}
+
+        return asdict(self, dict_factory=convert_value)
 
 
 class ConfigLoader:

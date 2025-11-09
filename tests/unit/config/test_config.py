@@ -201,6 +201,7 @@ class TestConfigToDict:
                 "default_mode": "interactive",
             },
             "scripts": {
+                "pre_create": None,
                 "post_create": None,
                 "session_init": None,
                 "pre_cleanup": None,
