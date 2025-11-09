@@ -33,6 +33,7 @@ dependencies = [
     "rich>=13.0.0",
     # TODO BEFORE RELEASE: pin to a specific version
     "automate-terminal @ git+https://github.com/irskep/automate-terminal.git",
+    "zensical>=0.0.5",
 ]
 
 
@@ -75,8 +76,6 @@ dev = [
 docs = [
     "mkdocs>=1.5.3",
     "mkdocs-material>=9.4.6",
-    "mkdocstrings[python]>=0.23.0",
     "pymdown-extensions>=10.3.1",
-    "mkdocs-mermaid2-plugin>=1.1.1",
     "mkdocs-github-admonitions-plugin",
 ]

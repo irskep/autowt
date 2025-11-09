@@ -93,9 +93,6 @@ Automate setup tasks with lifecycle hooks that run at different points during wo
 | `pre_switch`   | string | `null`  | A command or script to run before switching away from current worktree. <br> **ENV**: `AUTOWT_SCRIPTS_PRE_SWITCH`                                                                                                                                         |
 | `post_switch`  | string | `null`  | A command or script to run after switching to new worktree. <br> **ENV**: `AUTOWT_SCRIPTS_POST_SWITCH`                                                                                                                                                    |
 
-!!! note "Migration from `init`"
-The old `init` key is deprecated but still supported for backward compatibility. It maps to `session_init`. Update your configuration to use `session_init` explicitly.
-
 See the [Lifecycle Hooks guide](lifecyclehooks.md) for detailed examples and execution context information.
 
 #### `[scripts.custom]`
