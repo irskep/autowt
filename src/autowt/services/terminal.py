@@ -13,13 +13,13 @@ from automate_terminal import (
     list_sessions,
     new_tab,
     new_window,
+    run_in_active_session,
     switch_to_session,
 )
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.services.state import StateService
-from autowt.utils import run_command
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +156,13 @@ class TerminalService:
         session_init_script: str | None = None,
         after_init: str | None = None,
     ) -> bool:
-        """Execute directory change and commands in current terminal session."""
+        """Execute directory change and commands in current terminal session.
+
+        Note: session_init runs in the current session for INPLACE mode. This is correct
+        for current use cases (e.g., launching `claude`, activating venvs), but if we add
+        a hook like `post_create_async` that runs in the original session after switch,
+        we'll need to carefully consider the interaction with session_init in INPLACE mode.
+        """
         logger.debug(f"Executing cd command in current session for {worktree_path}")
 
         commands = [f"cd {shlex.quote(str(worktree_path))}"]
@@ -386,9 +392,9 @@ class TerminalService:
 
 
 def run_script_inplace(command: str) -> bool:
-    """Execute command in current terminal session using AppleScript.
+    """Execute command in current terminal session.
 
-    This is a simplified version of the old terminal-specific implementations.
+    Uses automate-terminal's run_in_active_session API.
     Falls back to False if unsupported.
 
     Args:
@@ -397,65 +403,12 @@ def run_script_inplace(command: str) -> bool:
     Returns:
         True if executed successfully, False if unsupported/failed
     """
-    term_program = os.getenv("TERM_PROGRAM", "")
-
-    def escape_for_applescript(text: str) -> str:
-        """Escape text for use in AppleScript strings."""
-        return text.replace("\\", "\\\\").replace('"', '\\"')
-
     try:
-        if term_program == "iTerm.app":
-            # iTerm2
-            applescript = f"""
-            tell application "iTerm2"
-                tell current session of current window
-                    write text "{escape_for_applescript(command)}"
-                end tell
-            end tell
-            """
-            result = run_command(
-                ["osascript", "-e", applescript],
-                timeout=30,
-                description="Execute in iTerm2",
-            )
-            return result.returncode == 0
-
-        elif term_program == "Apple_Terminal":
-            # Terminal.app
-            applescript = f"""
-            tell application "Terminal"
-                do script "{escape_for_applescript(command)}" in selected tab of front window
-            end tell
-            """
-            result = run_command(
-                ["osascript", "-e", applescript],
-                timeout=30,
-                description="Execute in Terminal.app",
-            )
-            return result.returncode == 0
-
-        elif term_program == "ghostty":
-            # Ghostty - requires accessibility permissions
-            applescript = f"""
-            tell application "System Events"
-                tell process "Ghostty"
-                    keystroke "{escape_for_applescript(command)}"
-                    key code 36
-                end tell
-            end tell
-            """
-            result = run_command(
-                ["osascript", "-e", applescript],
-                timeout=30,
-                description="Execute in Ghostty",
-            )
-            return result.returncode == 0
-
-        else:
-            # Unsupported terminal
-            logger.debug(f"Inplace mode not supported for {term_program}")
-            return False
-
+        return run_in_active_session(command, debug=False)
+    except TerminalNotFoundError:
+        # Terminal doesn't support running commands in active session
+        logger.debug("Terminal doesn't support run_in_active_session")
+        return False
     except Exception as e:
         logger.error(f"Failed to execute inplace command: {e}")
         return False

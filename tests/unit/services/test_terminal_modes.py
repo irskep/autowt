@@ -1,7 +1,9 @@
 """Tests for new terminal mode functionality (ECHO and INPLACE)."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+from automate_terminal import TerminalNotFoundError
 
 from autowt.models import TerminalMode
 from autowt.services.terminal import TerminalService, run_script_inplace
@@ -57,62 +59,49 @@ class TestTerminalModes:
 class TestInplaceExecution:
     """Tests for run_script_inplace function."""
 
-    @patch("autowt.services.terminal.run_command")
-    @patch.dict("os.environ", {"TERM_PROGRAM": "iTerm.app"})
-    def test_run_script_inplace_iterm2_success(self, mock_run_command):
+    @patch("autowt.services.terminal.run_in_active_session")
+    def test_run_script_inplace_iterm2_success(self, mock_run_in_active_session):
         """Test successful command execution in iTerm2."""
-        mock_result = Mock()
-        mock_result.returncode = 0
-        mock_run_command.return_value = mock_result
+        mock_run_in_active_session.return_value = True
 
         command = "cd /test/worktree; setup.sh"
         success = run_script_inplace(command)
 
         assert success
-        mock_run_command.assert_called_once()
-        call_args = mock_run_command.call_args[0][0]
-        assert call_args[0] == "osascript"
-        assert "write text" in call_args[2]
+        mock_run_in_active_session.assert_called_once_with(command, debug=False)
 
-    @patch("autowt.services.terminal.run_command")
-    @patch.dict("os.environ", {"TERM_PROGRAM": "Apple_Terminal"})
-    def test_run_script_inplace_terminal_app_success(self, mock_run_command):
-        """Test successful command execution in Terminal.app."""
-        mock_result = Mock()
-        mock_result.returncode = 0
-        mock_run_command.return_value = mock_result
+    @patch("autowt.services.terminal.run_in_active_session")
+    def test_run_script_inplace_failure(self, mock_run_in_active_session):
+        """Test command execution failure."""
+        mock_run_in_active_session.return_value = False
 
-        command = "cd /test/worktree; setup.sh"
+        command = "cd /test/worktree"
         success = run_script_inplace(command)
 
-        assert success
-        mock_run_command.assert_called_once()
-        call_args = mock_run_command.call_args[0][0]
-        assert call_args[0] == "osascript"
-        assert "do script" in call_args[2]
+        assert not success
+        mock_run_in_active_session.assert_called_once_with(command, debug=False)
 
-    @patch.dict("os.environ", {"TERM_PROGRAM": "unsupported"})
-    def test_run_script_inplace_unsupported_terminal(self):
+    @patch("autowt.services.terminal.run_in_active_session")
+    def test_run_script_inplace_unsupported_terminal(self, mock_run_in_active_session):
         """Test unsupported terminal returns False."""
+        mock_run_in_active_session.side_effect = TerminalNotFoundError(
+            "Unsupported terminal"
+        )
+
         command = "cd /test/worktree"
         success = run_script_inplace(command)
 
         assert not success
 
-    @patch("autowt.services.terminal.run_command")
-    @patch.dict("os.environ", {"TERM_PROGRAM": "iTerm.app"})
-    def test_run_script_inplace_escapes_command(self, mock_run_command):
-        """Test that special characters in command are properly escaped."""
-        mock_result = Mock()
-        mock_result.returncode = 0
-        mock_run_command.return_value = mock_result
+    @patch("autowt.services.terminal.run_in_active_session")
+    def test_run_script_inplace_exception(self, mock_run_in_active_session):
+        """Test exception handling."""
+        mock_run_in_active_session.side_effect = Exception("Something went wrong")
 
-        command = 'cd "/test/path with spaces"; echo "hello world"'
-        run_script_inplace(command)
+        command = "cd /test/worktree"
+        success = run_script_inplace(command)
 
-        # Check that the command was escaped
-        call_args = mock_run_command.call_args[0][0]
-        assert '\\"' in call_args[2]  # Quotes should be escaped
+        assert not success
 
 
 class TestTerminalModeIntegration:
