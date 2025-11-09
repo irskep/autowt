@@ -7,7 +7,6 @@ from pathlib import Path
 
 from autowt.console import console, print_error, print_plain, print_section
 from autowt.models import Services
-from autowt.services.hooks import check_and_prompt_hooks_installation
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ class WorktreeSegments:
     """Segments for formatting a worktree display line."""
 
     left: str  # Current indicator + path
-    middle: str  # Session and agent indicators
+    middle: str  # Session indicators
     main_indicator: str  # "(main worktree)" with styling
     right: str  # Branch + current indicator
 
@@ -46,14 +45,8 @@ def _build_worktree_segments(
     current_indicator = "→ " if current_worktree_path == worktree.path else "  "
     left = f"{current_indicator}{display_path}"
 
-    # Middle segment: session and agent indicators with proper spacing
-    indicators = []
-    if worktree.has_active_session:
-        indicators.append("@")
-    if worktree.agent_status:
-        indicators.append(worktree.agent_status.status_indicator)
-
-    middle = " " + "".join(indicators) if indicators else ""
+    # Middle segment: removed (session tracking no longer supported)
+    middle = ""
 
     # Main worktree indicator (styled)
     main_indicator = (
@@ -105,14 +98,11 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         print_error("Error: Not in a git repository")
         return
 
-    # Check if we should prompt for hooks installation (first-run experience)
-    check_and_prompt_hooks_installation(services)
-
     # Get current directory to determine which worktree we're in
     current_path = Path.cwd()
 
     # Get worktrees from git
-    git_worktrees = services.git.list_worktrees(repo_path)
+    worktrees = services.git.list_worktrees(repo_path)
 
     # Show debug information about paths if requested
     if debug:
@@ -120,7 +110,6 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         print_plain(f"    State directory: {services.state.app_dir}")
         print_plain(f"    State file: {services.state.state_file}")
         print_plain(f"    Config file: {services.state.config_file}")
-        print_plain(f"    Session file: {services.state.session_file}")
         print_plain(f"    Git repository root: {repo_path}")
 
         # Check for project config files
@@ -135,14 +124,9 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
 
         print_plain("")
 
-    # Enhance worktrees with agent status
-    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, services.state, repo_path
-    )
-
     # Determine which worktree we're currently in
     current_worktree_path = None
-    for worktree in git_worktrees:
+    for worktree in worktrees:
         try:
             if current_path.is_relative_to(worktree.path):
                 current_worktree_path = worktree.path
@@ -151,16 +135,14 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
             # is_relative_to raises ValueError if not relative
             continue
 
-    if not enhanced_worktrees:
+    if not worktrees:
         print_plain("  No worktrees found.")
         return
 
     print_section("  Worktrees:")
 
     # Sort worktrees: primary first, then by branch name
-    sorted_worktrees = sorted(
-        enhanced_worktrees, key=lambda w: (not w.is_primary, w.branch)
-    )
+    sorted_worktrees = sorted(worktrees, key=lambda w: (not w.is_primary, w.branch))
 
     # Calculate the maximum terminal width to align branch names
     terminal_width = 80  # Default fallback

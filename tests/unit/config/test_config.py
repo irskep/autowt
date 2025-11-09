@@ -56,7 +56,6 @@ class TestConfigDataClasses:
         """Test WorktreeConfig default values."""
         config = WorktreeConfig()
         assert config.directory_pattern == "../{repo_name}-worktrees/{branch}"
-        assert config.max_worktrees is None
         assert config.auto_fetch is True
         assert config.default_remote == "origin"
         assert isinstance(config.branch_sanitization, BranchSanitizationConfig)
@@ -64,8 +63,6 @@ class TestConfigDataClasses:
     def test_cleanup_config_defaults(self):
         """Test CleanupConfig default values."""
         config = CleanupConfig()
-        assert config.kill_processes is True
-        assert config.kill_process_timeout == 10
         assert config.default_mode == CleanupMode.INTERACTIVE
 
     def test_scripts_config_defaults(self):
@@ -99,21 +96,20 @@ class TestConfigFromDict:
         """Test creating config from empty dictionary uses defaults."""
         config = Config.from_dict({})
         assert config.terminal.mode == TerminalMode.TAB
-        assert config.cleanup.kill_processes is True
+        assert config.cleanup.default_mode == CleanupMode.INTERACTIVE
 
     def test_config_from_partial_dict(self):
         """Test creating config from partial dictionary."""
         data = {
             "terminal": {"mode": "window", "always_new": True},
-            "cleanup": {"kill_processes": False},
+            "cleanup": {"default_mode": "merged"},
         }
         config = Config.from_dict(data)
 
         assert config.terminal.mode == TerminalMode.WINDOW
         assert config.terminal.always_new is True
         assert config.terminal.program is None  # default
-        assert config.cleanup.kill_processes is False
-        assert config.cleanup.kill_process_timeout == 10  # default
+        assert config.cleanup.default_mode == CleanupMode.MERGED
 
     def test_config_from_complete_dict(self):
         """Test creating config from complete dictionary."""
@@ -121,7 +117,6 @@ class TestConfigFromDict:
             "terminal": {"mode": "window", "always_new": True, "program": "iterm2"},
             "worktree": {
                 "directory_pattern": "$HOME/worktrees/{repo_name}/{branch}",
-                "max_worktrees": 20,
                 "auto_fetch": False,
                 "default_remote": "upstream",
                 "branch_sanitization": {
@@ -131,8 +126,6 @@ class TestConfigFromDict:
                 },
             },
             "cleanup": {
-                "kill_processes": False,
-                "kill_process_timeout": 15,
                 "default_mode": "merged",
             },
             "scripts": {
@@ -157,7 +150,6 @@ class TestConfigFromDict:
         assert (
             config.worktree.directory_pattern == "$HOME/worktrees/{repo_name}/{branch}"
         )
-        assert config.worktree.max_worktrees == 20
         assert config.worktree.auto_fetch is False
         assert config.worktree.default_remote == "upstream"
         assert config.worktree.branch_sanitization.replace_chars == "/@#"
@@ -165,8 +157,6 @@ class TestConfigFromDict:
         assert config.worktree.branch_sanitization.lowercase is True
 
         # Cleanup config
-        assert config.cleanup.kill_processes is False
-        assert config.cleanup.kill_process_timeout == 15
         assert config.cleanup.default_mode == CleanupMode.MERGED
 
         # Scripts config
@@ -199,7 +189,6 @@ class TestConfigToDict:
             "terminal": {"mode": "tab", "always_new": False, "program": None},
             "worktree": {
                 "directory_pattern": "../{repo_name}-worktrees/{branch}",
-                "max_worktrees": None,
                 "auto_fetch": True,
                 "default_remote": "origin",
                 "branch_sanitization": {
@@ -209,15 +198,12 @@ class TestConfigToDict:
                 },
             },
             "cleanup": {
-                "kill_processes": True,
-                "kill_process_timeout": 10,
                 "default_mode": "interactive",
             },
             "scripts": {
                 "post_create": None,
                 "session_init": None,
                 "pre_cleanup": None,
-                "pre_process_kill": None,
                 "post_cleanup": None,
                 "pre_switch": None,
                 "post_switch": None,
@@ -237,7 +223,7 @@ class TestConfigToDict:
         original_config = Config.from_dict(
             {
                 "terminal": {"mode": "window", "always_new": True},
-                "cleanup": {"kill_processes": False},
+                "cleanup": {"default_mode": "merged"},
                 "scripts": {"init": "npm install", "custom": {"test": "npm test"}},
             }
         )
@@ -250,8 +236,7 @@ class TestConfigToDict:
             original_config.terminal.always_new == restored_config.terminal.always_new
         )
         assert (
-            original_config.cleanup.kill_processes
-            == restored_config.cleanup.kill_processes
+            original_config.cleanup.default_mode == restored_config.cleanup.default_mode
         )
         assert (
             original_config.scripts.session_init == restored_config.scripts.session_init
@@ -311,7 +296,7 @@ class TestConfigLoader:
 
             # Should return defaults
             assert config.terminal.mode == TerminalMode.TAB
-            assert config.cleanup.kill_processes is True
+            assert config.cleanup.default_mode == CleanupMode.INTERACTIVE
 
     def test_load_global_config(self):
         """Test loading global configuration file."""
@@ -321,7 +306,7 @@ class TestConfigLoader:
             # Create global config
             global_config = {
                 "terminal": {"mode": "window", "always_new": True},
-                "cleanup": {"kill_processes": False},
+                "cleanup": {"default_mode": "merged"},
             }
             with open(app_dir / "config.toml", "w") as f:
                 toml.dump(global_config, f)
@@ -331,7 +316,7 @@ class TestConfigLoader:
 
             assert config.terminal.mode == TerminalMode.WINDOW
             assert config.terminal.always_new is True
-            assert config.cleanup.kill_processes is False
+            assert config.cleanup.default_mode == CleanupMode.MERGED
 
     def test_load_project_config(self):
         """Test loading project configuration file."""
@@ -380,7 +365,7 @@ class TestConfigLoader:
             env_vars = {
                 "AUTOWT_TERMINAL_MODE": "window",
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "true",
-                "AUTOWT_CLEANUP_KILL_PROCESSES": "false",
+                "AUTOWT_CLEANUP_DEFAULT_MODE": "merged",
                 "AUTOWT_WORKTREE_AUTO_FETCH": "false",
                 "AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": "100",
                 "AUTOWT_SCRIPTS_SESSION_INIT": "make setup",
@@ -392,7 +377,7 @@ class TestConfigLoader:
 
                 assert config.terminal.mode == TerminalMode.WINDOW
                 assert config.terminal.always_new is True
-                assert config.cleanup.kill_processes is False
+                assert config.cleanup.default_mode == CleanupMode.MERGED
                 assert config.worktree.auto_fetch is False
                 assert config.worktree.branch_sanitization.max_length == 100
                 assert config.scripts.session_init == "make setup"
@@ -404,14 +389,14 @@ class TestConfigLoader:
 
             cli_overrides = {
                 "terminal": {"mode": "echo"},
-                "cleanup": {"kill_processes": True},
+                "cleanup": {"default_mode": "all"},
             }
 
             loader = ConfigLoader(app_dir=app_dir)
             config = loader.load_config(cli_overrides=cli_overrides)
 
             assert config.terminal.mode == TerminalMode.ECHO
-            assert config.cleanup.kill_processes is True
+            assert config.cleanup.default_mode == CleanupMode.ALL
 
     def test_precedence_order(self):
         """Test configuration precedence order."""
@@ -423,7 +408,7 @@ class TestConfigLoader:
             # Global config
             global_config = {
                 "terminal": {"mode": "tab", "always_new": False},
-                "cleanup": {"kill_processes": True},
+                "cleanup": {"default_mode": "interactive"},
                 "scripts": {"init": "global init"},
             }
             with open(app_dir / "config.toml", "w") as f:
@@ -439,7 +424,7 @@ class TestConfigLoader:
 
             # Environment variables
             env_vars = {
-                "AUTOWT_CLEANUP_KILL_PROCESSES": "false",  # Override cleanup setting
+                "AUTOWT_CLEANUP_DEFAULT_MODE": "merged",  # Override cleanup setting
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "true",  # Override always_new
             }
 
@@ -457,7 +442,9 @@ class TestConfigLoader:
                 # Check precedence: CLI > env > project > global > defaults
                 assert config.terminal.mode == TerminalMode.WINDOW  # From project
                 assert config.terminal.always_new is True  # From environment
-                assert config.cleanup.kill_processes is False  # From environment
+                assert (
+                    config.cleanup.default_mode == CleanupMode.MERGED
+                )  # From environment
                 assert config.scripts.session_init == "cli init"  # From CLI override
 
     def test_invalid_global_config_file(self):
@@ -510,7 +497,7 @@ class TestConfigLoader:
 
             env_vars = {
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "yes",  # Boolean true
-                "AUTOWT_CLEANUP_KILL_PROCESSES": "no",  # Boolean false
+                "AUTOWT_CLEANUP_DEFAULT_MODE": "all",  # String
                 "AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": "150",  # Integer
                 "AUTOWT_SCRIPTS_SESSION_INIT": "echo hello",  # String
             }
@@ -520,7 +507,7 @@ class TestConfigLoader:
                 config = loader.load_config()
 
                 assert config.terminal.always_new is True
-                assert config.cleanup.kill_processes is False
+                assert config.cleanup.default_mode == CleanupMode.ALL
                 assert config.worktree.branch_sanitization.max_length == 150
                 assert config.scripts.session_init == "echo hello"
 
@@ -532,7 +519,7 @@ class TestConfigLoader:
             config = Config.from_dict(
                 {
                     "terminal": {"mode": "window", "always_new": True},
-                    "cleanup": {"kill_processes": False},
+                    "cleanup": {"default_mode": "merged"},
                 }
             )
 
@@ -546,7 +533,7 @@ class TestConfigLoader:
             loaded_config = loader.load_config()
             assert loaded_config.terminal.mode == TerminalMode.WINDOW
             assert loaded_config.terminal.always_new is True
-            assert loaded_config.cleanup.kill_processes is False
+            assert loaded_config.cleanup.default_mode == CleanupMode.MERGED
 
 
 class TestGlobalConfigManagement:
@@ -631,7 +618,7 @@ class TestConfigIntegration:
             # Global config - user preferences
             global_config = {
                 "terminal": {"mode": "tab", "program": "iterm2"},
-                "cleanup": {"kill_processes": True, "kill_process_timeout": 15},
+                "cleanup": {"default_mode": "interactive"},
                 "confirmations": {"cleanup_multiple": False},
             }
             with open(app_dir / "config.toml", "w") as f:
@@ -658,7 +645,7 @@ class TestConfigIntegration:
             # Environment overrides - CI/deployment settings
             env_vars = {
                 "AUTOWT_TERMINAL_MODE": "echo",  # For CI/scripts
-                "AUTOWT_CLEANUP_KILL_PROCESSES": "false",  # Be careful in CI
+                "AUTOWT_CLEANUP_DEFAULT_MODE": "merged",  # For CI
             }
 
             # CLI overrides - one-time overrides
@@ -675,8 +662,7 @@ class TestConfigIntegration:
                 assert config.terminal.always_new is True  # From CLI
                 assert config.terminal.program == "iterm2"  # From global
 
-                assert config.cleanup.kill_processes is False  # From env
-                assert config.cleanup.kill_process_timeout == 15  # From global
+                assert config.cleanup.default_mode == CleanupMode.MERGED  # From env
 
                 assert (
                     config.scripts.session_init == "npm install && npm run setup"
@@ -701,7 +687,7 @@ class TestConfigIntegration:
 
             # Should work with all defaults
             assert config.terminal.mode == TerminalMode.TAB
-            assert config.cleanup.kill_processes is True
+            assert config.cleanup.default_mode == CleanupMode.INTERACTIVE
             assert config.scripts.session_init is None
             assert config.scripts.custom == {}
 

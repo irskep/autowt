@@ -28,7 +28,7 @@ jobs:
 
     - name: Install dependencies and build
       run: |
-        uv sync --extra dev
+        uv sync --group dev
         uv build
 
     - name: Publish to PyPI

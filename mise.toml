@@ -11,12 +11,12 @@ _.python.venv = { path = ".venv" }
 _.file = ".env"
 
 [tasks]
-install = "uv sync --extra=docs"
+install = "uv sync"
 test = "uv run pytest"
 lint = "uv run ruff check"
 format = "uv run ruff format"
 format-check = "uv run ruff format --check"
 claude-hook-lint = "./scripts/claude-hook-lint.sh"
-docs-install = "uv sync --extra docs"
+docs-install = "uv sync --group docs"
 docs-serve = "uv run mkdocs serve"
 docs-build = "uv run mkdocs build"

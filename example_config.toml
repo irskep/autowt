@@ -48,11 +48,6 @@ always_new = false
 # ENV: AUTOWT_WORKTREE_DIRECTORY_PATTERN="../{repo_name}-worktrees/{branch}"
 directory_pattern = "../{repo_name}-worktrees/{branch}"
 
-# Maximum number of worktrees allowed per repository
-# Helps prevent disk space issues in large teams
-# ENV: AUTOWT_WORKTREE_MAX_WORKTREES=20
-# max_worktrees = 20
-
 # Automatically fetch from remote before creating new worktrees
 # CLI: --no-fetch (to disable)
 # ENV: AUTOWT_WORKTREE_AUTO_FETCH=false
@@ -80,16 +75,6 @@ lowercase = false
 # ============================================================================
 
 [cleanup]
-# Kill shell processes (zsh, bash, sh, fish) running in worktree directories during cleanup
-# Only looks in the main worktree directory (non-recursive)
-# CLI: --kill / --no-kill
-# ENV: AUTOWT_CLEANUP_KILL_PROCESSES=false
-kill_processes = true
-
-# Timeout in seconds when killing processes
-# ENV: AUTOWT_CLEANUP_KILL_PROCESS_TIMEOUT=15
-kill_process_timeout = 10 # seconds
-
 # Default mode for cleanup command
 # Options: "interactive" (default), "merged", "remoteless", "all"
 # CLI: --mode=merged

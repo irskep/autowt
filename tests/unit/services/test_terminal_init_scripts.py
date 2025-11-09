@@ -1,7 +1,7 @@
 """Tests for terminal service init script functionality."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -58,78 +58,90 @@ class TestTerminalServiceInitScripts:
         assert success
         assert captured.out.strip() == expected_output
 
-    def test_change_directory_inplace_with_mock_terminal(
-        self, terminal_service, test_path, init_script
+    @patch("autowt.services.terminal.run_script_inplace")
+    def test_inplace_commands_with_supported_terminal(
+        self, mock_run_script, terminal_service, test_path, init_script
     ):
         """Test new inplace mode with mocked terminal execution."""
-        # Mock terminal with execute_in_current_session method
-        mock_terminal = Mock()
-        mock_terminal.execute_in_current_session.return_value = True
-        terminal_service.terminal = mock_terminal
+        mock_run_script.return_value = True
 
-        success = terminal_service._change_directory_inplace(test_path, init_script)
+        success = terminal_service._inplace_commands(test_path, init_script)
 
         assert success
-        mock_terminal.execute_in_current_session.assert_called_once_with(
-            "cd /test/worktree; setup.sh"
-        )
+        mock_run_script.assert_called_once_with("cd /test/worktree; setup.sh")
 
-    def test_change_directory_inplace_fallback_to_echo(
-        self, terminal_service, test_path, init_script, capsys
+    @patch("autowt.services.terminal.run_script_inplace")
+    def test_inplace_commands_fallback_to_echo(
+        self, mock_run_script, terminal_service, test_path, init_script, capsys
     ):
         """Test inplace mode falls back to echo when terminal doesn't support it."""
-        # Mock terminal without execute_in_current_session method
-        mock_terminal = Mock(spec=[])  # Empty spec means no methods/attributes
-        terminal_service.terminal = mock_terminal
+        mock_run_script.return_value = False
 
-        success = terminal_service._change_directory_inplace(test_path, init_script)
+        success = terminal_service._inplace_commands(test_path, init_script)
 
         captured = capsys.readouterr()
         assert success
         assert captured.out.strip() == "cd /test/worktree; setup.sh"
 
-    def test_terminal_implementation_delegation(
-        self, terminal_service, test_path, init_script
+    @patch("autowt.services.terminal.check")
+    @patch("autowt.services.terminal.new_tab")
+    def test_terminal_implementation_delegation_tab(
+        self, mock_new_tab, mock_check, terminal_service, test_path, init_script
     ):
-        """Test that TerminalService properly delegates to terminal implementations."""
-        # Mock the terminal implementation
-        mock_terminal = Mock()
-        mock_terminal.open_new_tab.return_value = True
-        mock_terminal.open_new_window.return_value = True
-        mock_terminal.switch_to_session.return_value = True
-        mock_terminal.supports_session_management.return_value = True
-
-        # Replace the terminal with our mock
-        terminal_service.terminal = mock_terminal
+        """Test that TerminalService properly delegates to automate_terminal for tabs."""
+        mock_check.return_value = {
+            "capabilities": {
+                "can_create_tabs": True,
+                "can_paste_commands": True,
+            }
+        }
+        mock_new_tab.return_value = True
 
         # Test tab creation delegation
-        success = terminal_service._switch_to_existing_or_new_tab(
-            test_path, None, init_script, None, False
+        success = terminal_service._tab_mode(
+            test_path, init_script, None, None, False, False
         )
 
         assert success
-        mock_terminal.open_new_tab.assert_called_once_with(test_path, init_script)
+        mock_new_tab.assert_called_once_with(
+            working_directory=str(test_path),
+            paste_script=init_script,
+        )
+
+    @patch("autowt.services.terminal.check")
+    @patch("autowt.services.terminal.new_window")
+    def test_terminal_implementation_delegation_window(
+        self, mock_new_window, mock_check, terminal_service, test_path, init_script
+    ):
+        """Test that TerminalService properly delegates to automate_terminal for windows."""
+        mock_check.return_value = {
+            "capabilities": {
+                "can_create_windows": True,
+                "can_paste_commands": True,
+            }
+        }
+        mock_new_window.return_value = True
 
         # Test window creation delegation
-        mock_terminal.reset_mock()
-        success = terminal_service._switch_to_existing_or_new_window(
-            test_path, None, init_script, None, None, False
+        success = terminal_service._window_mode(
+            test_path, init_script, None, None, False, False
         )
 
         assert success
-        mock_terminal.open_new_window.assert_called_once_with(test_path, init_script)
+        mock_new_window.assert_called_once_with(
+            working_directory=str(test_path),
+            paste_script=init_script,
+        )
 
     def test_switch_to_worktree_delegates_correctly(
         self, terminal_service, test_path, init_script
     ):
         """Test that switch_to_worktree passes init_script to appropriate methods."""
-        with patch.object(
-            terminal_service, "_change_directory_inplace"
-        ) as mock_inplace:
+        with patch.object(terminal_service, "_inplace_commands") as mock_inplace:
             mock_inplace.return_value = True
 
             success = terminal_service.switch_to_worktree(
-                test_path, TerminalMode.INPLACE, None, init_script
+                test_path, TerminalMode.INPLACE, init_script
             )
 
             assert success
@@ -140,71 +152,77 @@ class TestTerminalServiceInitScripts:
             mock_echo.return_value = True
 
             success = terminal_service.switch_to_worktree(
-                test_path, TerminalMode.ECHO, None, init_script
+                test_path, TerminalMode.ECHO, init_script
             )
 
             assert success
             mock_echo.assert_called_once_with(test_path, init_script, None)
 
-        # Mock the terminal implementation to test delegation
-        mock_terminal = Mock()
-        mock_terminal.open_new_tab.return_value = True
-        mock_terminal.open_new_window.return_value = True
-        mock_terminal.supports_session_management.return_value = False
-        terminal_service.terminal = mock_terminal
-
         # Test TAB mode delegation
-        success = terminal_service.switch_to_worktree(
-            test_path, TerminalMode.TAB, None, init_script
-        )
+        with patch.object(terminal_service, "_tab_mode") as mock_tab:
+            mock_tab.return_value = True
 
-        assert success
-        mock_terminal.open_new_tab.assert_called_once_with(test_path, init_script)
-
-        # Test WINDOW mode delegation
-        mock_terminal.reset_mock()
-        success = terminal_service.switch_to_worktree(
-            test_path, TerminalMode.WINDOW, None, init_script
-        )
-
-        assert success
-        mock_terminal.open_new_window.assert_called_once_with(test_path, init_script)
-
-    def test_switch_to_existing_or_new_tab_with_init_script(
-        self, terminal_service, test_path, init_script
-    ):
-        """Test switch_to_existing_or_new_tab handles init scripts."""
-        # Mock the terminal implementation
-        mock_terminal = Mock()
-        mock_terminal.switch_to_session.return_value = (
-            False  # Simulate session switch failure
-        )
-        mock_terminal.open_new_tab.return_value = True
-        mock_terminal.supports_session_management.return_value = True
-        terminal_service.terminal = mock_terminal
-
-        with patch.object(
-            terminal_service, "_should_switch_to_existing"
-        ) as mock_should_switch:
-            mock_should_switch.return_value = True  # User wants to switch
-
-            success = terminal_service._switch_to_existing_or_new_tab(
-                test_path,
-                "session-id",
-                init_script,
-                None,
-                "test-branch",
-                False,
+            success = terminal_service.switch_to_worktree(
+                test_path, TerminalMode.TAB, init_script
             )
 
             assert success
-            # Should try to switch to session first (no init script), then fall back to new tab
-            mock_should_switch.assert_called_once_with("test-branch")
-            mock_terminal.switch_to_session.assert_called_once_with(
-                "session-id",
-                None,  # No init script when switching to existing session
+            # branch_name, auto_confirm, ignore_same_session default to None, False, False
+            mock_tab.assert_called_once_with(
+                test_path, init_script, None, None, False, False
             )
-            mock_terminal.open_new_tab.assert_called_once_with(test_path, init_script)
+
+        # Test WINDOW mode delegation
+        with patch.object(terminal_service, "_window_mode") as mock_window:
+            mock_window.return_value = True
+
+            success = terminal_service.switch_to_worktree(
+                test_path, TerminalMode.WINDOW, init_script
+            )
+
+            assert success
+            mock_window.assert_called_once_with(
+                test_path, init_script, None, None, False, False
+            )
+
+    @patch("autowt.services.terminal.check")
+    @patch("autowt.services.terminal.list_sessions")
+    @patch("autowt.services.terminal.switch_to_session")
+    @patch("autowt.services.terminal.new_tab")
+    def test_tab_mode_with_existing_session(
+        self,
+        mock_new_tab,
+        mock_switch,
+        mock_list_sessions,
+        mock_check,
+        terminal_service,
+        test_path,
+        init_script,
+    ):
+        """Test tab mode handles switching to existing sessions."""
+        mock_check.return_value = {
+            "capabilities": {
+                "can_create_tabs": True,
+                "can_switch_to_session": True,
+                "can_paste_commands": True,
+            }
+        }
+        mock_list_sessions.return_value = [{"working_directory": str(test_path)}]
+        mock_switch.return_value = True
+
+        success = terminal_service._tab_mode(
+            test_path,
+            init_script,
+            None,
+            "test-branch",
+            auto_confirm=True,  # Skip user prompt
+            ignore_same_session=False,
+        )
+
+        assert success
+        # Should switch to session, not create new tab
+        mock_switch.assert_called_once_with(working_directory=str(test_path))
+        mock_new_tab.assert_not_called()
 
 
 class TestInitScriptEdgeCases:
@@ -251,24 +269,26 @@ class TestInitScriptEdgeCases:
         expected = "cd /test/worktree; echo 'line1'; echo 'line2'; echo 'line3'"
         assert captured.out.strip() == expected
 
-    def test_terminal_implementation_applescript_failure(
-        self, terminal_service, test_path, mock_terminal_operations
+    @patch("autowt.services.terminal.check")
+    @patch("autowt.services.terminal.new_tab")
+    def test_terminal_tab_creation_failure(
+        self, mock_new_tab, mock_check, terminal_service, test_path
     ):
-        """Test handling of AppleScript execution failure with init script."""
-        mock_terminal_operations["applescript"].return_value = False
+        """Test handling of tab creation failure with init script."""
+        mock_check.return_value = {
+            "capabilities": {
+                "can_create_tabs": True,
+                "can_paste_commands": True,
+            }
+        }
+        mock_new_tab.return_value = False
 
-        # Mock the terminal implementation
-        mock_terminal = Mock()
-        mock_terminal.open_new_tab.return_value = False  # Simulate failure
-        mock_terminal.supports_session_management.return_value = False
-        terminal_service.terminal = mock_terminal
-
-        success = terminal_service._switch_to_existing_or_new_tab(
-            test_path, None, "setup.sh", None, False
+        success = terminal_service._tab_mode(
+            test_path, "setup.sh", None, None, False, False
         )
 
         assert not success
-        mock_terminal.open_new_tab.assert_called_once_with(test_path, "setup.sh")
+        mock_new_tab.assert_called_once()
 
     def test_path_with_spaces_and_init_script(self, terminal_service, capsys):
         """Test handling paths with spaces combined with init scripts in echo mode."""
@@ -280,3 +300,21 @@ class TestInitScriptEdgeCases:
         # Path should be properly quoted
         assert "'/test/my worktree/branch'" in captured.out
         assert "setup.sh" in captured.out
+
+    def test_combine_scripts(self, terminal_service):
+        """Test _combine_scripts helper method."""
+        # Both scripts
+        result = terminal_service._combine_scripts("script1", "script2")
+        assert result == "script1; script2"
+
+        # Only first script
+        result = terminal_service._combine_scripts("script1", None)
+        assert result == "script1"
+
+        # Only second script
+        result = terminal_service._combine_scripts(None, "script2")
+        assert result == "script2"
+
+        # No scripts
+        result = terminal_service._combine_scripts(None, None)
+        assert result is None

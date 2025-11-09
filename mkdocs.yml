@@ -7,15 +7,13 @@ repo_name: irskep/autowt
 nav:
   - Home: index.md
   - Getting Started: gettingstarted.md
-  - User Guide:
-    - Branch Management: branchmanagement.md
-    - Lifecycle Hooks: lifecyclehooks.md
-    - AI Agents: agents.md
+  - Branch Management: branchmanagement.md
+  - Lifecycle Hooks: lifecyclehooks.md
   - Reference:
-    - CLI Reference: clireference.md
-    - Configuration: configuration.md
-    - Terminal Support: terminalsupport.md
-    - Troubleshooting: troubleshooting.md
+      - CLI Reference: clireference.md
+      - Configuration: configuration.md
+      - Terminal Support: terminalsupport.md
+      - Troubleshooting: troubleshooting.md
   - Changelog: CHANGELOG.md
 
 theme:
@@ -23,15 +21,15 @@ theme:
   palette:
     # Palette toggle for light mode
     - scheme: default
-      primary: 'deep orange'
-      accent: 'deep orange'
+      primary: "deep orange"
+      accent: "deep orange"
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      primary: 'deep purple'
-      accent: 'deep purple'
+      primary: "deep purple"
+      accent: "deep purple"
       toggle:
         icon: material/brightness-4
         name: Switch to light mode

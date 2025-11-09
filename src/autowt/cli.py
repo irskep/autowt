@@ -10,19 +10,9 @@ import click
 from click_aliases import ClickAliasedGroup
 
 from autowt.cli_config import create_cli_config_overrides, initialize_config
-from autowt.commands.agents import show_agent_dashboard
-from autowt.commands.checkout import (
-    checkout_branch,
-    find_latest_agent_branch,
-    find_waiting_agent_branch,
-)
+from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
-from autowt.commands.hooks import (
-    install_hooks_command,
-    remove_hooks_command,
-    show_installed_hooks,
-)
 from autowt.commands.ls import list_worktrees
 from autowt.config import get_config, get_config_loader
 from autowt.global_config import options
@@ -54,33 +44,6 @@ def setup_logging(debug: bool) -> None:
 def create_services() -> Services:
     """Create and return a Services container with all service instances."""
     return Services.create()
-
-
-def auto_register_session(services: Services) -> None:
-    """Automatically register the current terminal session if possible."""
-    try:
-        # Only register if we're in a git repository
-        repo_path = services.git.find_repo_root()
-        if not repo_path:
-            return
-
-        # Get current session ID
-        session_id = services.terminal.get_current_session_id()
-        if not session_id:
-            return
-
-        # Get actual git branch name instead of directory name
-        worktree_path = Path(os.getcwd())
-        branch_name = services.git.get_current_branch(repo_path) or worktree_path.name
-
-        # Only register if not already registered for this branch
-        existing_session_id = services.state.get_session_id(repo_path, branch_name)
-        if existing_session_id != session_id:
-            services.state.set_session_id(repo_path, branch_name, session_id)
-
-    except Exception:
-        # Silently fail - session registration should never break the main command
-        pass
 
 
 def check_for_version_updates(services: Services) -> None:
@@ -278,7 +241,6 @@ class AutowtGroup(ClickAliasedGroup):
             )
 
             services = create_services()
-            auto_register_session(services)
             check_for_version_updates(services)
 
             # Create and execute SwitchCommand
@@ -390,41 +352,8 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # If no subcommand was invoked, show list
     if ctx.invoked_subcommand is None:
         services = create_services()
-        auto_register_session(services)
         check_for_version_updates(services)
         list_worktrees(services)
-
-
-@main.command(
-    "register-session-for-path",
-    hidden=True,
-    context_settings={"help_option_names": ["-h", "--help"]},
-)
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def register_session_for_path(debug: bool) -> None:
-    """Register the current terminal session for the current working directory."""
-    setup_logging(debug)
-    services = create_services()
-
-    # Get current session ID
-    session_id = services.terminal.get_current_session_id()
-    if session_id:
-        # Get actual git branch name instead of directory name
-        worktree_path = Path(os.getcwd())
-        repo_path = services.git.find_repo_root()
-        branch_name = (
-            services.git.get_current_branch(repo_path) or worktree_path.name
-            if repo_path
-            else worktree_path.name
-        )
-
-        # Set session ID for this repo/branch
-        services.state.set_session_id(repo_path, branch_name, session_id)
-        print(
-            f"Registered session {session_id} for branch {branch_name} (path: {worktree_path})"
-        )
-    else:
-        print("Could not detect current session ID")
 
 
 @main.command(
@@ -435,7 +364,6 @@ def ls(debug: bool) -> None:
     """List all worktrees and their status."""
     setup_logging(debug)
     services = create_services()
-    auto_register_session(services)
     check_for_version_updates(services)
     list_worktrees(services, debug=debug)
 
@@ -459,36 +387,20 @@ def ls(debug: bool) -> None:
 @click.option(
     "--force", is_flag=True, help="Force remove worktrees with modified files"
 )
-@click.option(
-    "--kill", is_flag=True, help="Force kill processes in worktrees (override config)"
-)
-@click.option(
-    "--no-kill",
-    is_flag=True,
-    help="Skip killing processes in worktrees (override config)",
-)
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def cleanup(
     mode: str | None,
     dry_run: bool,
     yes: bool,
     force: bool,
-    kill: bool,
-    no_kill: bool,
     debug: bool,
 ) -> None:
     """Clean up merged or remoteless worktrees."""
-    # Validate mutually exclusive options
-    if kill and no_kill:
-        raise click.UsageError("Cannot specify both --kill and --no-kill")
-
     setup_logging(debug)
 
     # Create CLI overrides for cleanup command
     cli_overrides = create_cli_config_overrides(
         mode=mode,
-        kill=kill,
-        no_kill=no_kill,
     )
 
     # Initialize configuration with CLI overrides
@@ -524,17 +436,7 @@ def cleanup(
                 "No TTY detected. Please specify --mode explicitly when running in scripts or CI. "
                 "Available modes: all, remoteless, merged, interactive, github"
             )
-    auto_register_session(services)
     check_for_version_updates(services)
-
-    # Determine kill_processes from configuration or override
-    kill_processes = None
-    if kill:
-        kill_processes = True
-    elif no_kill:
-        kill_processes = False
-    # Note: When no CLI flags are specified, pass None to allow prompting
-    # The cleanup logic will use config.cleanup.kill_processes for the default
 
     cleanup_cmd = CleanupCommand(
         mode=CleanupMode(mode),
@@ -542,7 +444,6 @@ def cleanup(
         auto_confirm=yes,
         force=force,
         debug=debug,
-        kill_processes=kill_processes,
     )
     cleanup_worktrees(cleanup_cmd, services)
 
@@ -557,7 +458,6 @@ def config(debug: bool, show: bool) -> None:
     """Configure autowt settings using interactive TUI."""
     setup_logging(debug)
     services = create_services()
-    auto_register_session(services)
 
     if show:
         show_config(services)
@@ -607,16 +507,6 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     "-y", "--yes", "auto_confirm", is_flag=True, help="Auto-confirm all prompts"
 )
 @click.option(
-    "--waiting",
-    is_flag=True,
-    help="Switch to first agent waiting for input",
-)
-@click.option(
-    "--latest",
-    is_flag=True,
-    help="Switch to most recently active agent",
-)
-@click.option(
     "--from",
     "from_branch",
     help="Source branch/commit to create worktree from (any git rev: branch, tag, HEAD, etc.)",
@@ -637,8 +527,6 @@ def switch(
     after_init: str | None,
     ignore_same_session: bool,
     auto_confirm: bool,
-    waiting: bool,
-    latest: bool,
     from_branch: str | None,
     debug: bool,
     custom_script: str | None,
@@ -647,17 +535,9 @@ def switch(
     """Switch to or create a worktree for the specified branch."""
     setup_logging(debug)
 
-    # Validate mutually exclusive options
-    option_count = sum([bool(branch), waiting, latest])
-    if option_count > 1:
-        raise click.UsageError(
-            "Must specify at most one of: branch name, --waiting, or --latest"
-        )
-
-    # If no options provided, show interactive TUI
-    if option_count == 0:
+    # If no branch provided, show interactive TUI
+    if not branch:
         services = create_services()
-        auto_register_session(services)
         check_for_version_updates(services)
 
         selected_branch, is_new = _run_interactive_switch(services)
@@ -667,20 +547,16 @@ def switch(
         # Use the selected branch
         target_branch = selected_branch
     else:
-        services = create_services()
-        auto_register_session(services)
-        check_for_version_updates(services)
-
-        # Determine target branch
+        # Branch was provided as argument
         target_branch = branch
-        if waiting:
-            target_branch = find_waiting_agent_branch(services)
-            if not target_branch:
-                return
-        elif latest:
-            target_branch = find_latest_agent_branch(services)
-            if not target_branch:
-                return
+
+    # Create services if not already created
+    if not branch:
+        # services was already created above for interactive mode
+        pass
+    else:
+        services = create_services()
+        check_for_version_updates(services)
 
     # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
@@ -712,85 +588,6 @@ def switch(
         dir=dir,
     )
     checkout_branch(switch_cmd, services)
-
-
-@main.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def agents(debug: bool) -> None:
-    """Show live agent monitoring dashboard."""
-    setup_logging(debug)
-    services = create_services()
-    auto_register_session(services)
-
-    result = show_agent_dashboard(services)
-
-    # Handle dashboard exit actions
-    if result and result.get("action") == "switch":
-        branch = result.get("branch")
-        if branch:
-            config = get_config()
-            switch_cmd = SwitchCommand(
-                branch=branch,
-                terminal_mode=config.terminal.mode,
-                init_script=config.scripts.session_init,
-            )
-            checkout_branch(switch_cmd, services)
-
-
-@main.command(
-    "hooks-install",
-    context_settings={"help_option_names": ["-h", "--help"]},
-)
-@click.option(
-    "--user", is_flag=True, help="Install hooks at user level (affects all projects)"
-)
-@click.option(
-    "--project", is_flag=True, help="Install hooks at project level (this project only)"
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would be installed without making changes",
-)
-@click.option(
-    "--show",
-    is_flag=True,
-    help="Show currently installed autowt hooks at user and project levels",
-)
-@click.option(
-    "--remove",
-    is_flag=True,
-    help="Remove autowt hooks instead of installing them",
-)
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def hooks_install(
-    user: bool, project: bool, dry_run: bool, show: bool, remove: bool, debug: bool
-) -> None:
-    """Install Claude Code hooks for agent monitoring."""
-    if user and project:
-        raise click.UsageError("Cannot specify both --user and --project")
-
-    if show and (user or project or dry_run or remove):
-        raise click.UsageError("--show cannot be combined with other options")
-
-    if remove and not (user or project):
-        raise click.UsageError("--remove requires either --user or --project")
-
-    level = None
-    if user:
-        level = "user"
-    elif project:
-        level = "project"
-
-    setup_logging(debug)
-    services = create_services()
-
-    if show:
-        show_installed_hooks(services)
-    elif remove:
-        remove_hooks_command(level, services, dry_run=dry_run)
-    else:
-        install_hooks_command(level, services, dry_run=dry_run)
 
 
 if __name__ == "__main__":

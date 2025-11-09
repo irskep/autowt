@@ -70,9 +70,6 @@ class TestCheckoutCommand:
         """Test switching to existing worktree."""
         # Setup mocks
         services = MockServices()
-        # Add session ID data using composite key format
-        composite_key = f"{temp_repo_path.resolve()}:feature1"
-        services.state.session_ids = {composite_key: "session1"}  # Add session ID data
         services.git.repo_root = temp_repo_path
         services.git.worktrees = sample_worktrees
 
@@ -91,8 +88,7 @@ class TestCheckoutCommand:
         call = services.terminal.switch_calls[0]
         assert call[0] == sample_worktrees[0].path  # worktree path
         assert call[1] == TerminalMode.TAB  # terminal mode
-        assert call[2] == "session1"  # session ID
-        assert call[3] is None  # init script
+        assert call[2] is None  # init script (session_id parameter removed)
 
     def test_checkout_already_in_worktree(
         self, temp_repo_path, sample_worktrees, capsys
@@ -146,7 +142,7 @@ class TestCheckoutCommand:
         assert len(services.terminal.switch_calls) == 1
         switch_call = services.terminal.switch_calls[0]
         assert switch_call[1] == TerminalMode.WINDOW
-        assert switch_call[3] is None  # init script
+        assert switch_call[2] is None  # init script
 
         # State is no longer saved - worktree info is derived from git
 
@@ -167,8 +163,8 @@ class TestCheckoutCommand:
 
         # Verify terminal service was called but returned False (declined/failed)
         assert len(services.terminal.switch_calls) == 1
-        assert services.terminal.switch_calls[0][5] == "feature1"  # branch_name
-        assert not services.terminal.switch_calls[0][6]  # auto_confirm
+        assert services.terminal.switch_calls[0][4] == "feature1"  # branch_name
+        assert not services.terminal.switch_calls[0][5]  # auto_confirm
 
     def test_checkout_existing_worktree_with_init_script(
         self, temp_repo_path, sample_worktrees
@@ -176,9 +172,6 @@ class TestCheckoutCommand:
         """Test switching to existing worktree with init script."""
         # Setup mocks
         services = MockServices()
-        # Add session ID data using composite key format
-        composite_key = f"{temp_repo_path.resolve()}:feature1"
-        services.state.session_ids = {composite_key: "session1"}
         services.git.repo_root = temp_repo_path
         services.git.worktrees = sample_worktrees
 
@@ -199,10 +192,9 @@ class TestCheckoutCommand:
         call = services.terminal.switch_calls[0]
         assert call[0] == sample_worktrees[0].path  # worktree path
         assert call[1] == TerminalMode.TAB  # terminal mode
-        assert call[2] == "session1"  # session ID
-        assert call[3] is None  # no init script for existing worktrees
-        assert call[4] is None  # no after_init for existing worktrees
-        assert call[5] == "feature1"  # branch name
+        assert call[2] is None  # no init script for existing worktrees
+        assert call[3] is None  # no after_init for existing worktrees
+        assert call[4] == "feature1"  # branch name
 
     def test_checkout_new_worktree_with_init_script(self, temp_repo_path):
         """Test creating new worktree with init script."""
@@ -227,8 +219,8 @@ class TestCheckoutCommand:
         assert len(services.terminal.switch_calls) == 1
         call = services.terminal.switch_calls[0]
         assert call[1] == TerminalMode.TAB  # terminal mode
-        assert call[3] == "npm install"  # init script
-        assert call[5] == "feature-with-init"  # branch name
+        assert call[2] == "npm install"  # init script
+        assert call[4] == "feature-with-init"  # branch name
 
     def test_checkout_with_complex_init_script(self, temp_repo_path):
         """Test creating worktree with complex init script."""
@@ -252,7 +244,7 @@ class TestCheckoutCommand:
         # Verify the complex init script was passed correctly
         assert len(services.terminal.switch_calls) == 1
         call = services.terminal.switch_calls[0]
-        assert call[3] == "echo 'Setting up...' && npm install && npm run build"
+        assert call[2] == "echo 'Setting up...' && npm install && npm run build"
 
 
 class TestCleanupCommand:

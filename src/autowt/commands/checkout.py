@@ -3,8 +3,6 @@
 import logging
 from pathlib import Path
 
-import click
-
 from autowt.cli_config import resolve_custom_script_with_interpolation
 from autowt.config import get_config_loader
 from autowt.console import print_error, print_info, print_success
@@ -131,7 +129,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             pass
 
         # Switch to existing worktree - no init script needed (worktree already set up)
-        session_id = services.state.get_session_id(repo_path, switch_cmd.branch)
         # Combine after_init and custom script for existing worktrees too
         combined_after_init = _combine_after_init_and_custom_script(
             switch_cmd.after_init, custom_script_resolved
@@ -145,7 +142,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             success = services.terminal.switch_to_worktree(
                 existing_worktree.path,
                 terminal_mode,
-                session_id,
                 None,  # No session_init script for existing worktrees
                 combined_after_init,
                 branch_name=switch_cmd.branch,
@@ -295,7 +291,6 @@ def _create_new_worktree(
     success = services.terminal.switch_to_worktree(
         worktree_path,
         terminal_mode,
-        None,
         session_init_script,
         combined_after_init,
         branch_name=switch_cmd.branch,
@@ -390,63 +385,6 @@ def _generate_worktree_path(
 
     logger.debug(f"Final worktree path: {worktree_path}")
     return worktree_path
-
-
-def find_waiting_agent_branch(services: Services) -> str | None:
-    """Find the branch of an agent waiting for input."""
-    repo_path = services.git.find_repo_root()
-    if not repo_path:
-        print_error("Error: Not in a git repository")
-        return None
-
-    git_worktrees = services.git.list_worktrees(repo_path)
-    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, services.state, repo_path
-    )
-
-    waiting_agents = services.agent.find_waiting_agents(enhanced_worktrees)
-
-    if not waiting_agents:
-        print_info("No agents are currently waiting for input")
-        return None
-
-    if len(waiting_agents) == 1:
-        # Return the only waiting agent's branch
-        return waiting_agents[0].branch
-    else:
-        # Show interactive choice
-        print_info("Multiple agents waiting for input:")
-        for i, agent in enumerate(waiting_agents, 1):
-            print_info(
-                f"{i}. {agent.branch} (waiting since {agent.agent_status.last_activity})"
-            )
-
-        choice = click.prompt(
-            "Choose agent", type=click.IntRange(1, len(waiting_agents))
-        )
-        return waiting_agents[choice - 1].branch
-
-
-def find_latest_agent_branch(services: Services) -> str | None:
-    """Find the branch of the most recently active agent."""
-    repo_path = services.git.find_repo_root()
-    if not repo_path:
-        print_error("Error: Not in a git repository")
-        return None
-
-    git_worktrees = services.git.list_worktrees(repo_path)
-    enhanced_worktrees = services.agent.enhance_worktrees_with_agent_status(
-        git_worktrees, services.state, repo_path
-    )
-
-    latest_agent = services.agent.find_latest_active_agent(enhanced_worktrees)
-
-    if not latest_agent:
-        print_info("No recently active agents found")
-        return None
-
-    print_info(f"Switching to most recent agent: {latest_agent.branch}")
-    return latest_agent.branch
 
 
 def _run_pre_create_hooks(

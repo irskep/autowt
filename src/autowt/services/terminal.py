@@ -2,19 +2,24 @@
 
 import logging
 import os
-import platform
 import shlex
+import shutil
+import subprocess
 from pathlib import Path
+
+from automate_terminal import (
+    TerminalNotFoundError,
+    check,
+    list_sessions,
+    new_tab,
+    new_window,
+    run_in_active_session,
+    switch_to_session,
+)
 
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.services.state import StateService
-from autowt.services.terminals.apple import TerminalAppTerminal
-from autowt.services.terminals.base import BaseTerminal
-from autowt.services.terminals.echo import EchoTerminal
-from autowt.services.terminals.ghostty import GhosttyMacTerminal
-from autowt.services.terminals.iterm2 import ITerm2Terminal
-from autowt.services.terminals.vscode import CursorTerminal, VSCodeTerminal
 
 logger = logging.getLogger(__name__)
 
@@ -25,46 +30,89 @@ class TerminalService:
     def __init__(self, state_service: StateService):
         """Initialize terminal service."""
         self.state_service = state_service
-        self.is_macos = platform.system() == "Darwin"
-        self.terminal = self._create_terminal_implementation()
-        logger.debug(
-            f"Terminal service initialized with {type(self.terminal).__name__}"
-        )
+        self._capabilities = None
 
-    def _create_terminal_implementation(self) -> BaseTerminal:
-        """Create the appropriate terminal implementation."""
-        term_program = os.getenv("TERM_PROGRAM", "")
-        logger.debug(f"TERM_PROGRAM: {term_program}")
+    def _get_capabilities(self):
+        """Get terminal capabilities, cached."""
+        if self._capabilities is None:
+            try:
+                self._capabilities = check(debug=False)
+            except TerminalNotFoundError:
+                self._capabilities = {"capabilities": {}}
+        return self._capabilities
 
-        # Check for specific terminal programs first
-        if term_program == "iTerm.app":
-            return ITerm2Terminal()
-        elif term_program == "Apple_Terminal":
-            return TerminalAppTerminal()
-        elif term_program == "vscode":
-            # Both VSCode and Cursor set TERM_PROGRAM to "vscode"
-            # Check for Cursor-specific environment variable
-            if os.getenv("CURSOR_TRACE_ID"):
-                return CursorTerminal()
-            else:
-                return VSCodeTerminal()
-        elif term_program == "ghostty" and self.is_macos:
-            return GhosttyMacTerminal()
+    def switch_to_worktree(
+        self,
+        worktree_path: Path,
+        mode: TerminalMode,
+        session_init_script: str | None = None,
+        after_init: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+        ignore_same_session: bool = False,
+    ) -> bool:
+        """Switch to a worktree using the specified terminal mode.
 
-        # Platform-specific detection
-        if platform.system() == "Windows":
-            return EchoTerminal()
+        Args:
+            worktree_path: Path to the worktree directory
+            mode: Terminal mode (TAB, WINDOW, INPLACE, ECHO)
+            session_init_script: Script to run when creating new session
+            after_init: Additional script to run after init
+            branch_name: Branch name for display purposes
+            auto_confirm: Skip user confirmation prompts
+            ignore_same_session: Force new tab/window even if session exists
+        """
+        logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
 
-        # Linux/Unix terminal detection
-        if not self.is_macos:
-            return EchoTerminal()
+        # Force echo mode for testing if environment variable is set
+        if os.getenv("AUTOWT_TEST_FORCE_ECHO"):
+            mode = TerminalMode.ECHO
 
-        # Fallback to generic terminal
-        return EchoTerminal()
-
-    def get_current_session_id(self) -> str | None:
-        """Get the current terminal session ID."""
-        return self.terminal.get_current_session_id()
+        if mode == TerminalMode.ECHO:
+            return self._echo_commands(worktree_path, session_init_script, after_init)
+        elif mode == TerminalMode.INPLACE:
+            return self._inplace_commands(
+                worktree_path, session_init_script, after_init
+            )
+        elif mode == TerminalMode.TAB:
+            return self._tab_mode(
+                worktree_path,
+                session_init_script,
+                after_init,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
+            )
+        elif mode == TerminalMode.WINDOW:
+            return self._window_mode(
+                worktree_path,
+                session_init_script,
+                after_init,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
+            )
+        elif mode == TerminalMode.VSCODE:
+            return self._vscode_mode(
+                worktree_path,
+                session_init_script,
+                after_init,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
+            )
+        elif mode == TerminalMode.CURSOR:
+            return self._cursor_mode(
+                worktree_path,
+                session_init_script,
+                after_init,
+                branch_name,
+                auto_confirm,
+                ignore_same_session,
+            )
+        else:
+            logger.error(f"Unknown terminal mode: {mode}")
+            return False
 
     def _combine_scripts(
         self, session_init_script: str | None, after_init: str | None
@@ -77,84 +125,6 @@ class TerminalService:
             scripts.append(after_init)
         return "; ".join(scripts) if scripts else None
 
-    def switch_to_worktree(
-        self,
-        worktree_path: Path,
-        mode: TerminalMode,
-        session_id: str | None = None,
-        session_init_script: str | None = None,
-        after_init: str | None = None,
-        branch_name: str | None = None,
-        auto_confirm: bool = False,
-        ignore_same_session: bool = False,
-    ) -> bool:
-        """Switch to a worktree using the specified terminal mode."""
-        logger.debug(f"Switching to worktree {worktree_path} with mode {mode}")
-
-        # Force echo mode for testing if environment variable is set
-        if os.getenv("AUTOWT_TEST_FORCE_ECHO"):
-            mode = TerminalMode.ECHO
-
-        if mode == TerminalMode.INPLACE:
-            return self._change_directory_inplace(
-                worktree_path, session_init_script, after_init
-            )
-        elif mode == TerminalMode.ECHO:
-            return self._echo_commands(worktree_path, session_init_script, after_init)
-        elif mode == TerminalMode.TAB:
-            return self._switch_to_existing_or_new_tab(
-                worktree_path,
-                session_id,
-                session_init_script,
-                after_init,
-                branch_name,
-                auto_confirm,
-                ignore_same_session,
-            )
-        elif mode == TerminalMode.WINDOW:
-            return self._switch_to_existing_or_new_window(
-                worktree_path,
-                session_id,
-                session_init_script,
-                after_init,
-                branch_name,
-                auto_confirm,
-                ignore_same_session,
-            )
-        elif mode == TerminalMode.VSCODE:
-            # Force use of VSCodeTerminal regardless of detected terminal
-            vscode_terminal = VSCodeTerminal()
-
-            # Try to switch to existing window first on macOS
-            if vscode_terminal.supports_session_management():
-                if vscode_terminal.switch_to_session(str(worktree_path)):
-                    print(
-                        f"Switched to existing VSCode window for {branch_name or 'worktree'}"
-                    )
-                    return True
-
-            # Fall back to opening new window
-            combined_script = self._combine_scripts(session_init_script, after_init)
-            return vscode_terminal.open_new_window(worktree_path, combined_script)
-        elif mode == TerminalMode.CURSOR:
-            # Force use of CursorTerminal regardless of detected terminal
-            cursor_terminal = CursorTerminal()
-
-            # Try to switch to existing window first on macOS
-            if cursor_terminal.supports_session_management():
-                if cursor_terminal.switch_to_session(str(worktree_path)):
-                    print(
-                        f"Switched to existing Cursor window for {branch_name or 'worktree'}"
-                    )
-                    return True
-
-            # Fall back to opening new window
-            combined_script = self._combine_scripts(session_init_script, after_init)
-            return cursor_terminal.open_new_window(worktree_path, combined_script)
-        else:
-            logger.error(f"Unknown terminal mode: {mode}")
-            return False
-
     def _echo_commands(
         self,
         worktree_path: Path,
@@ -165,16 +135,12 @@ class TerminalService:
         logger.debug(f"Outputting cd command for {worktree_path}")
 
         try:
-            # Output the cd command that the user can evaluate
-            # Usage: eval "$(autowt ci --terminal=echo)"
             commands = [f"cd {shlex.quote(str(worktree_path))}"]
             if session_init_script:
-                # Handle multi-line scripts by replacing newlines with semicolons
                 normalized_script = session_init_script.replace("\n", "; ").strip()
                 if normalized_script:
                     commands.append(normalized_script)
             if after_init:
-                # Handle multi-line scripts by replacing newlines with semicolons
                 normalized_after = after_init.replace("\n", "; ").strip()
                 if normalized_after:
                     commands.append(normalized_after)
@@ -184,233 +150,177 @@ class TerminalService:
             logger.error(f"Failed to output cd command: {e}")
             return False
 
-    def _change_directory_inplace(
+    def _inplace_commands(
         self,
         worktree_path: Path,
         session_init_script: str | None = None,
         after_init: str | None = None,
     ) -> bool:
-        """Execute directory change and commands directly in current terminal session."""
+        """Execute directory change and commands in current terminal session.
+
+        Note: session_init runs in the current session for INPLACE mode. This is correct
+        for current use cases (e.g., launching `claude`, activating venvs), but if we add
+        a hook like `post_create_async` that runs in the original session after switch,
+        we'll need to carefully consider the interaction with session_init in INPLACE mode.
+        """
         logger.debug(f"Executing cd command in current session for {worktree_path}")
 
+        commands = [f"cd {shlex.quote(str(worktree_path))}"]
+        if session_init_script:
+            commands.append(session_init_script)
+        if after_init:
+            commands.append(after_init)
+
+        combined_command = "; ".join(commands)
+
+        if run_script_inplace(combined_command):
+            return True
+        else:
+            # Fallback to echo if inplace fails
+            logger.warning("Inplace execution failed, falling back to echo")
+            print(combined_command)
+            return True
+
+    def _find_existing_session(self, worktree_path: Path) -> bool:
+        """Check if a session exists at the given worktree path using list_sessions."""
         try:
-            # Build command list
-            commands = [f"cd {shlex.quote(str(worktree_path))}"]
-            if session_init_script:
-                commands.append(session_init_script)
-            if after_init:
-                commands.append(after_init)
+            sessions = list_sessions(debug=False)
+            target_path = str(worktree_path.resolve())
 
-            combined_command = "; ".join(commands)
+            for session in sessions:
+                session_path = session.get("working_directory", "")
+                # Check if session is in the target directory
+                if session_path == target_path or session_path.startswith(
+                    target_path + "/"
+                ):
+                    return True
 
-            # Try to execute in current terminal session using osascript
-            if hasattr(self.terminal, "execute_in_current_session"):
-                return self.terminal.execute_in_current_session(combined_command)
-            else:
-                # Fallback to echo behavior for unsupported terminals
-                logger.warning(
-                    "Current terminal doesn't support inplace execution, falling back to echo"
-                )
-                print(combined_command)
-                return True
-
+            return False
         except Exception as e:
-            logger.error(f"Failed to execute cd command in current session: {e}")
+            logger.debug(f"Failed to list sessions: {e}")
             return False
 
-    def _switch_to_existing_or_new_tab(
+    def _tab_mode(
         self,
         worktree_path: Path,
-        session_id: str | None = None,
         session_init_script: str | None = None,
         after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
         ignore_same_session: bool = False,
     ) -> bool:
-        """Switch to existing session or create new tab."""
-        # If ignore_same_session is True, skip session detection and always create new tab
-        if not ignore_same_session:
-            # For Terminal.app, use worktree path as session identifier
-            # For other terminals (iTerm2, tmux), use provided session_id
-            if self.terminal.supports_session_management():
-                if isinstance(self.terminal, TerminalAppTerminal):
-                    effective_session_id = str(worktree_path)
-                else:
-                    effective_session_id = session_id
+        """Switch to or create tab."""
+        caps = self._get_capabilities()
 
-                # First try: Check if the stored session ID exists and is in correct directory
-                if effective_session_id and self.terminal.session_exists(
-                    effective_session_id
-                ):
-                    # For iTerm2, verify the session is still in the correct directory
-                    if isinstance(self.terminal, ITerm2Terminal):
-                        if not self.terminal.session_in_directory(
-                            effective_session_id, worktree_path
-                        ):
-                            logger.debug(
-                                f"Session {effective_session_id} no longer in directory {worktree_path}, discarding"
-                            )
-                            # Skip using this session ID and fall through to create new tab
-                        else:
-                            if auto_confirm or self._should_switch_to_existing(
-                                branch_name
-                            ):
-                                # Try to switch to existing session (no init script - session already exists)
-                                if self.terminal.switch_to_session(
-                                    effective_session_id, None
-                                ):
-                                    print(
-                                        f"Switched to existing {branch_name or 'worktree'} session"
-                                    )
-                                    return True
-                    else:
-                        # For other terminals, use existing logic
-                        if auto_confirm or self._should_switch_to_existing(branch_name):
-                            # Try to switch to existing session (no init script - session already exists)
-                            if self.terminal.switch_to_session(
-                                effective_session_id, None
-                            ):
+        if not caps.get("capabilities", {}).get("can_create_tabs"):
+            logger.warning("Terminal doesn't support tabs, falling back to echo")
+            return self._echo_commands(worktree_path, session_init_script, after_init)
+
+        # Check if paste scripts will work
+        can_paste = caps.get("capabilities", {}).get("can_paste_commands", False)
+        combined_script = self._combine_scripts(session_init_script, after_init)
+
+        if combined_script and not can_paste:
+            print(
+                f"Warning: {caps.get('terminal', 'Your terminal')} cannot execute paste scripts."
+            )
+            print("You will need to run these commands manually:")
+            print(f"  {combined_script}")
+
+        # Try to switch to existing session first (unless ignore_same_session)
+        if not ignore_same_session:
+            if caps.get("capabilities", {}).get("can_switch_to_session"):
+                # Check if session exists BEFORE asking
+                if self._find_existing_session(worktree_path):
+                    # Ask user if they want to switch
+                    if auto_confirm or self._should_switch_to_existing(branch_name):
+                        try:
+                            if switch_to_session(working_directory=str(worktree_path)):
                                 print(
                                     f"Switched to existing {branch_name or 'worktree'} session"
                                 )
                                 return True
+                        except Exception as e:
+                            logger.debug(f"Switch to session failed: {e}")
 
-                # Second try: For iTerm2, check if there's a session in the worktree directory
-                if isinstance(self.terminal, ITerm2Terminal) and hasattr(
-                    self.terminal, "find_session_by_working_directory"
-                ):
-                    fallback_session_id = (
-                        self.terminal.find_session_by_working_directory(
-                            str(worktree_path)
-                        )
-                    )
-                    if fallback_session_id:
-                        logger.debug(
-                            f"Found session {fallback_session_id} in directory {worktree_path}"
-                        )
-                        if auto_confirm or self._should_switch_to_existing(branch_name):
-                            if self.terminal.switch_to_session(
-                                fallback_session_id, None
-                            ):
-                                print(
-                                    f"Switched to existing {branch_name or 'worktree'} session (found by directory)"
-                                )
-                                return True
+        # Create new tab
+        try:
+            success = new_tab(
+                working_directory=str(worktree_path),
+                paste_script=combined_script,
+            )
 
-                # Second try: For Terminal.app, always scan for existing tabs in target directory
-                elif isinstance(self.terminal, TerminalAppTerminal):
-                    # Always scan for tabs in the worktree directory (Terminal.app should use workdir matching every time)
-                    logger.debug(
-                        f"Scanning Terminal.app tabs for directory: {worktree_path}"
-                    )
-                    if auto_confirm or self._should_switch_to_existing(branch_name):
-                        if self.terminal.switch_to_session(str(worktree_path), None):
-                            print(
-                                f"Switched to existing {branch_name or 'worktree'} session (found by directory scan)"
-                            )
-                            return True
+            if success:
+                return True
+            else:
+                logger.error("Failed to create new tab")
+                return False
 
-        # Fall back to creating new tab (or forced by ignore_same_session)
-        combined_script = self._combine_scripts(session_init_script, after_init)
-        return self.terminal.open_new_tab(worktree_path, combined_script)
+        except Exception as e:
+            logger.error(f"Failed to create tab: {e}")
+            # Fall back to echo
+            return self._echo_commands(worktree_path, session_init_script, after_init)
 
-    def _switch_to_existing_or_new_window(
+    def _window_mode(
         self,
         worktree_path: Path,
-        session_id: str | None = None,
         session_init_script: str | None = None,
         after_init: str | None = None,
         branch_name: str | None = None,
         auto_confirm: bool = False,
         ignore_same_session: bool = False,
     ) -> bool:
-        """Switch to existing session or create new window."""
-        # If ignore_same_session is True, skip session detection and always create new window
-        if not ignore_same_session:
-            # For Terminal.app, use worktree path as session identifier
-            # For other terminals (iTerm2, tmux), use provided session_id
-            if self.terminal.supports_session_management():
-                if isinstance(self.terminal, TerminalAppTerminal):
-                    effective_session_id = str(worktree_path)
-                else:
-                    effective_session_id = session_id
+        """Switch to or create window."""
+        caps = self._get_capabilities()
 
-                # First try: Check if the stored session ID exists and is in correct directory
-                if effective_session_id and self.terminal.session_exists(
-                    effective_session_id
-                ):
-                    # For iTerm2, verify the session is still in the correct directory
-                    if isinstance(self.terminal, ITerm2Terminal):
-                        if not self.terminal.session_in_directory(
-                            effective_session_id, worktree_path
-                        ):
-                            logger.debug(
-                                f"Session {effective_session_id} no longer in directory {worktree_path}, discarding"
-                            )
-                            # Skip using this session ID and fall through to create new window
-                        else:
-                            if auto_confirm or self._should_switch_to_existing(
-                                branch_name
-                            ):
-                                # Try to switch to existing session (no init script - session already exists)
-                                if self.terminal.switch_to_session(
-                                    effective_session_id, None
-                                ):
-                                    print(
-                                        f"Switched to existing {branch_name or 'worktree'} session"
-                                    )
-                                    return True
-                    else:
-                        # For other terminals, use existing logic
-                        if auto_confirm or self._should_switch_to_existing(branch_name):
-                            # Try to switch to existing session (no init script - session already exists)
-                            if self.terminal.switch_to_session(
-                                effective_session_id, None
-                            ):
+        if not caps.get("capabilities", {}).get("can_create_windows"):
+            logger.warning("Terminal doesn't support windows, falling back to echo")
+            return self._echo_commands(worktree_path, session_init_script, after_init)
+
+        # Check if paste scripts will work
+        can_paste = caps.get("capabilities", {}).get("can_paste_commands", False)
+        combined_script = self._combine_scripts(session_init_script, after_init)
+
+        if combined_script and not can_paste:
+            print(
+                f"Warning: {caps.get('terminal', 'Your terminal')} cannot execute paste scripts."
+            )
+            print("You will need to run these commands manually:")
+            print(f"  {combined_script}")
+
+        # Try to switch to existing session first (unless ignore_same_session)
+        if not ignore_same_session:
+            if caps.get("capabilities", {}).get("can_switch_to_session"):
+                # Check if session exists BEFORE asking
+                if self._find_existing_session(worktree_path):
+                    # Ask user if they want to switch
+                    if auto_confirm or self._should_switch_to_existing(branch_name):
+                        try:
+                            if switch_to_session(working_directory=str(worktree_path)):
                                 print(
                                     f"Switched to existing {branch_name or 'worktree'} session"
                                 )
                                 return True
+                        except Exception as e:
+                            logger.debug(f"Switch to session failed: {e}")
 
-                # Second try: For iTerm2, check if there's a session in the worktree directory
-                if isinstance(self.terminal, ITerm2Terminal) and hasattr(
-                    self.terminal, "find_session_by_working_directory"
-                ):
-                    fallback_session_id = (
-                        self.terminal.find_session_by_working_directory(
-                            str(worktree_path)
-                        )
-                    )
-                    if fallback_session_id:
-                        logger.debug(
-                            f"Found session {fallback_session_id} in directory {worktree_path}"
-                        )
-                        if auto_confirm or self._should_switch_to_existing(branch_name):
-                            if self.terminal.switch_to_session(
-                                fallback_session_id, None
-                            ):
-                                print(
-                                    f"Switched to existing {branch_name or 'worktree'} session (found by directory)"
-                                )
-                                return True
+        # Create new window
+        try:
+            success = new_window(
+                working_directory=str(worktree_path),
+                paste_script=combined_script,
+            )
 
-                # Second try: For Terminal.app, always scan for existing tabs in target directory
-                elif isinstance(self.terminal, TerminalAppTerminal):
-                    # Always scan for tabs in the worktree directory (Terminal.app should use workdir matching every time)
-                    logger.debug(
-                        f"Scanning Terminal.app tabs for directory: {worktree_path}"
-                    )
-                    if auto_confirm or self._should_switch_to_existing(branch_name):
-                        if self.terminal.switch_to_session(str(worktree_path), None):
-                            print(
-                                f"Switched to existing {branch_name or 'worktree'} session (found by directory scan)"
-                            )
-                            return True
+            if success:
+                return True
+            else:
+                logger.error("Failed to create new window")
+                return False
 
-        # Fall back to creating new window (or forced by ignore_same_session)
-        combined_script = self._combine_scripts(session_init_script, after_init)
-        return self.terminal.open_new_window(worktree_path, combined_script)
+        except Exception as e:
+            logger.error(f"Failed to create window: {e}")
+            # Fall back to echo
+            return self._echo_commands(worktree_path, session_init_script, after_init)
 
     def _should_switch_to_existing(self, branch_name: str | None) -> bool:
         """Ask user if they want to switch to existing session."""
@@ -420,3 +330,85 @@ class TerminalService:
             )
         else:
             return confirm_default_yes("Worktree already has a session. Switch to it?")
+
+    def _vscode_mode(
+        self,
+        worktree_path: Path,
+        session_init_script: str | None = None,
+        after_init: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+        ignore_same_session: bool = False,
+    ) -> bool:
+        """Open in VSCode (idempotent)."""
+        return self._open_in_editor(
+            "code", "VSCode", worktree_path, session_init_script, after_init
+        )
+
+    def _cursor_mode(
+        self,
+        worktree_path: Path,
+        session_init_script: str | None = None,
+        after_init: str | None = None,
+        branch_name: str | None = None,
+        auto_confirm: bool = False,
+        ignore_same_session: bool = False,
+    ) -> bool:
+        """Open in Cursor (idempotent)."""
+        return self._open_in_editor(
+            "cursor", "Cursor", worktree_path, session_init_script, after_init
+        )
+
+    def _open_in_editor(
+        self,
+        cli_command: str,
+        editor_name: str,
+        worktree_path: Path,
+        session_init_script: str | None = None,
+        after_init: str | None = None,
+    ) -> bool:
+        """Open path in editor CLI (idempotent)."""
+        if not shutil.which(cli_command):
+            logger.error(f"{editor_name} CLI '{cli_command}' not found in PATH")
+            return self._echo_commands(worktree_path, session_init_script, after_init)
+
+        combined_script = self._combine_scripts(session_init_script, after_init)
+        if combined_script:
+            print(f"Warning: {editor_name} cannot execute initialization scripts.")
+            print("You will need to run these commands manually:")
+            print(f"  {combined_script}")
+
+        try:
+            result = subprocess.run(
+                [cli_command, str(worktree_path)],
+                timeout=10,
+                capture_output=True,
+                text=True,
+            )
+            return result.returncode == 0
+        except Exception as e:
+            logger.error(f"Failed to open {editor_name}: {e}")
+            return False
+
+
+def run_script_inplace(command: str) -> bool:
+    """Execute command in current terminal session.
+
+    Uses automate-terminal's run_in_active_session API.
+    Falls back to False if unsupported.
+
+    Args:
+        command: Shell command to execute
+
+    Returns:
+        True if executed successfully, False if unsupported/failed
+    """
+    try:
+        return run_in_active_session(command, debug=False)
+    except TerminalNotFoundError:
+        # Terminal doesn't support running commands in active session
+        logger.debug("Terminal doesn't support run_in_active_session")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to execute inplace command: {e}")
+        return False

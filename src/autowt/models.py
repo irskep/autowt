@@ -1,6 +1,5 @@
 """Data models for autowt state and configuration."""
 
-import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
@@ -8,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from autowt.services.agent import AgentService
     from autowt.services.git import GitService
     from autowt.services.github import GitHubService
     from autowt.services.process import ProcessService
@@ -45,48 +43,6 @@ class WorktreeInfo:
     path: Path
     is_current: bool = False
     is_primary: bool = False
-
-
-@dataclass
-class AgentStatus:
-    """Status of a Claude Code agent in a worktree."""
-
-    status: str  # "waiting", "working", "idle", "notification", "subagent_complete"
-    last_activity: str  # ISO 8601 timestamp
-    tool: str | None = None  # Current/last tool being used
-
-    @classmethod
-    def from_file(cls, status_file: Path) -> "AgentStatus | None":
-        """Load agent status from .claude/autowt/status file."""
-        if not status_file.exists():
-            return None
-        try:
-            data = json.loads(status_file.read_text())
-            return cls(
-                status=data["status"],
-                last_activity=data["last_activity"],
-                tool=data.get("tool"),
-            )
-        except (json.JSONDecodeError, KeyError, FileNotFoundError):
-            return None
-
-    @property
-    def status_indicator(self) -> str:
-        """Get single-character status indicator for display."""
-        return {
-            "waiting": "C?",
-            "processing": "C~",
-            "working": "C…",
-            "subagent_complete": "C*",
-        }.get(self.status, "C?")
-
-
-@dataclass
-class WorktreeWithAgent(WorktreeInfo):
-    """Extends WorktreeInfo with agent status."""
-
-    agent_status: AgentStatus | None = None
-    has_active_session: bool = False
 
 
 @dataclass
@@ -199,14 +155,12 @@ class Services:
     git: "GitService"
     terminal: "TerminalService"
     process: "ProcessService"
-    agent: "AgentService"
     github: "GitHubService"
 
     @classmethod
     def create(cls) -> "Services":
         """Create a new Services container with all services initialized."""
         # Import here to avoid circular imports
-        from autowt.services.agent import AgentService  # noqa: PLC0415
         from autowt.services.git import GitService  # noqa: PLC0415
         from autowt.services.github import GitHubService  # noqa: PLC0415
         from autowt.services.process import ProcessService  # noqa: PLC0415
@@ -219,7 +173,6 @@ class Services:
             git=GitService(),
             terminal=TerminalService(state_service),
             process=ProcessService(),
-            agent=AgentService(),
             github=GitHubService(),
         )
 
@@ -250,4 +203,3 @@ class CleanupCommand:
     auto_confirm: bool = False
     force: bool = False
     debug: bool = False
-    kill_processes: bool | None = None  # None = use config, True/False = CLI override

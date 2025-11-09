@@ -2,8 +2,6 @@
 
 **autowt** is a git worktree manager designed for developers who juggle multiple tasks. It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal session. This eliminates context-switching friction, letting you focus on your code.
 
-While powerful for any developer, `autowt` is a game-changer for those working with command-line AI agents like Claude Code, Gemini CLI, or Codex. It provides the perfect environment for running multiple agents in parallel without interference.
-
 ## Core features
 
 **Automated Worktree Management**
@@ -13,10 +11,6 @@ While powerful for any developer, `autowt` is a game-changer for those working w
 **Seamless Terminal Integration**
 
 Switching branches is as simple as typing `autowt <branch-name>`. `autowt` intelligently manages your terminal sessions, automatically switching to the correct tab or window, or creating a new one if needed. Supports iTerm2, Terminal.app, Ghostty, VSCode, and Cursor on macOS.
-
-**AI Agent Ready**
-
-Isolate your AI agents in their own worktrees. Run multiple agents on different tasks simultaneously without them tripping over each other's work. `autowt` provides the perfect sandbox for parallel development and experimentation.
 
 **Effortless Cleanup**
 
@@ -53,7 +47,6 @@ Watch as `autowt` creates a new worktree and opens it in a new terminal tab or w
 For detailed guides on commands, configuration, and advanced workflows, check out the [**full documentation**](https://steveasleep.com/autowt/).
 
 -   [**Getting Started Guide**](https://steveasleep.com/autowt/gettingstarted/)
--   [**AI Agents**](https://steveasleep.com/autowt/agents/)
 -   [**CLI Reference**](https://steveasleep.com/autowt/clireference/)
 -   [**Configuration**](https://steveasleep.com/autowt/configuration/)
 

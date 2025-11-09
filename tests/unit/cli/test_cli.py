@@ -22,7 +22,6 @@ class TestCLIRouting:
             patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
             patch("autowt.cli.configure_settings") as mock_configure,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.is_interactive_terminal", return_value=True),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
@@ -65,7 +64,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.checkout_branch") as mock_checkout,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):
@@ -93,7 +91,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.checkout_branch") as mock_checkout,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):
@@ -136,7 +133,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.checkout_branch") as mock_checkout,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):
@@ -177,7 +173,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.list_worktrees") as mock_ls,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
         ):
             mock_services = MockServices()
             mock_create_services.return_value = mock_services
@@ -208,7 +203,6 @@ class TestCLIRouting:
             patch("autowt.cli.setup_logging") as mock_setup_logging,
             patch("autowt.cli.list_worktrees"),
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
         ):
             mock_services = MockServices()
             mock_create_services.return_value = mock_services
@@ -236,7 +230,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):
@@ -270,7 +263,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.checkout_branch") as mock_checkout,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):
@@ -309,7 +301,6 @@ class TestCLIRouting:
         with (
             patch("autowt.cli.checkout_branch") as mock_checkout,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):

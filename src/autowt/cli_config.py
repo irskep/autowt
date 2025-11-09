@@ -20,8 +20,6 @@ def create_cli_config_overrides(
     init: str | None = None,
     after_init: str | None = None,
     ignore_same_session: bool | None = None,
-    kill: bool | None = None,
-    no_kill: bool | None = None,
     mode: str | None = None,
     custom_script: str | None = None,
     **kwargs: Any,
@@ -33,8 +31,6 @@ def create_cli_config_overrides(
         init: Init script override
         after_init: After-init script override
         ignore_same_session: Always new terminal override
-        kill: Force kill processes override
-        no_kill: Don't kill processes override
         mode: Cleanup mode override
         custom_script: Custom script name override
         **kwargs: Additional CLI arguments to ignore
@@ -63,14 +59,6 @@ def create_cli_config_overrides(
         )
 
     # Cleanup configuration overrides
-    if kill and no_kill:
-        raise ValueError("Cannot specify both kill and no_kill")
-
-    if kill:
-        overrides.setdefault("cleanup", {})["kill_processes"] = True
-    elif no_kill:
-        overrides.setdefault("cleanup", {})["kill_processes"] = False
-
     if mode is not None:
         overrides.setdefault("cleanup", {})["default_mode"] = mode
 
@@ -111,12 +99,6 @@ def get_init_script_from_config() -> str | None:
     """Get the init script from current configuration."""
     config = get_config()
     return config.scripts.session_init
-
-
-def get_cleanup_kill_processes_from_config() -> bool:
-    """Get the cleanup kill_processes setting from current configuration."""
-    config = get_config()
-    return config.cleanup.kill_processes
 
 
 def get_cleanup_mode_from_config() -> CleanupMode:

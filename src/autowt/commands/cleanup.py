@@ -138,39 +138,6 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     # Run pre_cleanup hooks for each worktree
     _run_pre_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
-    # Check for running shell processes in all worktrees to be removed
-    all_processes = []
-    for branch_status in to_cleanup:
-        processes = services.process.find_processes_in_directory(branch_status.path)
-        all_processes.extend(processes)
-
-    # Handle running processes if any are found
-    if all_processes:
-        # Run pre_process_kill hooks for each worktree
-        _run_pre_process_kill_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
-
-        # Determine auto_kill value based on CLI flags, config, and auto_confirm (-y flag)
-        if cleanup_cmd.kill_processes is not None:
-            # CLI flag specified: --kill (True) or --no-kill (False)
-            auto_kill = cleanup_cmd.kill_processes
-        elif cleanup_cmd.auto_confirm:
-            # -y flag specified: auto-confirm process killing if config allows it
-            auto_kill = config.cleanup.kill_processes
-        else:
-            # No CLI flag and no -y: use config default, but still prompt if config says kill
-            # If config says don't kill processes, auto-decline (like --no-kill)
-            # If config says kill processes, prompt user (None)
-            auto_kill = None if config.cleanup.kill_processes else False
-
-        if not _handle_running_processes(
-            to_cleanup,
-            services.process,
-            cleanup_cmd.dry_run,
-            auto_kill,
-        ):
-            print("Cleanup cancelled.")
-            return
-
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
         to_cleanup,
@@ -289,75 +256,6 @@ def _confirm_cleanup(
     return confirm_default_yes(prompt)
 
 
-def _handle_running_processes(
-    to_cleanup: list[BranchStatus],
-    process_service,
-    dry_run: bool = False,
-    auto_kill: bool | None = None,
-) -> bool:
-    """Handle shell processes running in worktrees to be removed."""
-    all_processes = []
-    for branch_status in to_cleanup:
-        processes = process_service.find_processes_in_directory(branch_status.path)
-        all_processes.extend(processes)
-
-    if not all_processes:
-        return True
-
-    dry_run_prefix = "[DRY RUN] " if dry_run else ""
-
-    # Show list of shell processes that will be terminated
-    print(
-        f"\n{dry_run_prefix}Found {len(all_processes)} running shell processes in worktrees to be removed:"
-    )
-    for process in all_processes:
-        # Truncate long command lines for display
-        command = process.command
-        if len(command) > 80:
-            command = command[:77] + "..."
-        print(f"  PID {process.pid}: {command}")
-        print(f"    Working directory: {process.working_dir}")
-
-    # Determine whether to terminate processes based on auto_kill parameter
-    if auto_kill is True:
-        # --kill flag: automatically proceed with termination
-        proceed_with_termination = True
-        print(f"\n{dry_run_prefix}Terminating processes (--kill flag specified)...")
-    elif auto_kill is False:
-        # --no-kill flag: automatically skip termination
-        proceed_with_termination = False
-        print(
-            f"{dry_run_prefix}Skipping process termination (--no-kill flag specified)."
-        )
-    else:
-        # No flag: ask user for confirmation before killing processes (even in dry-run)
-        proceed_with_termination = confirm_default_yes(
-            f"\nTerminate these {len(all_processes)} processes?"
-        )
-        if not proceed_with_termination:
-            print(f"{dry_run_prefix}Process termination cancelled.")
-
-    if not proceed_with_termination:
-        # For --no-kill case or user declining termination, ask if they want to continue anyway
-        if auto_kill is False:
-            print("Warning: Processes are still running in worktrees to be removed")
-            return confirm_default_no("Continue with cleanup anyway?")
-        else:
-            return False
-
-    if dry_run:
-        # In dry-run mode, simulate the termination
-        print(f"{dry_run_prefix}Would terminate these {len(all_processes)} processes")
-        return True
-    else:
-        # Real execution - actually terminate processes
-        if process_service.terminate_processes(all_processes):
-            return True
-
-        print("Warning: Some processes could not be terminated")
-        return confirm_default_no("Continue with cleanup anyway?")
-
-
 def _remove_worktrees_and_update_state(
     to_cleanup: list[BranchStatus],
     repo_path: Path,
@@ -425,25 +323,6 @@ def _remove_worktrees_and_update_state(
     if removed_count == 0:
         print(f"\n{dry_run_prefix}Cleanup complete. No worktrees were removed.")
         return
-
-    if dry_run:
-        # In dry-run mode, simulate state updates but don't actually modify files
-        print(
-            f"\n{dry_run_prefix}Would update state.toml to remove {removed_count} worktrees"
-        )
-        removed_branches = {bs.branch for bs in to_cleanup}
-        if any(
-            bs.branch == "current_worktree_name" for bs in to_cleanup
-        ):  # This is just for simulation
-            print(f"{dry_run_prefix}Would clear current worktree setting")
-        print(f"{dry_run_prefix}Would update session IDs for removed branches")
-    else:
-        # Real execution - update session IDs
-        removed_branches = {bs.branch for bs in to_cleanup}
-        for branch in removed_branches:
-            services.state.remove_session_id(repo_path, branch)
-
-        print("Session IDs updated")
 
     summary = f"\n{dry_run_prefix}Cleanup complete. {'Would remove' if dry_run else 'Removed'} {removed_count} worktrees"
     if deleted_branches > 0:
@@ -523,42 +402,6 @@ def _run_pre_cleanup_hooks(
                 global_scripts,
                 project_scripts,
                 HookType.PRE_CLEANUP,
-                branch_status.path,
-                repo_path,
-                branch_status.branch,
-            )
-
-
-def _run_pre_process_kill_hooks(
-    to_cleanup: list[BranchStatus],
-    repo_path: Path,
-    config,
-    dry_run: bool = False,
-) -> None:
-    """Run pre_process_kill hooks for worktrees being cleaned up."""
-    if dry_run:
-        print("[DRY RUN] Would run pre_process_kill hooks")
-        return
-
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
-
-    # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
-
-    for branch_status in to_cleanup:
-        global_scripts, project_scripts = extract_hook_scripts(
-            global_config, config, HookType.PRE_PROCESS_KILL
-        )
-
-        if global_scripts or project_scripts:
-            print(f"Running pre_process_kill hooks for {branch_status.branch}")
-            hook_runner.run_hooks(
-                global_scripts,
-                project_scripts,
-                HookType.PRE_PROCESS_KILL,
                 branch_status.path,
                 repo_path,
                 branch_status.branch,

@@ -2,40 +2,48 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      
-    - name: Install dependencies
-      run: mise run install
-      
-    - name: Run tests
-      run: mise run test
+      - uses: actions/checkout@v4
+
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run tests
+        run: uv run pytest
 
   lint:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install mise
-      uses: jdx/mise-action@v2
-      
-    - name: Install dependencies
-      run: mise run install
-      
-    - name: Run linter
-      run: mise run lint
-      
-    - name: Check formatting
-      run: mise run format-check
+      - uses: actions/checkout@v4
+
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run linter
+        run: uv run ruff check
+
+      - name: Check formatting
+        run: uv run ruff format --check

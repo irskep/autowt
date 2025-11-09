@@ -20,7 +20,6 @@ class HookType:
     POST_CREATE = "post_create"
     SESSION_INIT = "session_init"
     PRE_CLEANUP = "pre_cleanup"
-    PRE_PROCESS_KILL = "pre_process_kill"
     POST_CLEANUP = "post_cleanup"
     PRE_SWITCH = "pre_switch"
     POST_SWITCH = "post_switch"
