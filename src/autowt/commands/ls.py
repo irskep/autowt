@@ -21,9 +21,7 @@ class WorktreeSegments:
     right: str  # Branch + current indicator
 
 
-def _format_worktree_line(
-    worktree, current_worktree_path, terminal_width: int, has_session: bool = False
-) -> str:
+def _format_worktree_line(worktree, current_worktree_path, terminal_width: int) -> str:
     """Format a single worktree line with proper spacing and alignment."""
     # Build display path
     try:
@@ -33,24 +31,22 @@ def _format_worktree_line(
         display_path = str(worktree.path)
 
     # Build segments
-    segments = _build_worktree_segments(
-        worktree, display_path, current_worktree_path, has_session
-    )
+    segments = _build_worktree_segments(worktree, display_path, current_worktree_path)
 
     # Combine segments with intelligent spacing
     return _combine_segments(segments, terminal_width)
 
 
 def _build_worktree_segments(
-    worktree, display_path: str, current_worktree_path, has_session: bool = False
+    worktree, display_path: str, current_worktree_path
 ) -> WorktreeSegments:
     """Build the individual segments for a worktree line."""
     # Left segment: current indicator + path
     current_indicator = "→ " if current_worktree_path == worktree.path else "  "
     left = f"{current_indicator}{display_path}"
 
-    # Middle segment: session indicator with proper spacing
-    middle = " @" if has_session else ""
+    # Middle segment: removed (session tracking no longer supported)
+    middle = ""
 
     # Main worktree indicator (styled)
     main_indicator = (
@@ -114,7 +110,6 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         print_plain(f"    State directory: {services.state.app_dir}")
         print_plain(f"    State file: {services.state.state_file}")
         print_plain(f"    Config file: {services.state.config_file}")
-        print_plain(f"    Session file: {services.state.session_file}")
         print_plain(f"    Git repository root: {repo_path}")
 
         # Check for project config files
@@ -157,13 +152,7 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         pass
 
     for worktree in sorted_worktrees:
-        # Check if this worktree has an active session
-        session_id = services.state.get_session_id(repo_path, worktree.branch)
-        has_session = session_id is not None
-
-        line = _format_worktree_line(
-            worktree, current_worktree_path, terminal_width, has_session
-        )
+        line = _format_worktree_line(worktree, current_worktree_path, terminal_width)
         if worktree.is_primary and "[dim grey50]" in line:
             console.print(line)
         else:

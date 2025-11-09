@@ -36,7 +36,6 @@ class TestCLIFromFlag:
         with (
             patch("autowt.cli.checkout_branch") as mock_checkout,
             patch("autowt.cli.create_services") as mock_create_services,
-            patch("autowt.cli.auto_register_session"),
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):

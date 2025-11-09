@@ -46,33 +46,6 @@ def create_services() -> Services:
     return Services.create()
 
 
-def auto_register_session(services: Services) -> None:
-    """Automatically register the current terminal session if possible."""
-    try:
-        # Only register if we're in a git repository
-        repo_path = services.git.find_repo_root()
-        if not repo_path:
-            return
-
-        # Get current session ID
-        session_id = services.terminal.get_current_session_id()
-        if not session_id:
-            return
-
-        # Get actual git branch name instead of directory name
-        worktree_path = Path(os.getcwd())
-        branch_name = services.git.get_current_branch(repo_path) or worktree_path.name
-
-        # Only register if not already registered for this branch
-        existing_session_id = services.state.get_session_id(repo_path, branch_name)
-        if existing_session_id != session_id:
-            services.state.set_session_id(repo_path, branch_name, session_id)
-
-    except Exception:
-        # Silently fail - session registration should never break the main command
-        pass
-
-
 def check_for_version_updates(services: Services) -> None:
     """Check for version updates and show notification if available."""
     try:
@@ -268,7 +241,6 @@ class AutowtGroup(ClickAliasedGroup):
             )
 
             services = create_services()
-            auto_register_session(services)
             check_for_version_updates(services)
 
             # Create and execute SwitchCommand
@@ -380,41 +352,8 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # If no subcommand was invoked, show list
     if ctx.invoked_subcommand is None:
         services = create_services()
-        auto_register_session(services)
         check_for_version_updates(services)
         list_worktrees(services)
-
-
-@main.command(
-    "register-session-for-path",
-    hidden=True,
-    context_settings={"help_option_names": ["-h", "--help"]},
-)
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-def register_session_for_path(debug: bool) -> None:
-    """Register the current terminal session for the current working directory."""
-    setup_logging(debug)
-    services = create_services()
-
-    # Get current session ID
-    session_id = services.terminal.get_current_session_id()
-    if session_id:
-        # Get actual git branch name instead of directory name
-        worktree_path = Path(os.getcwd())
-        repo_path = services.git.find_repo_root()
-        branch_name = (
-            services.git.get_current_branch(repo_path) or worktree_path.name
-            if repo_path
-            else worktree_path.name
-        )
-
-        # Set session ID for this repo/branch
-        services.state.set_session_id(repo_path, branch_name, session_id)
-        print(
-            f"Registered session {session_id} for branch {branch_name} (path: {worktree_path})"
-        )
-    else:
-        print("Could not detect current session ID")
 
 
 @main.command(
@@ -425,7 +364,6 @@ def ls(debug: bool) -> None:
     """List all worktrees and their status."""
     setup_logging(debug)
     services = create_services()
-    auto_register_session(services)
     check_for_version_updates(services)
     list_worktrees(services, debug=debug)
 
@@ -498,7 +436,6 @@ def cleanup(
                 "No TTY detected. Please specify --mode explicitly when running in scripts or CI. "
                 "Available modes: all, remoteless, merged, interactive, github"
             )
-    auto_register_session(services)
     check_for_version_updates(services)
 
     cleanup_cmd = CleanupCommand(
@@ -521,7 +458,6 @@ def config(debug: bool, show: bool) -> None:
     """Configure autowt settings using interactive TUI."""
     setup_logging(debug)
     services = create_services()
-    auto_register_session(services)
 
     if show:
         show_config(services)
@@ -602,7 +538,6 @@ def switch(
     # If no branch provided, show interactive TUI
     if not branch:
         services = create_services()
-        auto_register_session(services)
         check_for_version_updates(services)
 
         selected_branch, is_new = _run_interactive_switch(services)
@@ -621,7 +556,6 @@ def switch(
         pass
     else:
         services = create_services()
-        auto_register_session(services)
         check_for_version_updates(services)
 
     # Create CLI overrides for switch command (now includes all options)

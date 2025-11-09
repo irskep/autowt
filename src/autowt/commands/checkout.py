@@ -129,7 +129,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             pass
 
         # Switch to existing worktree - no init script needed (worktree already set up)
-        session_id = services.state.get_session_id(repo_path, switch_cmd.branch)
         # Combine after_init and custom script for existing worktrees too
         combined_after_init = _combine_after_init_and_custom_script(
             switch_cmd.after_init, custom_script_resolved
@@ -143,7 +142,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             success = services.terminal.switch_to_worktree(
                 existing_worktree.path,
                 terminal_mode,
-                session_id,
                 None,  # No session_init script for existing worktrees
                 combined_after_init,
                 branch_name=switch_cmd.branch,
@@ -293,7 +291,6 @@ def _create_new_worktree(
     success = services.terminal.switch_to_worktree(
         worktree_path,
         terminal_mode,
-        None,
         session_init_script,
         combined_after_init,
         branch_name=switch_cmd.branch,

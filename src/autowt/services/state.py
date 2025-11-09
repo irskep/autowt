@@ -24,7 +24,6 @@ class StateService:
 
         self.app_dir = app_dir
         self.config_file = app_dir / "config.toml"
-        self.session_file = app_dir / "sessionids.toml"
         self.state_file = app_dir / "state.toml"
 
         # Ensure app directory exists
@@ -87,74 +86,6 @@ class StateService:
         # Use the new configuration system
         config_loader = ConfigLoader(app_dir=self.app_dir)
         config_loader.save_config(config)
-
-    def load_session_ids(self) -> dict[str, str]:
-        """Load session ID mappings for branches."""
-        logger.debug("Loading session IDs")
-
-        if not self.session_file.exists():
-            logger.debug("No session file found")
-            return {}
-
-        try:
-            data = toml.load(self.session_file)
-            logger.debug(f"Loaded {len(data)} session mappings")
-            return data
-        except Exception as e:
-            logger.error(f"Failed to load session IDs: {e}")
-            return {}
-
-    def save_session_ids(self, session_ids: dict[str, str]) -> None:
-        """Save session ID mappings for branches."""
-        logger.debug(f"Saving {len(session_ids)} session mappings")
-
-        try:
-            with open(self.session_file, "w") as f:
-                toml.dump(session_ids, f)
-            logger.debug("Session IDs saved successfully")
-        except Exception as e:
-            logger.error(f"Failed to save session IDs: {e}")
-            raise
-
-    def _make_session_key(self, repo_path: Path, branch_name: str) -> str:
-        """Create a composite key for session storage."""
-        return f"{repo_path.resolve()}:{branch_name}"
-
-    def get_session_id(self, repo_path: Path, branch_name: str) -> str | None:
-        """Get session ID for specific repo/branch combination."""
-        session_ids = self.load_session_ids()
-        key = self._make_session_key(repo_path, branch_name)
-        return session_ids.get(key)
-
-    def set_session_id(
-        self, repo_path: Path, branch_name: str, session_id: str
-    ) -> None:
-        """Set session ID for specific repo/branch combination."""
-        session_ids = self.load_session_ids()
-        key = self._make_session_key(repo_path, branch_name)
-        session_ids[key] = session_id
-        self.save_session_ids(session_ids)
-
-    def remove_session_id(self, repo_path: Path, branch_name: str) -> None:
-        """Remove session ID for specific repo/branch combination."""
-        session_ids = self.load_session_ids()
-        key = self._make_session_key(repo_path, branch_name)
-        if key in session_ids:
-            session_ids.pop(key)
-            self.save_session_ids(session_ids)
-
-    def get_session_ids_for_repo(self, repo_path: Path) -> dict[str, str]:
-        """Get all session IDs for a repo, with branch names as keys."""
-        session_ids = self.load_session_ids()
-        repo_key_prefix = f"{repo_path.resolve()}:"
-
-        result = {}
-        for key, session_id in session_ids.items():
-            if key.startswith(repo_key_prefix):
-                branch_name = key[len(repo_key_prefix) :]
-                result[branch_name] = session_id
-
-        return result
 
     def load_app_state(self) -> dict[str, Any]:
         """Load application state including UI preferences and prompt tracking."""
