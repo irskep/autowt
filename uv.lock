@@ -4,8 +4,8 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "automate-terminal"
-version = "0.1.6.dev0"
-source = { git = "https://github.com/irskep/automate-terminal.git#ec306e72a8dbf9cc899b1034749b113305116237" }
+version = "0.1.7.dev0"
+source = { git = "https://github.com/irskep/automate-terminal.git#fceb095f05eceef5bdf94be7972e6b03cc218d3d" }
 
 [[package]]
 name = "autowt"
