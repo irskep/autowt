@@ -10,7 +10,7 @@ echo "Installing mise dependencies..."
 mise install
 
 echo "Installing dependencies..."
-uv sync --extra=dev
+uv sync
 
 echo "Installing pre-commit hooks..."
 mise x -- uv run pre-commit install
