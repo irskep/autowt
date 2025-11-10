@@ -1,8 +1,39 @@
 # autowt: a better git worktree experience
 
-**autowt** is a [git worktree](https://git-scm.com/docs/git-worktree) manager designed for developers who juggle multiple tasks. It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal tab or window.
+**autowt** is a layer of convenience over [git worktree](https://git-scm.com/docs/git-worktree). It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal tab or window.
 
 [**Full documentation**](https://steveasleep.com/autowt/)
+
+Consider what it takes to set up a fresh worktree in a typical workflow:
+
+1. Make a decision about where to put the worktree
+2. `git worktree add <worktree_path> -b <branch>`
+3. Open a new terminal tab
+4. `cd <worktree path>`
+5. `uv sync` or `npm install` or whatever your dependency setup is
+6. `cp <repo_dir>/.env .` to copy secrets
+
+Congrats, you're done! Type type type, open a PR, and merge it. Now you need to clean up:
+
+1. `git worktree rm .`
+2. Close the tab
+
+Of course, you might close the tab and forget to clean up the worktree, and your set of worktrees will grow.
+
+On the other hand, with autowt, it looks like this:
+
+```sh
+autowt <branch>
+# there is no step 2
+```
+
+And deleting branches that have been merged or are associated with closed PRs looks like this:
+
+```sh
+autowt cleanup
+```
+
+A lot nicer, right?
 
 **Type less**
 

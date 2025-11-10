@@ -1,4 +1,5 @@
 [scripts]
+post_create = "mise trust"
 session_init = "./setup.sh"
 
 [scripts.custom]
