@@ -25,6 +25,7 @@ from autowt.models import (
 )
 from autowt.prompts import prompt_cleanup_mode_selection
 from autowt.services.version_check import VersionCheckService
+from autowt.shell_integrations import show_shell_config
 from autowt.tui.switch import run_switch_tui
 from autowt.utils import run_command_quiet_on_failure, setup_command_logging
 
@@ -92,79 +93,6 @@ def is_interactive_terminal() -> bool:
     This function can be easily mocked in tests for consistent behavior.
     """
     return sys.stdin.isatty()
-
-
-def _show_shell_config(shell_override: str | None = None) -> None:
-    """Show shell integration instructions for the current shell."""
-    shell = shell_override or os.getenv("SHELL", "").split("/")[-1]
-
-    print("# Shell Integration for autowt")
-    print(
-        "# Add this function to your shell configuration for convenient worktree switching:"
-    )
-    print()
-
-    if shell == "fish":
-        print("# Add to ~/.config/fish/config.fish:")
-        print("# Example usage: autowt_cd feature-branch")
-        print("function autowt_cd")
-        print("    eval (autowt $argv --terminal=echo)")
-        print("end")
-    elif shell in ["bash", "zsh"]:
-        config_file = "~/.bashrc" if shell == "bash" else "~/.zshrc"
-        print(f"# Add to {config_file}:")
-        print("# Example usage: autowt_cd feature-branch")
-        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
-    elif shell in ["tcsh", "csh"]:
-        config_file = "~/.tcshrc" if shell == "tcsh" else "~/.cshrc"
-        print(f"# Add to {config_file}:")
-        print("# Example usage: autowt_cd feature-branch")
-        print("alias autowt_cd 'eval `autowt \\!* --terminal=echo`'")
-    elif shell == "nu":
-        print("# Add to ~/.config/nushell/config.nu:")
-        print("# Example usage: autowt_cd feature-branch")
-        print("def autowt_cd [...args] {")
-        print(
-            "    load-env (autowt ...$args --terminal=echo | parse 'export {name}={value}' | transpose -r)"
-        )
-        print("}")
-        print()
-        print(
-            "# Note: nushell requires different syntax. You may need to adjust based on output format."
-        )
-    elif shell in ["oil", "osh"]:
-        print("# Add to ~/.config/oil/oshrc:")
-        print("# Example usage: autowt_cd feature-branch")
-        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
-    elif shell == "elvish":
-        print("# Add to ~/.config/elvish/rc.elv:")
-        print("# Example usage: autowt_cd feature-branch")
-        print("fn autowt_cd {|@args|")
-        print("    eval (autowt $@args --terminal=echo)")
-        print("}")
-    else:
-        # Comprehensive fallback for unknown shells
-        print(
-            f"# Shell '{shell}' not specifically supported. Here are options for common shells:"
-        )
-        print()
-        print("# POSIX-compatible shells (bash, zsh, dash, ash, etc.):")
-        print("# Add to your shell's config file (e.g., ~/.bashrc, ~/.zshrc):")
-        print("# Example usage: autowt_cd feature-branch")
-        print('autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }')
-        print()
-        print("# Fish shell - add to ~/.config/fish/config.fish:")
-        print("# Example usage: autowt_cd feature-branch")
-        print("function autowt_cd")
-        print("    eval (autowt $argv --terminal=echo)")
-        print("end")
-        print()
-        print("# C shell variants (csh, tcsh) - add to ~/.cshrc or ~/.tcshrc:")
-        print("# Example usage: autowt_cd feature-branch")
-        print("alias autowt_cd 'eval `autowt \\!* --terminal=echo`'")
-        print()
-        print("# For other shells, adapt the above patterns or use manual eval:")
-        print('# eval "$(autowt branch-name --terminal=echo)"')
 
 
 def _run_interactive_switch(services) -> tuple[str | None, bool]:
@@ -477,7 +405,7 @@ def config(debug: bool, show: bool) -> None:
 def shellconfig(debug: bool, shell: str | None) -> None:
     """Show shell integration instructions for your current shell."""
     setup_logging(debug)
-    _show_shell_config(shell)
+    show_shell_config(shell)
 
 
 @main.command(
