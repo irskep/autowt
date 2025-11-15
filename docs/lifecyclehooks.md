@@ -69,6 +69,55 @@ Beyond `session_init` scripts, autowt supports 7 lifecycle hooks that run at spe
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
 
+## Hook Execution Flow
+
+### Creating/Switching to New Worktree
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant autowt
+    participant Terminal
+
+    User->>autowt: autowt switch feature-branch
+    autowt->>autowt: pre_create hook (can abort)
+    autowt->>autowt: Create git worktree
+    autowt->>autowt: post_create hook
+    autowt->>Terminal: Switch to worktree
+    Terminal->>Terminal: session_init hook
+    Terminal->>Terminal: --after-init command
+    Terminal-->>User: Ready in new worktree
+```
+
+### Switching Between Worktrees
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant autowt
+    participant Terminal
+
+    User->>autowt: autowt switch other-branch
+    autowt->>autowt: pre_switch hook
+    autowt->>Terminal: Switch to other worktree
+    autowt->>autowt: post_switch hook
+    Terminal-->>User: Ready in switched worktree
+```
+
+### Cleanup Operation
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant autowt
+
+    User->>autowt: autowt cleanup
+    autowt->>autowt: pre_cleanup hook
+    autowt->>autowt: Remove worktrees and branches
+    autowt->>autowt: post_cleanup hook
+    autowt-->>User: Cleanup complete
+```
+
 ## Configuration
 
 Project-level and global hooks run independently and do not override each other.
@@ -170,7 +219,7 @@ If you need to use a different programming language, create a separate script fi
 **Execution Context**: Subprocess in parent directory (worktree doesn't exist yet)  
 **Use cases**: Pre-flight validation, resource availability checks, branch name validation
 
-The `pre_create` hook is the first hook that can **prevent worktree creation** by exiting with a non-zero status. Unlike other hooks that show error output but continue the operation, if a `pre_create` hook fails, autowt will completely abort worktree creation.
+The `pre_create` hook can **prevent worktree creation** by exiting with a non-zero status. If this hook fails, autowt will completely abort worktree creation before the worktree is created.
 
 ```toml
 [scripts]
@@ -188,6 +237,8 @@ fi
 **Timing**: After worktree creation, before terminal switch  
 **Execution Context**: Subprocess in worktree directory  
 **Use cases**: File operations, git setup, dependency installation, configuration copying
+
+The `post_create` hook can **prevent terminal switching** by exiting with a non-zero status. If this hook fails, autowt will abort the operation (the worktree will exist but the terminal won't switch to it).
 
 ```toml
 [scripts]
