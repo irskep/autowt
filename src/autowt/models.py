@@ -7,11 +7,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from autowt.config import ConfigLoader
+    from autowt.hooks import HookRunner
     from autowt.services.git import GitService
     from autowt.services.github import GitHubService
     from autowt.services.process import ProcessService
     from autowt.services.state import StateService
     from autowt.services.terminal import TerminalService
+    from autowt.services.version_check import VersionCheckService
 
 
 class TerminalMode(Enum):
@@ -156,24 +159,35 @@ class Services:
     terminal: "TerminalService"
     process: "ProcessService"
     github: "GitHubService"
+    config_loader: "ConfigLoader"
+    hooks: "HookRunner"
+    version_check: "VersionCheckService"
 
     @classmethod
     def create(cls) -> "Services":
         """Create a new Services container with all services initialized."""
         # Import here to avoid circular imports
+        from autowt.config import ConfigLoader  # noqa: PLC0415
+        from autowt.hooks import HookRunner  # noqa: PLC0415
         from autowt.services.git import GitService  # noqa: PLC0415
         from autowt.services.github import GitHubService  # noqa: PLC0415
         from autowt.services.process import ProcessService  # noqa: PLC0415
         from autowt.services.state import StateService  # noqa: PLC0415
         from autowt.services.terminal import TerminalService  # noqa: PLC0415
+        from autowt.services.version_check import VersionCheckService  # noqa: PLC0415
 
-        state_service = StateService()
+        # Create ConfigLoader first so it can be passed to StateService
+        config_loader = ConfigLoader()
+        state_service = StateService(config_loader=config_loader)
         return cls(
             state=state_service,
             git=GitService(),
             terminal=TerminalService(state_service),
             process=ProcessService(),
             github=GitHubService(),
+            config_loader=config_loader,
+            hooks=HookRunner(),
+            version_check=VersionCheckService(state_service.app_dir),
         )
 
 

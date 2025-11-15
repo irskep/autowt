@@ -1,5 +1,6 @@
 """Service builders and mocks for testing business logic."""
 
+from collections import namedtuple
 from pathlib import Path
 from typing import Any
 
@@ -236,6 +237,81 @@ class MockGitHubService:
         return self.analyze_result.copy()
 
 
+class MockConfigLoader:
+    """Mock config loader for testing."""
+
+    def __init__(self):
+        self.global_config_file = Path("/tmp/config.toml")
+        self.configs: dict[str, Config] = {}
+
+    def load_config(
+        self,
+        project_dir: Path | None = None,
+        cli_overrides: dict[str, Any] | None = None,
+    ) -> Config:
+        key = str(project_dir) if project_dir else "default"
+        return self.configs.get(key, Config())
+
+    def save_config(self, config: Config) -> None:
+        self.configs["default"] = config
+
+    def save_cleanup_mode(self, mode: Any) -> None:
+        """Mock save cleanup mode."""
+        pass
+
+    def has_user_configured_cleanup_mode(self) -> bool:
+        """Mock check for user configured cleanup mode."""
+        return False
+
+
+class MockHookRunner:
+    """Mock hook runner for testing."""
+
+    def __init__(self):
+        self.run_hooks_success = True
+        self.run_hooks_calls = []
+
+    def run_hooks(
+        self,
+        global_scripts: list[str],
+        project_scripts: list[str],
+        hook_type: str,
+        worktree_dir: Path,
+        main_repo_dir: Path,
+        branch_name: str,
+        timeout: int = 60,
+    ) -> bool:
+        self.run_hooks_calls.append(
+            (
+                global_scripts,
+                project_scripts,
+                hook_type,
+                worktree_dir,
+                main_repo_dir,
+                branch_name,
+                timeout,
+            )
+        )
+        return self.run_hooks_success
+
+
+class MockVersionCheckService:
+    """Mock version check service for testing."""
+
+    def __init__(self):
+        self.version_info = None
+        self.check_for_updates_called = False
+
+    def check_for_updates(self, force: bool = False) -> Any | None:
+        self.check_for_updates_called = True
+        return self.version_info
+
+    def _detect_installation_method(self) -> Any:
+        """Mock installation method detection."""
+        InstallationMethod = namedtuple("InstallationMethod", ["name", "command"])
+        return InstallationMethod("pip", "pip install --upgrade autowt")
+
+
 class MockServices:
     """Mock Services container for testing."""
 
@@ -245,3 +321,6 @@ class MockServices:
         self.terminal = MockTerminalService()
         self.process = MockProcessService()
         self.github = MockGitHubService()
+        self.config_loader = MockConfigLoader()
+        self.hooks = MockHookRunner()
+        self.version_check = MockVersionCheckService()

@@ -256,7 +256,10 @@ class TestConfigLoader:
             loader = ConfigLoader(app_dir=custom_dir)
             assert loader.app_dir == custom_dir
             assert loader.global_config_file == custom_dir / "config.toml"
-            assert custom_dir.exists()  # Should be created
+            # Directory should not exist until setup() is called
+            assert not custom_dir.exists()
+            loader.setup()
+            assert custom_dir.exists()  # Should be created after setup
 
     def test_config_loader_default_app_dir_macos(self):
         """Test default app directory on macOS."""

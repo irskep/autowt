@@ -10,8 +10,7 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
-from autowt.config import get_config_loader
-from autowt.hooks import HookRunner, HookType, extract_hook_scripts
+from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
 
@@ -136,7 +135,7 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         return
 
     # Run pre_cleanup hooks for each worktree
-    _run_pre_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+    _run_pre_cleanup_hooks(services, to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
@@ -149,7 +148,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     )
 
     # Run post_cleanup hooks for each worktree
-    _run_post_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+    _run_post_cleanup_hooks(
+        services, to_cleanup, repo_path, config, cleanup_cmd.dry_run
+    )
 
 
 def _display_branch_status(
@@ -373,6 +374,7 @@ def _simple_interactive_selection(
 
 
 def _run_pre_cleanup_hooks(
+    services: Services,
     to_cleanup: list[BranchStatus],
     repo_path: Path,
     config,
@@ -384,12 +386,8 @@ def _run_pre_cleanup_hooks(
         return
 
     # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
-
     # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
+    global_config = services.config_loader.load_config(project_dir=None)
 
     for branch_status in to_cleanup:
         global_scripts, project_scripts = extract_hook_scripts(
@@ -398,7 +396,7 @@ def _run_pre_cleanup_hooks(
 
         if global_scripts or project_scripts:
             print(f"Running pre_cleanup hooks for {branch_status.branch}")
-            hook_runner.run_hooks(
+            services.hooks.run_hooks(
                 global_scripts,
                 project_scripts,
                 HookType.PRE_CLEANUP,
@@ -409,6 +407,7 @@ def _run_pre_cleanup_hooks(
 
 
 def _run_post_cleanup_hooks(
+    services: Services,
     to_cleanup: list[BranchStatus],
     repo_path: Path,
     config,
@@ -420,12 +419,8 @@ def _run_post_cleanup_hooks(
         return
 
     # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
-
     # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
+    global_config = services.config_loader.load_config(project_dir=None)
 
     for branch_status in to_cleanup:
         global_scripts, project_scripts = extract_hook_scripts(
@@ -436,7 +431,7 @@ def _run_post_cleanup_hooks(
             print(f"Running post_cleanup hooks for {branch_status.branch}")
             # Note: For post_cleanup hooks, the worktree_dir might no longer exist
             # But we still pass it as hooks may need the path information
-            hook_runner.run_hooks(
+            services.hooks.run_hooks(
                 global_scripts,
                 project_scripts,
                 HookType.POST_CLEANUP,

@@ -205,10 +205,15 @@ class ConfigLoader:
 
         self.app_dir = app_dir
         self.global_config_file = app_dir / "config.toml"
-
-        # Ensure app directory exists
-        self.app_dir.mkdir(parents=True, exist_ok=True)
+        self._setup_done = False
         logger.debug(f"Config loader initialized with app dir: {self.app_dir}")
+
+    def setup(self) -> None:
+        """Ensure app directory exists. Called lazily when needed."""
+        if not self._setup_done:
+            self.app_dir.mkdir(parents=True, exist_ok=True)
+            self._setup_done = True
+            logger.debug(f"Config loader setup complete: {self.app_dir}")
 
     def _get_default_app_dir(self) -> Path:
         """Get the default application directory based on platform."""
@@ -422,6 +427,7 @@ class ConfigLoader:
 
     def save_cleanup_mode(self, mode: CleanupMode) -> None:
         """Save just the cleanup mode preference, preserving other settings."""
+        self.setup()  # Ensure directory exists
         logger.debug(f"Saving cleanup mode preference: {mode.value}")
 
         # Load existing config or start with empty
@@ -448,6 +454,7 @@ class ConfigLoader:
 
     def save_config(self, config: Config) -> None:
         """Save configuration to global config file."""
+        self.setup()  # Ensure directory exists
         logger.debug("Saving global configuration")
 
         try:

@@ -24,7 +24,6 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.prompts import prompt_cleanup_mode_selection
-from autowt.services.version_check import VersionCheckService
 from autowt.shell_integrations import show_shell_config
 from autowt.tui.switch import run_switch_tui
 from autowt.utils import run_command_quiet_on_failure, setup_command_logging
@@ -50,13 +49,11 @@ def create_services() -> Services:
 def check_for_version_updates(services: Services) -> None:
     """Check for version updates and show notification if available."""
     try:
-        version_service = VersionCheckService(services.state.app_dir)
-
         # Check for secret environment variable to force showing upgrade prompt
         force_upgrade_prompt = os.getenv("AUTOWT_FORCE_UPGRADE_PROMPT")
         if force_upgrade_prompt:
             # Force display of upgrade prompt for testing
-            method = version_service._detect_installation_method()
+            method = services.version_check._detect_installation_method()
             click.echo(
                 "💡 Update available: autowt 0.99.0 (you have 0.4.2-dev) [FORCED]",
                 err=True,
@@ -68,7 +65,7 @@ def check_for_version_updates(services: Services) -> None:
             click.echo("", err=True)
             return
 
-        version_info = version_service.check_for_updates()
+        version_info = services.version_check.check_for_updates()
 
         if version_info and version_info.update_available:
             click.echo(

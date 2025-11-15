@@ -10,7 +10,6 @@ from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
 from autowt.config import (
     CleanupConfig,
     Config,
-    ConfigLoader,
     TerminalConfig,
     WorktreeConfig,
 )
@@ -84,8 +83,7 @@ class ConfigApp(App):
             yield Label("For all settings, edit the config file directly:")
 
             # Get the actual global config path for this platform
-            config_loader = ConfigLoader(app_dir=self.services.state.app_dir)
-            global_config_path = config_loader.global_config_file
+            global_config_path = self.services.config_loader.global_config_file
             yield Label(f"• Global: {global_config_path}")
             yield Label("• Project: autowt.toml or .autowt.toml in repository root")
             yield Label("")
@@ -167,7 +165,6 @@ class ConfigApp(App):
 def show_config(services: Services) -> None:
     """Show current configuration values."""
     config = services.state.load_config()
-    config_loader = ConfigLoader(app_dir=services.state.app_dir)
 
     print("Current Configuration:")
     print("=" * 50)
@@ -207,7 +204,7 @@ def show_config(services: Services) -> None:
     print()
 
     print("Config Files:")
-    print(f"  Global: {config_loader.global_config_file}")
+    print(f"  Global: {services.config_loader.global_config_file}")
     print("  Project: autowt.toml or .autowt.toml in repository root")
 
 

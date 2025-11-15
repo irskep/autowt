@@ -37,9 +37,14 @@ class VersionCheckService:
         self.app_dir = app_dir
         self.package_name = package_name
         self.version_cache_file = app_dir / "version_check.json"
+        self._setup_done = False
 
-        # Ensure app directory exists
-        self.app_dir.mkdir(parents=True, exist_ok=True)
+    def setup(self) -> None:
+        """Ensure app directory exists. Called lazily when needed."""
+        if not self._setup_done:
+            self.app_dir.mkdir(parents=True, exist_ok=True)
+            self._setup_done = True
+            logger.debug(f"Version check service setup complete: {self.app_dir}")
 
     def _get_current_version(self) -> str:
         """Get the currently installed version."""
@@ -124,6 +129,7 @@ class VersionCheckService:
 
     def _save_cache(self, cache: dict) -> None:
         """Save version check cache."""
+        self.setup()  # Ensure directory exists
         try:
             with self.version_cache_file.open("w") as f:
                 json.dump(cache, f, indent=2)
