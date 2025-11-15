@@ -55,17 +55,18 @@ fi
 
 ## Complete Lifecycle Hooks
 
-Beyond `session_init` scripts, autowt supports 7 lifecycle hooks that run at specific points during worktree operations:
+Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
-| Hook           | When it runs                                    | Execution Context | Common use cases                                          |
-| -------------- | ----------------------------------------------- | ----------------- | --------------------------------------------------------- |
-| `pre_create`   | Before creating worktree                        | Subprocess        | Pre-flight validation, resource checks, setup preparation |
-| `post_create`  | After creating worktree, before terminal switch | Subprocess        | File operations, git setup, dependency installation       |
-| `session_init` | In terminal session after switching to worktree | Terminal session  | Environment setup, virtual env activation, shell config   |
-| `pre_cleanup`  | Before cleaning up worktrees                    | Subprocess        | Release ports, backup data                                |
-| `post_cleanup` | After worktrees are removed                     | Subprocess        | Clean volumes, update state                               |
-| `pre_switch`   | Before switching worktrees                      | Subprocess        | Stop current services                                     |
-| `post_switch`  | After switching worktrees                       | Subprocess        | Start new services                                        |
+| Hook                | When it runs                                                | Execution Context | Common use cases                                          |
+| ------------------- | ----------------------------------------------------------- | ----------------- | --------------------------------------------------------- |
+| `pre_create`        | Before creating worktree                                    | Subprocess        | Pre-flight validation, resource checks, setup preparation |
+| `post_create`       | After creating worktree, before terminal switch             | Subprocess        | File operations, git setup, dependency installation       |
+| `post_create_async` | After terminal switch (or before --after-init in ECHO mode) | Original terminal | Expensive dependency installs that don't block user work  |
+| `session_init`      | In terminal session after switching to worktree             | Terminal session  | Environment setup, virtual env activation, shell config   |
+| `pre_cleanup`       | Before cleaning up worktrees                                | Subprocess        | Release ports, backup data                                |
+| `post_cleanup`      | After worktrees are removed                                 | Subprocess        | Clean volumes, update state                               |
+| `pre_switch`        | Before switching worktrees                                  | Subprocess        | Stop current services                                     |
+| `post_switch`       | After switching worktrees                                   | Subprocess        | Start new services                                        |
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
 
@@ -75,40 +76,42 @@ Note that there is a command-line-only `--after-init` flag to run additional com
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant autowt
-    participant Terminal
+    actor User
+    participant autowt as autowt in<br>orig. terminal
+    participant Terminal as New terminal
 
     User->>autowt: autowt switch feature-branch
     autowt->>autowt: pre_create hook (can abort)
     autowt->>autowt: Create git worktree
     autowt->>autowt: post_create hook
-    autowt->>Terminal: Switch to worktree
-    Terminal->>Terminal: session_init hook
-    Terminal->>Terminal: --after-init command
-    Terminal-->>User: Ready in new worktree
+    autowt->>Terminal: Open
+    Terminal->>Terminal: cd to new worktree
+    Terminal->>Terminal: session_init and --after-init
+    Terminal-->>User: Ready
+    autowt->>autowt: post_create_async hook
 ```
 
 ### Switching Between Worktrees
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant autowt
-    participant Terminal
+    actor User
+    participant autowt as autowt in<br>orig. terminal
+    participant Terminal as New terminal
 
     User->>autowt: autowt switch other-branch
     autowt->>autowt: pre_switch hook
-    autowt->>Terminal: Switch to other worktree
+    autowt->>Terminal: Open/switch to
+    Terminal->>Terminal: cd to worktree
+    Terminal-->>User: Ready
     autowt->>autowt: post_switch hook
-    Terminal-->>User: Ready in switched worktree
 ```
 
 ### Cleanup Operation
 
 ```mermaid
 sequenceDiagram
-    participant User
+    actor User
     participant autowt
 
     User->>autowt: autowt cleanup
@@ -254,6 +257,42 @@ The post_create hook runs as a subprocess after the worktree is created but befo
 - Setting up configuration files
 - Running git commands
 - File operations that don't need shell environment
+
+### `post_create_async` Hook
+
+**Timing**: After terminal switch (TAB/WINDOW modes) or before --after-init (ECHO/INPLACE modes)
+**Execution Context**: Original terminal where autowt was invoked
+**Use cases**: Expensive dependency installations that don't block terminal interactivity
+
+The `post_create_async` hook is designed for **expensive operations** like `npm install`, `poetry install`, or `bundle install` that can run while the user is already working in the new terminal.
+
+```toml
+[scripts]
+post_create_async = """
+npm install
+npm run build
+"""
+```
+
+**Execution behavior varies by terminal mode:**
+
+- **TAB/WINDOW/VSCODE/CURSOR modes**: Runs in the original terminal _after_ the new terminal tab/window opens. The user can immediately start working in the new terminal while dependencies install in the background. The `autowt` process waits for completion before exiting.
+
+- **ECHO/INPLACE modes**: Runs _before_ `--after-init` since no actual terminal switch occurs. Ensures expensive operations complete before any after-init commands run.
+
+**Failure handling**: Unlike `pre_create` and `post_create`, failures in this hook show a warning but don't abort the operation. Since the hook may run asynchronously, failures might not be detectable until after the user is already working.
+
+**When to use**: Use `post_create_async` for operations that:
+
+- Are expensive but not critical for immediate work
+- Don't produce output the user needs to see right away
+- Can safely run while the user starts working (installing dependencies, building assets, etc.)
+
+**When to use `post_create` instead**: Use the synchronous `post_create` hook for operations that:
+
+- Must complete before the user can work (copying config files, setting permissions)
+- Are fast and shouldn't delay terminal switching
+- Produce errors that should prevent terminal switching
 
 ### `session_init` Hook
 
