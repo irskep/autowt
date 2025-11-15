@@ -1,9 +1,9 @@
 [scripts]
-session_init = "./setup.sh"
+session_init = "echo Hello!"
 
 pre_create = 'echo pre_create'
 post_create = 'echo post_create'
-post_create_async = 'echo post_create_async'
+post_create_async = './setup.sh'
 pre_cleanup = 'echo pre_cleanup'
 post_cleanup = 'echo post_cleanup'
 pre_switch = 'echo pre_switch'

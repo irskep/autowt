@@ -57,16 +57,18 @@ fi
 
 Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
-| Hook                | When it runs                                                | Execution Context | Common use cases                                          |
-| ------------------- | ----------------------------------------------------------- | ----------------- | --------------------------------------------------------- |
-| `pre_create`        | Before creating worktree                                    | Subprocess        | Pre-flight validation, resource checks, setup preparation |
-| `post_create`       | After creating worktree, before terminal switch             | Subprocess        | File operations, git setup, dependency installation       |
-| `post_create_async` | After terminal switch (or before --after-init in ECHO mode) | Original terminal | Expensive dependency installs that don't block user work  |
-| `session_init`      | In terminal session after switching to worktree             | Terminal session  | Environment setup, virtual env activation, shell config   |
-| `pre_cleanup`       | Before cleaning up worktrees                                | Subprocess        | Release ports, backup data                                |
-| `post_cleanup`      | After worktrees are removed                                 | Subprocess        | Clean volumes, update state                               |
-| `pre_switch`        | Before switching worktrees                                  | Subprocess        | Stop current services                                     |
-| `post_switch`       | After switching worktrees                                   | Subprocess        | Start new services                                        |
+<div class="autowt-hooks-wrapper"></div>
+
+| Hook | When it runs | Execution Context |
+| - | - | - |
+| `pre_create` | Before creating worktree | Workdir: main repo<br>Terminal: original |
+| `post_create` | After creating worktree, before terminal switch | Workdir: worktree<br>Terminal: original |
+| `post_create_async` | After terminal switch (or before `session_init`/`--after-init` in ECHO mode) | Workdir: worktree<br>Terminal: original |
+| `session_init` | In new terminal session after switching to worktree | Workdir: worktree<br>Terminal: new |
+| `pre_cleanup` | Before cleaning up worktrees | Workdir: worktree<br>Terminal: original |
+| `post_cleanup` | After worktrees are removed | Workdir: main repo<br>Terminal: original |
+| `pre_switch` | Before switching worktrees | Workdir: worktree<br>Terminal: original |
+| `post_switch` | After switching worktrees | Workdir: worktree<br>Terminal: original  |
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
 
@@ -157,10 +159,12 @@ post_cleanup = "echo 'Worktree cleanup complete'"
 
 All hooks receive the following environment variables:
 
-- `AUTOWT_WORKTREE_DIR`: Path to the worktree directory
+- `AUTOWT_WORKTREE_DIR`: Path to the worktree directory (always set, even if directory doesn't exist yet or has been deleted)
 - `AUTOWT_MAIN_REPO_DIR`: Path to the main repository directory
 - `AUTOWT_BRANCH_NAME`: Name of the branch
 - `AUTOWT_HOOK_TYPE`: Type of hook being executed
+
+**Working directory behavior**: Most hooks run with the worktree directory as their working directory. However, `pre_create` and `post_cleanup` hooks run with the **main repository directory** as their working directory, since the worktree doesn't exist yet (`pre_create`) or has been deleted (`post_cleanup`).
 
 ### Example hook script
 
@@ -218,9 +222,11 @@ If you need to use a different programming language, create a separate script fi
 
 ### `pre_create` Hook
 
-**Timing**: Before worktree creation begins  
-**Execution Context**: Subprocess in parent directory (worktree doesn't exist yet)  
+**Timing**: Before worktree creation begins 
+**Execution Context**: Subprocess in main repository directory 
 **Use cases**: Pre-flight validation, resource availability checks, branch name validation
+
+The `pre_create` hook runs in the **main repository directory** (not the worktree directory, which doesn't exist yet). However, the `AUTOWT_WORKTREE_DIR` environment variable is still set to the path where the worktree will be created.
 
 The `pre_create` hook can **prevent worktree creation** by exiting with a non-zero status. If this hook fails, autowt will completely abort worktree creation before the worktree is created.
 
@@ -326,8 +332,11 @@ pre_cleanup = """
 
 ### `post_cleanup` Hook
 
-**Timing**: After worktrees and branches are removed  
+**Timing**: After worktrees and branches are removed 
+**Execution Context**: Subprocess in main repository directory 
 **Use cases**: Volume cleanup, global state updates
+
+The `post_cleanup` hook runs in the **main repository directory** (not the worktree directory, which has been deleted). However, the `AUTOWT_WORKTREE_DIR` environment variable is still set to the path where the worktree was located.
 
 ```toml
 [scripts]
@@ -336,8 +345,6 @@ post_cleanup = """
 docker volume rm ${AUTOWT_BRANCH_NAME}_db_data 2>/dev/null || true
 """
 ```
-
-**Note**: The worktree directory no longer exists when this hook runs, but the path is still provided for reference.
 
 ### `pre_switch` Hook
 
