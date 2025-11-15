@@ -8,24 +8,7 @@ The most common hook is the **`session_init` script**, which runs in your new te
 
 ### Configuration
 
-You can specify a `session_init` script in two ways:
-
-1. **Command-line flag**: Use the `--init` flag for a one-time script (maps to `session_init`)
-2. **Configuration file**: Set the `scripts.session_init` key in your `.autowt.toml` file for a project-wide default
-
-The `session_init` script is executed in your terminal session _after_ `autowt` has switched to the worktree, but _before_ any `--after-init` script is run.
-
-### Installing dependencies
-
-The most common use case for init scripts is to ensure dependencies are always up-to-date when you create a worktree.
-
-**With the `--init` flag:**
-
-```bash
-autowt feature/new-ui --init "npm install"
-```
-
-**With `.autowt.toml`:**
+Set the `scripts.session_init` key in your `.autowt.toml` file:
 
 ```toml
 # .autowt.toml
@@ -33,7 +16,11 @@ autowt feature/new-ui --init "npm install"
 session_init = "npm install"
 ```
 
-Now, `npm install` will run automatically every time you create a new worktree in this project.
+The `session_init` script is executed in your terminal session _after_ `autowt` has switched to the worktree, but _before_ any `--after-init` script is run.
+
+### Installing dependencies
+
+The most common use case for init scripts is to ensure dependencies are always up-to-date when you create a worktree. With the configuration above, `npm install` will run automatically every time you create a new worktree in this project.
 
 ### Copying `.env` files
 

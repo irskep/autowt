@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 def create_cli_config_overrides(
     terminal: str | None = None,
-    init: str | None = None,
     after_init: str | None = None,
     ignore_same_session: bool | None = None,
     mode: str | None = None,
@@ -27,7 +26,6 @@ def create_cli_config_overrides(
 
     Args:
         terminal: Terminal mode override
-        init: Init script override
         after_init: After-init script override
         ignore_same_session: Always new terminal override
         mode: Cleanup mode override
@@ -45,10 +43,6 @@ def create_cli_config_overrides(
 
     if ignore_same_session is not None:
         overrides.setdefault("terminal", {})["always_new"] = ignore_same_session
-
-    # Scripts configuration overrides
-    if init is not None:
-        overrides.setdefault("scripts", {})["init"] = init
 
     # Handle custom scripts
     if custom_script is not None:

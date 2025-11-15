@@ -147,7 +147,6 @@ class AutowtGroup(ClickAliasedGroup):
             # Create CLI overrides for this specific command
             cli_overrides = create_cli_config_overrides(
                 terminal=kwargs.get("terminal"),
-                init=kwargs.get("init"),
                 after_init=kwargs.get("after_init"),
                 ignore_same_session=kwargs.get("ignore_same_session", False),
             )
@@ -201,10 +200,6 @@ class AutowtGroup(ClickAliasedGroup):
                     help="Automatically confirm all prompts",
                 ),
                 click.Option(["--debug"], is_flag=True, help="Enable debug logging"),
-                click.Option(
-                    ["--init"],
-                    help="Session init script to run in the new terminal (maps to session_init hook)",
-                ),
                 click.Option(
                     ["--after-init"],
                     help="Command to run after session_init script completes",
@@ -414,10 +409,6 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     help="How to open the worktree terminal",
 )
 @click.option(
-    "--init",
-    help="Session init script to run in the new terminal (maps to session_init hook)",
-)
-@click.option(
     "--after-init",
     help="Command to run after session_init script completes",
 )
@@ -446,7 +437,6 @@ def shellconfig(debug: bool, shell: str | None) -> None:
 def switch(
     branch: str | None,
     terminal: str | None,
-    init: str | None,
     after_init: str | None,
     ignore_same_session: bool,
     auto_confirm: bool,
@@ -484,7 +474,6 @@ def switch(
     # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
         terminal=terminal,
-        init=init,
         after_init=after_init,
         ignore_same_session=ignore_same_session,
         custom_script=custom_script,

@@ -21,7 +21,6 @@ The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `swit
 | Option                     | Description                                                                                                                                                                   |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--terminal <mode>`        | Overrides the default terminal behavior. Modes include `tab`, `window`, `inplace`, `echo`, `vscode`, and `cursor`. See [Terminal Support](terminalsupport.md) for details.    |
-| `--init <script>`          | Runs a setup script in the new terminal session (maps to `session_init` hook). Ideal for environment setup and shell configuration. See [Lifecycle Hooks](lifecyclehooks.md). |
 | `--after-init <script>`    | Runs a command _after_ the `session_init` script completes. Perfect for starting a dev server.                                                                                |
 | `--ignore-same-session`    | Forces `autowt` to create a new terminal, even if a session for that worktree already exists.                                                                                 |
 | `--from <branch>`          | Source branch/commit to create worktree from. Accepts any git revision: branch names, tags, commit hashes, `HEAD`, etc. Only used when creating new worktrees.                |
