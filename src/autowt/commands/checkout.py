@@ -484,18 +484,30 @@ def _run_post_create_async_hooks(
     repo_path: Path,
     config,
     branch_name: str,
+    hook_runner: HookRunner | None = None,
+    global_config=None,
 ) -> None:
     """Run post_create_async hooks for expensive operations that can run while user works.
 
     These hooks run in the original terminal after terminal switching (for TAB/WINDOW modes)
     or before after-init (for ECHO mode). Failures show warnings but don't abort.
+
+    Args:
+        worktree_path: Path to the worktree
+        repo_path: Path to the repository
+        config: Project configuration
+        branch_name: Name of the branch
+        hook_runner: Optional HookRunner instance (for testing)
+        global_config: Optional global configuration (for testing)
     """
     # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
+    if hook_runner is None:
+        hook_runner = HookRunner()
 
     # Get global config by loading without project dir
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
+    if global_config is None:
+        loader = get_config_loader()
+        global_config = loader.load_config(project_dir=None)
 
     global_scripts, project_scripts = extract_hook_scripts(
         global_config, config, HookType.POST_CREATE_ASYNC
