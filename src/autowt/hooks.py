@@ -67,9 +67,12 @@ class HookRunner:
 
         try:
             # Determine working directory based on hook type
+            # For pre_create, use main repo since worktree doesn't exist yet
             # For post_cleanup, use main repo since worktree has been deleted
             working_dir = (
-                main_repo_dir if hook_type == HookType.POST_CLEANUP else worktree_dir
+                main_repo_dir
+                if hook_type in (HookType.PRE_CREATE, HookType.POST_CLEANUP)
+                else worktree_dir
             )
 
             # Execute the hook script directly with shell=True

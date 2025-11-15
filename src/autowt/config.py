@@ -162,7 +162,9 @@ class Config:
             session_init_value = init_value
 
         scripts_config = ScriptsConfig(
+            pre_create=scripts_data.get("pre_create"),
             post_create=scripts_data.get("post_create"),
+            post_create_async=scripts_data.get("post_create_async"),
             session_init=session_init_value,
             pre_cleanup=scripts_data.get("pre_cleanup"),
             post_cleanup=scripts_data.get("post_cleanup"),
