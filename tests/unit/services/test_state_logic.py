@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -71,7 +71,9 @@ class TestStateServicePlatformLogic:
             temp_home = Path(temp_dir)
 
             with patch("pathlib.Path.home", return_value=temp_home):
-                service = StateService()
+                # Create mock config_loader (required parameter)
+                mock_config_loader = MagicMock()
+                service = StateService(config_loader=mock_config_loader)
                 expected = temp_home
                 for part in home_subpath:
                     expected = expected / part
@@ -82,7 +84,8 @@ class TestStateServicePlatformLogic:
         monkeypatch.setattr("platform.system", lambda: "Linux")
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
 
-        service = StateService()
+        mock_config_loader = MagicMock()
+        service = StateService(config_loader=mock_config_loader)
         expected = tmp_path / "autowt"
         assert service.app_dir == expected
 

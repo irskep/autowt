@@ -155,24 +155,17 @@ class TestCheckoutConfirmation:
 
     @patch("autowt.commands.checkout.confirm_default_yes")
     @patch("autowt.commands.checkout._generate_worktree_path")
-    @patch("autowt.commands.checkout._run_pre_create_hooks")
-    @patch("autowt.commands.checkout._run_post_create_hooks")
-    @patch("autowt.commands.checkout._run_pre_switch_hooks")
-    @patch("autowt.commands.checkout._run_post_switch_hooks")
+    @patch("autowt.commands.checkout._run_hook_set")
     def test_remote_branch_prompts_for_confirmation(
         self,
-        mock_post_switch,
-        mock_pre_switch,
-        mock_post_create,
-        mock_pre_create,
+        mock_hook_set,
         mock_generate_path,
         mock_confirm,
     ):
         """Test that remote branches prompt for confirmation before creating worktree."""
         mock_confirm.return_value = True
         mock_generate_path.return_value = Path("/mock/worktree/path")
-        mock_pre_create.return_value = True
-        mock_post_create.return_value = True
+        mock_hook_set.return_value = True
 
         # Mock terminal switch success
         self.mock_services.terminal.switch_to_worktree.return_value = True

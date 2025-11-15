@@ -9,7 +9,6 @@ This module provides type-safe configuration management with support for:
 
 import logging
 import os
-import platform
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -18,6 +17,7 @@ from typing import Any
 import toml
 
 from autowt.models import CleanupMode, TerminalMode
+from autowt.utils.platform import get_default_config_dir
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +201,7 @@ class ConfigLoader:
     def __init__(self, app_dir: Path | None = None):
         """Initialize configuration loader."""
         if app_dir is None:
-            app_dir = self._get_default_app_dir()
+            app_dir = get_default_config_dir()
 
         self.app_dir = app_dir
         self.global_config_file = app_dir / "config.toml"
@@ -214,19 +214,6 @@ class ConfigLoader:
             self.app_dir.mkdir(parents=True, exist_ok=True)
             self._setup_done = True
             logger.debug(f"Config loader setup complete: {self.app_dir}")
-
-    def _get_default_app_dir(self) -> Path:
-        """Get the default application directory based on platform."""
-        system = platform.system()
-        if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "autowt"
-        elif system == "Linux":
-            # Follow XDG Base Directory Specification
-            xdg_config = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
-            return xdg_config / "autowt"
-        else:
-            # Windows or other
-            return Path.home() / ".autowt"
 
     def load_config(
         self,
@@ -468,7 +455,6 @@ class ConfigLoader:
 
 # Global configuration instance
 _config: Config | None = None
-_config_loader: ConfigLoader | None = None
 
 
 def get_config() -> Config:
@@ -479,14 +465,6 @@ def get_config() -> Config:
     if _config is None:
         raise RuntimeError("Configuration not initialized. Call load_config() first.")
     return _config
-
-
-def get_config_loader() -> ConfigLoader:
-    """Get the global configuration loader instance."""
-    global _config_loader
-    if _config_loader is None:
-        _config_loader = ConfigLoader()
-    return _config_loader
 
 
 def load_config(
@@ -503,7 +481,7 @@ def load_config(
     """
     global _config
 
-    loader = get_config_loader()
+    loader = ConfigLoader()
     _config = loader.load_config(project_dir=project_dir, cli_overrides=cli_overrides)
 
     logger.debug("Global configuration loaded and set")
@@ -521,5 +499,5 @@ def save_config() -> None:
     if _config is None:
         raise RuntimeError("No configuration to save")
 
-    loader = get_config_loader()
+    loader = ConfigLoader()
     loader.save_config(_config)

@@ -592,13 +592,14 @@ class TestGlobalConfigManagement:
             test_config = Config.from_dict({"terminal": {"mode": "window"}})
             set_config(test_config)
 
-            # Mock the config loader
-            with patch("autowt.config.get_config_loader") as mock_get_loader:
-                mock_loader = mock_get_loader.return_value
+            # Mock the ConfigLoader class
+            with patch("autowt.config.ConfigLoader") as mock_loader_class:
+                mock_loader = mock_loader_class.return_value
 
                 save_config()
 
-                # Verify save was called with the config
+                # Verify ConfigLoader was instantiated and save was called with the config
+                mock_loader_class.assert_called_once()
                 mock_loader.save_config.assert_called_once_with(test_config)
 
     def test_save_config_without_config_raises_error(self):

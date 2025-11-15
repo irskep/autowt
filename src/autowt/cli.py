@@ -14,7 +14,7 @@ from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
 from autowt.commands.ls import list_worktrees
-from autowt.config import get_config, get_config_loader
+from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
     CleanupCommand,
@@ -30,7 +30,6 @@ from autowt.utils import run_command_quiet_on_failure, setup_command_logging
 
 
 def setup_logging(debug: bool) -> None:
-    """Configure logging based on debug flag."""
     level = logging.DEBUG if debug else logging.WARNING
     logging.basicConfig(
         level=level,
@@ -42,7 +41,6 @@ def setup_logging(debug: bool) -> None:
 
 
 def create_services() -> Services:
-    """Create and return a Services container with all service instances."""
     return Services.create()
 
 
@@ -333,22 +331,22 @@ def cleanup(
 
     # Get configuration values
     config = get_config()
-    config_loader = get_config_loader()
 
+    # Create services (includes ConfigLoader)
     services = create_services()
 
     # Use configured mode if not specified
     if mode is None:
         if is_interactive_terminal():
             # Check if user has ever configured a cleanup mode preference
-            if not config_loader.has_user_configured_cleanup_mode():
+            if not services.config_loader.has_user_configured_cleanup_mode():
                 # First run - prompt for preference
                 selected_mode = prompt_cleanup_mode_selection()
                 mode = selected_mode.value
 
                 # Save preference for future use
                 print(f"\nSaving '{mode}' as your default cleanup mode...")
-                config_loader.save_cleanup_mode(selected_mode)
+                services.config_loader.save_cleanup_mode(selected_mode)
                 print(
                     "You can change this later using 'autowt config' or by editing config.toml\n"
                 )

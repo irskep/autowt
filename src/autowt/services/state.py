@@ -1,8 +1,6 @@
 """State management service for autowt."""
 
 import logging
-import os
-import platform
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +8,7 @@ import toml
 
 from autowt.config import Config, ConfigLoader
 from autowt.models import ProjectConfig
+from autowt.utils.platform import get_default_state_dir
 
 logger = logging.getLogger(__name__)
 
@@ -17,21 +16,15 @@ logger = logging.getLogger(__name__)
 class StateService:
     """Manages application state and configuration files."""
 
-    def __init__(
-        self, config_loader: ConfigLoader | None = None, app_dir: Path | None = None
-    ):
-        """Initialize state service with optional config loader and app directory."""
+    def __init__(self, config_loader: ConfigLoader, app_dir: Path | None = None):
+        """Initialize state service with config loader and optional app directory."""
         if app_dir is None:
-            app_dir = self._get_default_app_dir()
+            app_dir = get_default_state_dir()
 
         self.app_dir = app_dir
         self.config_file = app_dir / "config.toml"
         self.state_file = app_dir / "state.toml"
         self._setup_done = False
-
-        # Use injected config_loader or create one if not provided (for backward compatibility)
-        if config_loader is None:
-            config_loader = ConfigLoader(app_dir=self.app_dir)
         self.config_loader = config_loader
 
         logger.debug(f"State service initialized with app dir: {self.app_dir}")
@@ -42,21 +35,6 @@ class StateService:
             self.app_dir.mkdir(parents=True, exist_ok=True)
             self._setup_done = True
             logger.debug(f"State service setup complete: {self.app_dir}")
-
-    def _get_default_app_dir(self) -> Path:
-        """Get the default application directory based on platform."""
-        system = platform.system()
-        if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "autowt"
-        elif system == "Linux":
-            # Follow XDG Base Directory Specification
-            xdg_data = Path(
-                os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share")
-            )
-            return xdg_data / "autowt"
-        else:
-            # Windows or other
-            return Path.home() / ".autowt"
 
     def load_config(self, project_dir: Path | None = None) -> Config:
         """Load application configuration using new config system."""

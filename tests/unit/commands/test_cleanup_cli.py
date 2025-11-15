@@ -21,6 +21,9 @@ class TestCleanupCLI:
         mock_services.git = Mock()
         mock_services.terminal = Mock()
         mock_services.process = Mock()
+        mock_services.config_loader = Mock()
+        mock_services.hooks = Mock()
+        mock_services.version_check = Mock()
 
         # Mock git service methods to return empty lists to avoid iteration errors
         mock_services.git.find_repo_root.return_value = Path("/mock/repo")
@@ -49,7 +52,6 @@ class TestCleanupCLI:
                 "autowt.cli.is_interactive_terminal", return_value=True
             ),  # Simulate TTY
             patch("autowt.cli.cleanup_worktrees") as mock_cleanup,
-            patch("autowt.cli.get_config_loader") as mock_config_loader,
             patch("autowt.cli.get_config") as mock_get_config,
         ):
             # Set up create_services to return our mock
@@ -60,7 +62,7 @@ class TestCleanupCLI:
             assert mock_services.github.is_github_repo.return_value is False
 
             # Mock config loader to indicate user has configured cleanup mode
-            mock_config_loader.return_value.has_user_configured_cleanup_mode.return_value = True
+            mock_services.config_loader.has_user_configured_cleanup_mode.return_value = True
 
             # Mock get_config to return config with INTERACTIVE as default
             mock_config = Mock()

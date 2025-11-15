@@ -243,6 +243,7 @@ class MockConfigLoader:
     def __init__(self):
         self.global_config_file = Path("/tmp/config.toml")
         self.configs: dict[str, Config] = {}
+        self.user_configured_cleanup_mode = False
 
     def load_config(
         self,
@@ -261,7 +262,7 @@ class MockConfigLoader:
 
     def has_user_configured_cleanup_mode(self) -> bool:
         """Mock check for user configured cleanup mode."""
-        return False
+        return self.user_configured_cleanup_mode
 
 
 class MockHookRunner:

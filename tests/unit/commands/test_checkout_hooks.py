@@ -3,12 +3,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from autowt.commands.checkout import (
-    _run_post_create_async_hooks,
-    _run_post_create_hooks,
-    _run_pre_create_hooks,
-)
-from autowt.config import Config, ScriptsConfig
+from autowt.commands.checkout import _run_hook_set
 from autowt.hooks import HookType
 from autowt.models import TerminalMode
 from tests.helpers import assert_hook_called_with, assert_hooks_not_called
@@ -39,12 +34,14 @@ class TestCheckoutHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ) as mock_extract:
-            result = _run_pre_create_hooks(
+            result = _run_hook_set(
                 mock_services,
+                HookType.PRE_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             assert result is True
@@ -75,12 +72,14 @@ class TestCheckoutHooks:
         with patch(
             "autowt.commands.checkout.extract_hook_scripts", return_value=([], [])
         ):
-            result = _run_pre_create_hooks(
+            result = _run_hook_set(
                 mock_services,
+                HookType.PRE_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             assert result is True
@@ -100,12 +99,14 @@ class TestCheckoutHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ):
-            result = _run_pre_create_hooks(
+            result = _run_hook_set(
                 mock_services,
+                HookType.PRE_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             assert result is False
@@ -126,12 +127,14 @@ class TestCheckoutHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ) as mock_extract:
-            result = _run_post_create_hooks(
+            result = _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             assert result is True
@@ -159,12 +162,14 @@ class TestCheckoutHooks:
         with patch(
             "autowt.commands.checkout.extract_hook_scripts", return_value=([], [])
         ):
-            result = _run_post_create_hooks(
+            result = _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             assert result is True
@@ -184,12 +189,14 @@ class TestCheckoutHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ):
-            result = _run_post_create_hooks(
+            result = _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             assert result is False
@@ -209,12 +216,14 @@ class TestCheckoutHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ):
-            _run_post_create_hooks(
+            _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=True,
             )
 
             # Verify the working directory passed to hooks is the worktree directory
@@ -245,12 +254,14 @@ class TestPostCreateAsyncHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ):
-            _run_post_create_async_hooks(
+            _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE_ASYNC,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=False,
             )
 
             # Verify hooks were called
@@ -273,12 +284,14 @@ class TestPostCreateAsyncHooks:
         with patch(
             "autowt.commands.checkout.extract_hook_scripts", return_value=([], [])
         ):
-            _run_post_create_async_hooks(
+            _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE_ASYNC,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=False,
             )
 
             assert_hooks_not_called(mock_services)
@@ -300,12 +313,14 @@ class TestPostCreateAsyncHooks:
             return_value=(global_scripts, project_scripts),
         ):
             # Should not raise exception
-            _run_post_create_async_hooks(
+            _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE_ASYNC,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=False,
             )
 
             # Verify hooks were called despite failure
@@ -329,12 +344,14 @@ class TestPostCreateAsyncHooks:
             "autowt.commands.checkout.extract_hook_scripts",
             return_value=(global_scripts, project_scripts),
         ):
-            _run_post_create_async_hooks(
+            _run_hook_set(
                 mock_services,
+                HookType.POST_CREATE_ASYNC,
                 self.worktree_dir,
                 self.repo_dir,
                 mock_project_config,
                 self.branch_name,
+                abort_on_failure=False,
             )
 
             # Verify the working directory passed to hooks is the worktree directory
