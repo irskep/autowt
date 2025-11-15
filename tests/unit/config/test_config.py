@@ -203,6 +203,7 @@ class TestConfigToDict:
             "scripts": {
                 "pre_create": None,
                 "post_create": None,
+                "post_create_async": None,
                 "session_init": None,
                 "pre_cleanup": None,
                 "post_cleanup": None,

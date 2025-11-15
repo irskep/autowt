@@ -283,6 +283,19 @@ def _create_new_worktree(
     # Run pre_switch hooks for new worktree
     _run_pre_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
 
+    # Determine if terminal mode performs an actual switch
+    # ECHO/INPLACE modes don't actually switch terminals
+    runs_async_before_switch = terminal_mode in (
+        TerminalMode.ECHO,
+        TerminalMode.INPLACE,
+    )
+
+    # For ECHO/INPLACE modes, run async hooks before switching (since no actual switch happens)
+    if runs_async_before_switch:
+        _run_post_create_async_hooks(
+            worktree_path, repo_path, config, switch_cmd.branch
+        )
+
     # Switch to the new worktree
     # Combine after_init and custom script
     combined_after_init = _combine_after_init_and_custom_script(
@@ -303,6 +316,13 @@ def _create_new_worktree(
 
     # Run post_switch hooks for new worktree
     _run_post_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
+
+    # For modes that actually switch terminals, run async hooks after switching
+    # (user is already in new terminal, this runs in original terminal)
+    if not runs_async_before_switch:
+        _run_post_create_async_hooks(
+            worktree_path, repo_path, config, switch_cmd.branch
+        )
 
     # Session ID will be registered by the new tab itself
 
@@ -457,6 +477,43 @@ def _run_post_create_hooks(
         )
 
     return True
+
+
+def _run_post_create_async_hooks(
+    worktree_path: Path,
+    repo_path: Path,
+    config,
+    branch_name: str,
+) -> None:
+    """Run post_create_async hooks for expensive operations that can run while user works.
+
+    These hooks run in the original terminal after terminal switching (for TAB/WINDOW modes)
+    or before after-init (for ECHO mode). Failures show warnings but don't abort.
+    """
+    # Load both global and project configurations to run both sets of hooks
+    hook_runner = HookRunner()
+
+    # Get global config by loading without project dir
+    loader = get_config_loader()
+    global_config = loader.load_config(project_dir=None)
+
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.POST_CREATE_ASYNC
+    )
+
+    if global_scripts or project_scripts:
+        print_info(f"Running post_create_async hooks for {branch_name}")
+        success = hook_runner.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.POST_CREATE_ASYNC,
+            worktree_path,
+            repo_path,
+            branch_name,
+        )
+        if not success:
+            # Don't abort on failure, just warn
+            print_info("Warning: post_create_async hooks failed, but continuing anyway")
 
 
 def _run_pre_switch_hooks(

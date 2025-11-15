@@ -65,6 +65,7 @@ class ScriptsConfig:
 
     pre_create: str | None = None
     post_create: str | None = None
+    post_create_async: str | None = None
     session_init: str | None = None
     pre_cleanup: str | None = None
     post_cleanup: str | None = None
@@ -325,6 +326,7 @@ class ConfigLoader:
             ],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
+            "SCRIPTS_POST_CREATE_ASYNC": ["scripts", "post_create_async"],
             "SCRIPTS_SESSION_INIT": ["scripts", "session_init"],
             "SCRIPTS_PRE_CLEANUP": ["scripts", "pre_cleanup"],
             "SCRIPTS_POST_CLEANUP": ["scripts", "post_cleanup"],

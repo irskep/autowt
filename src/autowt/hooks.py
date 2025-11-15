@@ -18,6 +18,7 @@ class HookType:
 
     PRE_CREATE = "pre_create"
     POST_CREATE = "post_create"
+    POST_CREATE_ASYNC = "post_create_async"
     SESSION_INIT = "session_init"
     PRE_CLEANUP = "pre_cleanup"
     POST_CLEANUP = "post_cleanup"
