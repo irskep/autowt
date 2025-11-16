@@ -287,7 +287,7 @@ def ls(debug: bool) -> None:
 
 
 @main.command(
-    aliases=["cl", "clean", "prune"],
+    aliases=["cl", "clean", "prune", "rm", "remove", "del", "delete"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.argument("worktrees", nargs=-1, metavar="[WORKTREES...]")

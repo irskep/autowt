@@ -13,6 +13,7 @@
   - Skips mode-based selection and interactive TUI when specific worktrees are provided
   - Shows simple confirmation with worktree list before removal
   - Works with all existing flags: `--dry-run`, `--force`, `-y`
+- Added `rm`, `remove`, `del`, and `delete` as aliases for `cleanup` command
 
 ### Changed or removed
 
@@ -24,6 +25,9 @@
 - Removed branch sanitization config options
 
 ### Fixed
+
+- Documentation for `--force` flag on cleanup command now correctly states it handles both uncommitted changes and untracked files
+- Removed documentation for non-existent `--kill` / `--no-kill` flags on cleanup command (feature was previously removed)
 
 ## 0.4.8 - 2025-11-08
 
