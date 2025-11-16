@@ -39,9 +39,6 @@ dependencies = [
 autowt = "autowt.cli:main"
 awt = "autowt.cli:main"
 
-[project.entry-points."mkdocs.plugins"]
-help-output = "autowt.mkdocs_plugins.help_output:HelpOutputPlugin"
-
 [tool.hatch.metadata]
 allow-direct-references = true
 
