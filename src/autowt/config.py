@@ -37,6 +37,7 @@ class WorktreeConfig:
 
     directory_pattern: str = "../{repo_name}-worktrees/{branch}"
     auto_fetch: bool = True
+    branch_prefix: str | None = None
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,7 @@ class Config:
                 "directory_pattern", "../{repo_name}-worktrees/{branch}"
             ),
             auto_fetch=worktree_data.get("auto_fetch", True),
+            branch_prefix=worktree_data.get("branch_prefix"),
         )
 
         # Handle case where terminal_data might be a string (legacy compatibility)
@@ -294,6 +296,7 @@ class ConfigLoader:
             "TERMINAL_PROGRAM": ["terminal", "program"],
             "WORKTREE_DIRECTORY_PATTERN": ["worktree", "directory_pattern"],
             "WORKTREE_AUTO_FETCH": ["worktree", "auto_fetch"],
+            "WORKTREE_BRANCH_PREFIX": ["worktree", "branch_prefix"],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
             "SCRIPTS_POST_CREATE_ASYNC": ["scripts", "post_create_async"],

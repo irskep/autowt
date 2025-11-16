@@ -49,6 +49,16 @@ class TestConfigDataClasses:
         config = WorktreeConfig()
         assert config.directory_pattern == "../{repo_name}-worktrees/{branch}"
         assert config.auto_fetch is True
+        assert config.branch_prefix is None
+
+    def test_worktree_config_with_branch_prefix(self):
+        """Test WorktreeConfig with branch_prefix value."""
+        config = WorktreeConfig(
+            directory_pattern="../{repo_name}-worktrees/{branch}",
+            auto_fetch=True,
+            branch_prefix="feature/",
+        )
+        assert config.branch_prefix == "feature/"
 
     def test_cleanup_config_defaults(self):
         """Test CleanupConfig default values."""
@@ -145,6 +155,26 @@ class TestConfigFromDict:
         assert config.confirmations.cleanup_multiple is False
         assert config.confirmations.force_operations is True
 
+    def test_config_with_branch_prefix(self):
+        """Test creating config with branch_prefix."""
+        data = {
+            "worktree": {
+                "branch_prefix": "feature/",
+            },
+        }
+        config = Config.from_dict(data)
+        assert config.worktree.branch_prefix == "feature/"
+
+    def test_config_with_templated_branch_prefix(self):
+        """Test creating config with templated branch_prefix."""
+        data = {
+            "worktree": {
+                "branch_prefix": "{github_username}/",
+            },
+        }
+        config = Config.from_dict(data)
+        assert config.worktree.branch_prefix == "{github_username}/"
+
     def test_config_invalid_enum_values(self):
         """Test that invalid enum values raise appropriate errors."""
         with pytest.raises(ValueError):
@@ -167,6 +197,7 @@ class TestConfigToDict:
             "worktree": {
                 "directory_pattern": "../{repo_name}-worktrees/{branch}",
                 "auto_fetch": True,
+                "branch_prefix": None,
             },
             "cleanup": {
                 "default_mode": "interactive",
@@ -342,6 +373,7 @@ class TestConfigLoader:
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "true",
                 "AUTOWT_CLEANUP_DEFAULT_MODE": "merged",
                 "AUTOWT_WORKTREE_AUTO_FETCH": "false",
+                "AUTOWT_WORKTREE_BRANCH_PREFIX": "feature/",
                 "AUTOWT_SCRIPTS_SESSION_INIT": "make setup",
             }
 
@@ -353,6 +385,7 @@ class TestConfigLoader:
                 assert config.terminal.always_new is True
                 assert config.cleanup.default_mode == CleanupMode.MERGED
                 assert config.worktree.auto_fetch is False
+                assert config.worktree.branch_prefix == "feature/"
                 assert config.scripts.session_init == "make setup"
 
     def test_cli_overrides(self):

@@ -15,8 +15,16 @@ class TestCheckoutConfirmation:
         self.mock_services = MagicMock()
         self.mock_services.git.find_repo_root.return_value = Path("/mock/repo")
         self.mock_services.git.list_worktrees.return_value = []
-        self.mock_services.state.load_config.return_value = MagicMock()
-        self.mock_services.state.load_project_config.return_value = MagicMock()
+
+        # Mock config with branch_prefix set to None
+        config = MagicMock()
+        config.worktree.branch_prefix = None
+        self.mock_services.state.load_config.return_value = config
+
+        # Mock project config to return None for session_init
+        project_config = MagicMock()
+        project_config.session_init = None
+        self.mock_services.state.load_project_config.return_value = project_config
 
         # Mock branch resolver for remote branch detection
         self.mock_services.git.branch_resolver = MagicMock()
@@ -24,11 +32,6 @@ class TestCheckoutConfirmation:
             False,
             None,
         )
-
-        # Mock project config to return None for session_init
-        project_config = MagicMock()
-        project_config.session_init = None
-        self.mock_services.state.load_project_config.return_value = project_config
 
     @patch("autowt.commands.checkout.confirm_default_yes")
     @patch("autowt.commands.checkout._create_new_worktree")

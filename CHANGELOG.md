@@ -15,6 +15,11 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   Pass worktrees as arguments if you know what you want to clean up
     -   If you have a non-interactive default cleanup mode configured, and you call `cleanup`, but it doesn't find anything to clean up, it will ask you if you want to go into interactive mode, unless you passed `-y`.
 -   New lifecycle hook: `post_create_async` runs after creating a worktree in the original terminal without blocking the new session.
+-   Branch prefix configuration option: automatically prefix new branch names with a customizable template.
+    -   Configure via `worktree.branch_prefix` in config files or `AUTOWT_WORKTREE_BRANCH_PREFIX` environment variable
+    -   Supports template variables: `{repo_name}` and `{github_username}` (when gh CLI is available)
+    -   Smart prefix resolution: when switching to or cleaning up a branch, tries adding the prefix if exact match doesn't exist
+    -   Prevents double-prefixing when branch name already includes the prefix
 
 ### Changed
 

@@ -53,6 +53,16 @@ directory_pattern = "../{repo_name}-worktrees/{branch}"
 # ENV: AUTOWT_WORKTREE_AUTO_FETCH=false
 auto_fetch = true
 
+# Automatically prefix new branch names with a template
+# Variables: {repo_name}, {github_username} (if gh CLI is available)
+# Examples:
+#   branch_prefix = "feature/"           # Simple prefix
+#   branch_prefix = "{github_username}/" # Use GitHub username
+# When set, "autowt my-feature" creates "feature/my-feature" or "alice/my-feature"
+# Also used when switching: "autowt my-feature" switches to "feature/my-feature" if it exists
+# ENV: AUTOWT_WORKTREE_BRANCH_PREFIX="feature/"
+# branch_prefix = "feature/"
+
 # ============================================================================
 # Cleanup Configuration
 # ============================================================================

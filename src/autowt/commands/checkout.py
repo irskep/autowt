@@ -10,7 +10,11 @@ from autowt.global_config import options
 from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
-from autowt.utils import resolve_branch_or_path, sanitize_branch_name
+from autowt.utils import (
+    resolve_branch_or_path,
+    resolve_branch_with_prefix,
+    sanitize_branch_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +99,21 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     config = services.state.load_config(project_dir=repo_path)
     project_config = services.state.load_project_config(repo_path)
 
+    # Get current worktrees before applying prefix (we need to check if branches exist)
+    git_worktrees = services.git.list_worktrees(repo_path)
+
+    # Apply branch prefix if configured
+    resolved_branch = resolve_branch_with_prefix(
+        switch_cmd.branch,
+        config.worktree.branch_prefix,
+        git_worktrees,
+        repo_path,
+        services,
+        apply_to_new_branches=True,
+    )
+    if resolved_branch != switch_cmd.branch:
+        switch_cmd = replace(switch_cmd, branch=resolved_branch)
+
     # Use project config session_init as default if no init_script provided
     session_init_script = switch_cmd.init_script
     if session_init_script is None:
@@ -118,9 +137,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     original_suppress = options.suppress_rich_output
     if terminal_mode == TerminalMode.ECHO:
         options.suppress_rich_output = True
-
-    # Get current worktrees
-    git_worktrees = services.git.list_worktrees(repo_path)
 
     # Check if worktree already exists
     existing_worktree = None

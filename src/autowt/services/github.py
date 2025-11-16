@@ -38,6 +38,29 @@ class GitHubService:
         """Check if the GitHub CLI (gh) is available in PATH."""
         return shutil.which("gh") is not None
 
+    def get_github_username(self) -> str | None:
+        """Get the authenticated GitHub username from gh CLI.
+
+        Returns:
+            The GitHub username if gh is available and authenticated, None otherwise.
+        """
+        if not self.check_gh_available():
+            return None
+
+        try:
+            result = run_command_quiet_on_failure(
+                ["gh", "api", "user", "--jq", ".login"],
+                timeout=10,
+                description="Get GitHub username",
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except Exception:
+            pass
+
+        return None
+
     def get_pr_status_for_branch(self, repo_path: Path, branch: str) -> str | None:
         """Get the PR status for a branch using GitHub CLI.
 

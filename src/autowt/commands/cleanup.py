@@ -14,7 +14,11 @@ from autowt.console import print_error, print_info, print_success
 from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
-from autowt.utils import is_interactive_terminal, resolve_branch_or_path
+from autowt.utils import (
+    is_interactive_terminal,
+    resolve_branch_or_path,
+    resolve_branch_with_prefix,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +88,15 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         for wt_arg in cleanup_cmd.worktrees:
             try:
                 branch = resolve_branch_or_path(wt_arg, services)
-                resolved_branches.append(branch)
+                resolved_branch = resolve_branch_with_prefix(
+                    branch,
+                    config.worktree.branch_prefix,
+                    worktrees,
+                    repo_path,
+                    services,
+                    apply_to_new_branches=False,
+                )
+                resolved_branches.append(resolved_branch)
             except ValueError as e:
                 print_error(str(e))
                 return

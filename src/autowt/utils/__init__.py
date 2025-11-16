@@ -1,6 +1,7 @@
 """Utility functions for autowt."""
 
 import logging
+import os
 import shlex
 import subprocess
 import sys
@@ -181,6 +182,108 @@ def sanitize_branch_name(branch: str) -> str:
         sanitized = "branch"
 
     return sanitized
+
+
+def apply_branch_prefix(
+    branch: str, prefix_template: str | None, template_context: dict[str, str]
+) -> str:
+    """Apply prefix template to branch name with variable substitution.
+
+    Args:
+        branch: The branch name to prefix
+        prefix_template: Template string for the prefix (e.g., "feature/", "{github_username}/")
+        template_context: Dictionary of template variables (e.g., {"github_username": "alice"})
+
+    Returns:
+        The branch name with prefix applied, or unchanged if no prefix configured
+
+    Examples:
+        >>> apply_branch_prefix("my-branch", "feature/", {})
+        "feature/my-branch"
+        >>> apply_branch_prefix("my-branch", "{github_username}/", {"github_username": "alice"})
+        "alice/my-branch"
+        >>> apply_branch_prefix("feature/my-branch", "feature/", {})
+        "feature/my-branch"  # No double-prefix
+    """
+    if not prefix_template:
+        return branch
+
+    # Replace template variables
+    try:
+        prefix = prefix_template.format(**template_context)
+    except KeyError as e:
+        # If a template variable is missing, log and return branch unchanged
+        logging.getLogger(__name__).warning(
+            f"Template variable {e} not found in context, skipping prefix"
+        )
+        return branch
+
+    # Expand environment variables
+    prefix = os.path.expandvars(prefix)
+
+    # Avoid double-prefixing
+    if branch.startswith(prefix):
+        return branch
+
+    return f"{prefix}{branch}"
+
+
+def build_branch_template_context(
+    repo_path: Path, services: "Services"
+) -> dict[str, str]:
+    """Build template context for branch prefix expansion.
+
+    Returns dictionary with available template variables:
+    - repo_name: Repository directory name
+    - github_username: GitHub username if gh CLI is available and authenticated
+    """
+    repo_name = repo_path.name
+    context = {"repo_name": repo_name}
+
+    github_username = services.github.get_github_username()
+    if github_username:
+        context["github_username"] = github_username
+
+    return context
+
+
+def resolve_branch_with_prefix(
+    branch: str,
+    branch_prefix: str | None,
+    worktrees: list,
+    repo_path: Path,
+    services: "Services",
+    apply_to_new_branches: bool = True,
+) -> str:
+    """Resolve branch name, applying configured prefix if appropriate.
+
+    Args:
+        apply_to_new_branches: If True, apply prefix even for new branches.
+                               If False, only use prefix if that branch already exists.
+
+    Returns the prefixed branch name if:
+    - The exact branch doesn't exist, AND
+    - Either the prefixed branch exists, OR apply_to_new_branches is True
+    """
+    if not branch_prefix:
+        return branch
+
+    exact_match_exists = any(wt.branch == branch for wt in worktrees)
+    if exact_match_exists:
+        return branch
+
+    template_context = build_branch_template_context(repo_path, services)
+    prefixed_branch = apply_branch_prefix(branch, branch_prefix, template_context)
+
+    prefixed_match_exists = any(wt.branch == prefixed_branch for wt in worktrees)
+
+    if prefixed_match_exists or (apply_to_new_branches and prefixed_branch != branch):
+        logging.getLogger(__name__).debug(
+            f"Applied branch prefix: {branch} -> {prefixed_branch}"
+        )
+        return prefixed_branch
+
+    return branch
 
 
 def setup_command_logging(debug: bool = False) -> None:
