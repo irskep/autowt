@@ -68,7 +68,6 @@ class TestWorktreePathGeneration:
         custom_worktree_config = WorktreeConfig(
             directory_pattern="../worktrees/{branch}",
             auto_fetch=True,
-            default_remote="origin",
         )
         custom_config = Config(worktree=custom_worktree_config)
         mock_state.load_config.return_value = custom_config
@@ -146,7 +145,6 @@ class TestWorktreePathGeneration:
         custom_worktree_config = WorktreeConfig(
             directory_pattern="$HOME/worktrees/{repo_name}/{branch}",
             auto_fetch=True,
-            default_remote="origin",
         )
         custom_config = Config(worktree=custom_worktree_config)
         mock_state.load_config.return_value = custom_config
@@ -185,7 +183,6 @@ class TestWorktreePathGeneration:
         custom_worktree_config = WorktreeConfig(
             directory_pattern="/tmp/worktrees/{branch}",
             auto_fetch=True,
-            default_remote="origin",
         )
         custom_config = Config(worktree=custom_worktree_config)
         mock_state.load_config.return_value = custom_config
@@ -223,7 +220,6 @@ class TestWorktreePathGeneration:
         custom_worktree_config = WorktreeConfig(
             directory_pattern="{repo_parent_dir}/worktrees/{branch}",
             auto_fetch=True,
-            default_remote="origin",
         )
         custom_config = Config(worktree=custom_worktree_config)
         mock_state.load_config.return_value = custom_config
@@ -399,7 +395,6 @@ class TestWorktreePathGeneration:
         custom_worktree_config = WorktreeConfig(
             directory_pattern="{repo_parent_dir}/worktrees/{repo_name}/{branch}",
             auto_fetch=True,
-            default_remote="origin",
         )
         custom_config = Config(worktree=custom_worktree_config)
         mock_state.load_config.return_value = custom_config

@@ -269,6 +269,11 @@ class TestBranchResolver:
                 return_value=False,
             ),
             patch.object(
+                self.git_service,
+                "_get_remote_for_branch",
+                return_value="origin",
+            ),
+            patch.object(
                 self.git_service.branch_resolver,
                 "_branch_exists_remotely",
                 return_value=True,
@@ -292,6 +297,11 @@ class TestBranchResolver:
                 self.git_service.branch_resolver,
                 "_branch_exists_locally",
                 return_value=False,
+            ),
+            patch.object(
+                self.git_service,
+                "_get_remote_for_branch",
+                return_value="origin",
             ),
             patch.object(
                 self.git_service.branch_resolver,

@@ -194,7 +194,6 @@ class ConfigApp(App):
             worktree=WorktreeConfig(
                 directory_pattern=self.config.worktree.directory_pattern,
                 auto_fetch=auto_fetch,
-                default_remote=self.config.worktree.default_remote,
             ),
             cleanup=CleanupConfig(
                 default_mode=cleanup_mode,
@@ -229,7 +228,6 @@ def show_config(services: Services) -> None:
     print("Worktree:")
     print(f"  directory_pattern: {config.worktree.directory_pattern}")
     print(f"  auto_fetch: {config.worktree.auto_fetch}")
-    print(f"  default_remote: {config.worktree.default_remote}")
     print()
 
     print("Cleanup:")

@@ -41,9 +41,17 @@ class GitCommands:
         return ["git", "show-ref", "--verify", f"refs/heads/{branch}"]
 
     @staticmethod
-    def branch_exists_remotely(branch: str) -> list[str]:
-        """Build command to check if branch exists on remote."""
-        return ["git", "show-ref", "--verify", f"refs/remotes/origin/{branch}"]
+    def branch_exists_remotely(branch: str, remote: str = "origin") -> list[str]:
+        """Build command to check if branch exists on remote.
+
+        Args:
+            branch: Branch name to check
+            remote: Remote name (defaults to "origin" for backward compatibility)
+
+        Returns:
+            Git command as list of strings
+        """
+        return ["git", "show-ref", "--verify", f"refs/remotes/{remote}/{branch}"]
 
 
 class BranchResolver:
@@ -69,7 +77,8 @@ class BranchResolver:
         """Check if branch exists on remote.
 
         First checks if branch exists remotely (from previous fetches), then tries to fetch
-        the specific branch if not found, and checks again.
+        the specific branch if not found, and checks again. Uses the branch's tracking
+        remote if configured, otherwise falls back to priority order (origin → upstream).
 
         Returns:
             Tuple of (exists_remotely, remote_name)
@@ -77,14 +86,19 @@ class BranchResolver:
         if self._branch_exists_locally(repo_path, branch):
             return False, None
 
+        # Determine which remote to use (tracking remote or fallback)
+        remote = self.git_service._get_remote_for_branch(repo_path, branch)
+        if not remote:
+            return False, None
+
         # First check if branch already exists remotely (from previous fetches)
-        if self._branch_exists_remotely(repo_path, branch):
-            return True, "origin"
+        if self._branch_exists_remotely(repo_path, branch, remote):
+            return True, remote
 
         # If not found, try to fetch the specific branch and check again
-        if self._try_fetch_specific_branch(repo_path, branch, "origin"):
-            if self._branch_exists_remotely(repo_path, branch):
-                return True, "origin"
+        if self._try_fetch_specific_branch(repo_path, branch, remote):
+            if self._branch_exists_remotely(repo_path, branch, remote):
+                return True, remote
 
         return False, None
 
@@ -134,9 +148,11 @@ class BranchResolver:
         if self._branch_exists_locally(repo_path, branch):
             return lambda path: self.commands.worktree_add_existing(path, branch)
 
-        if self._branch_exists_remotely(repo_path, branch):
+        # Determine remote to use for this branch
+        remote = self.git_service._get_remote_for_branch(repo_path, branch)
+        if remote and self._branch_exists_remotely(repo_path, branch, remote):
             return lambda path: self.commands.worktree_add_new_branch(
-                path, branch, f"origin/{branch}"
+                path, branch, f"{remote}/{branch}"
             )
 
         start_point = self._find_best_start_point(repo_path)
@@ -154,13 +170,24 @@ class BranchResolver:
         )
         return result.returncode == 0
 
-    def _branch_exists_remotely(self, repo_path: Path, branch: str) -> bool:
-        """Check if branch exists on remote."""
+    def _branch_exists_remotely(
+        self, repo_path: Path, branch: str, remote: str = "origin"
+    ) -> bool:
+        """Check if branch exists on remote.
+
+        Args:
+            repo_path: Path to the repository
+            branch: Branch name to check
+            remote: Remote name (defaults to "origin")
+
+        Returns:
+            True if branch exists on the specified remote
+        """
         result = run_command_quiet_on_failure(
-            self.commands.branch_exists_remotely(branch),
+            self.commands.branch_exists_remotely(branch, remote),
             cwd=repo_path,
             timeout=10,
-            description=f"Check if remote branch origin/{branch} exists",
+            description=f"Check if remote branch {remote}/{branch} exists",
         )
         return result.returncode == 0
 
@@ -170,8 +197,10 @@ class BranchResolver:
         if not default_branch:
             return "HEAD"
 
-        if self._branch_exists_remotely(repo_path, default_branch):
-            return f"origin/{default_branch}"
+        # Try to use remote version of default branch if available
+        remote = self.git_service._get_remote_for_branch(repo_path, default_branch)
+        if remote and self._branch_exists_remotely(repo_path, default_branch, remote):
+            return f"{remote}/{default_branch}"
 
         if self._branch_exists_locally(repo_path, default_branch):
             return default_branch
@@ -515,9 +544,14 @@ class GitService:
     def _get_default_branch(self, repo_path: Path) -> str | None:
         """Get the default branch name (main, master, etc.)."""
         try:
-            branch_from_origin = self._extract_default_branch_from_origin(repo_path)
-            if branch_from_origin:
-                return branch_from_origin
+            # Try to get default branch from primary remote
+            remotes = self._get_available_remotes(repo_path)
+            if remotes:
+                branch_from_remote = self._extract_default_branch_from_remote(
+                    repo_path, remotes[0]
+                )
+                if branch_from_remote:
+                    return branch_from_remote
 
             branch_from_common_names = self._find_common_default_branch(repo_path)
             if branch_from_common_names:
@@ -527,18 +561,29 @@ class GitService:
         except Exception:
             return None
 
-    def _extract_default_branch_from_origin(self, repo_path: Path) -> str | None:
-        """Extract default branch name from origin HEAD reference."""
+    def _extract_default_branch_from_remote(
+        self, repo_path: Path, remote: str
+    ) -> str | None:
+        """Extract default branch name from remote HEAD reference.
+
+        Args:
+            repo_path: Path to the repository
+            remote: Remote name to query (e.g., "origin", "upstream")
+
+        Returns:
+            Default branch name, or None if not found
+        """
         result = run_command_quiet_on_failure(
-            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            ["git", "symbolic-ref", f"refs/remotes/{remote}/HEAD"],
             cwd=repo_path,
             timeout=10,
-            description="Get default branch from origin",
+            description=f"Get default branch from {remote}",
         )
         if result.returncode == 0:
             branch_ref = result.stdout.strip()
-            if branch_ref.startswith("refs/remotes/origin/"):
-                return branch_ref[len("refs/remotes/origin/") :]
+            prefix = f"refs/remotes/{remote}/"
+            if branch_ref.startswith(prefix):
+                return branch_ref[len(prefix) :]
         return None
 
     def _find_common_default_branch(self, repo_path: Path) -> str | None:
@@ -672,6 +717,53 @@ class GitService:
             return result.returncode == 0
         except Exception:
             return False
+
+    def _get_branch_tracking_remote(self, repo_path: Path, branch: str) -> str | None:
+        """Get the remote that a branch is tracking, if any.
+
+        Args:
+            repo_path: Path to the repository
+            branch: Branch name to check
+
+        Returns:
+            Remote name (e.g., "origin", "upstream") if branch has tracking remote,
+            None otherwise
+        """
+        try:
+            result = run_command_quiet_on_failure(
+                ["git", "config", f"branch.{branch}.remote"],
+                cwd=repo_path,
+                timeout=10,
+                description=f"Get tracking remote for branch {branch}",
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+            return None
+        except Exception:
+            return None
+
+    def _get_remote_for_branch(self, repo_path: Path, branch: str) -> str | None:
+        """Get remote to use for a branch (tracking remote or fallback).
+
+        This method first checks if the branch has a configured tracking remote.
+        If not, it falls back to available remotes in priority order:
+        origin → upstream → first available remote.
+
+        Args:
+            repo_path: Path to the repository
+            branch: Branch name to check
+
+        Returns:
+            Remote name to use, or None if no remotes available
+        """
+        # First try tracking remote
+        tracking_remote = self._get_branch_tracking_remote(repo_path, branch)
+        if tracking_remote:
+            return tracking_remote
+
+        # Fall back to available remotes in priority order
+        available = self._get_available_remotes(repo_path)
+        return available[0] if available else None
 
     def _branches_are_identical_cached(
         self, repo_path: Path, branch: str, default_branch: str | None

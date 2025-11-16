@@ -37,7 +37,6 @@ class WorktreeConfig:
 
     directory_pattern: str = "../{repo_name}-worktrees/{branch}"
     auto_fetch: bool = True
-    default_remote: str = "origin"
 
 
 @dataclass(frozen=True)
@@ -95,7 +94,6 @@ class Config:
                 "directory_pattern", "../{repo_name}-worktrees/{branch}"
             ),
             auto_fetch=worktree_data.get("auto_fetch", True),
-            default_remote=worktree_data.get("default_remote", "origin"),
         )
 
         # Handle case where terminal_data might be a string (legacy compatibility)
@@ -296,7 +294,6 @@ class ConfigLoader:
             "TERMINAL_PROGRAM": ["terminal", "program"],
             "WORKTREE_DIRECTORY_PATTERN": ["worktree", "directory_pattern"],
             "WORKTREE_AUTO_FETCH": ["worktree", "auto_fetch"],
-            "WORKTREE_DEFAULT_REMOTE": ["worktree", "default_remote"],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
             "SCRIPTS_POST_CREATE_ASYNC": ["scripts", "post_create_async"],
