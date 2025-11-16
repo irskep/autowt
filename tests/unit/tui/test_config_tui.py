@@ -40,13 +40,18 @@ class TestConfigTUIBusinessLogic:
         mock_state.app_dir = Path("/tmp/test")
         mock_services.state = mock_state
 
-        # Create app with mock config
-        app = ConfigApp(mock_services)
-        app.config = Config(
+        # Mock config_loader
+        mock_config_loader = MagicMock()
+        test_config = Config(
             terminal=TerminalConfig(mode=TerminalMode.TAB, always_new=False),
             worktree=WorktreeConfig(auto_fetch=True),
             cleanup=CleanupConfig(),
         )
+        mock_config_loader.load_global_config_only.return_value = test_config
+        mock_services.config_loader = mock_config_loader
+
+        # Create app with mock config
+        app = ConfigApp(mock_services)
 
         # Mock the UI widgets to simulate user selections
         with patch.object(app, "query_one") as mock_query:
@@ -92,9 +97,9 @@ class TestConfigTUIBusinessLogic:
         mock_state.app_dir = Path("/tmp/test")
         mock_services.state = mock_state
 
-        # Create app with config that has settings not in TUI
-        app = ConfigApp(mock_services)
-        app.config = Config(
+        # Mock config_loader
+        mock_config_loader = MagicMock()
+        test_config = Config(
             terminal=TerminalConfig(
                 mode=TerminalMode.TAB,
                 always_new=False,
@@ -105,6 +110,11 @@ class TestConfigTUIBusinessLogic:
                 directory_pattern="custom/{branch}",  # Not in TUI
             ),
         )
+        mock_config_loader.load_global_config_only.return_value = test_config
+        mock_services.config_loader = mock_config_loader
+
+        # Create app with config that has settings not in TUI
+        app = ConfigApp(mock_services)
 
         # Mock UI widgets with no changes
         with patch.object(app, "query_one") as mock_query:
@@ -185,11 +195,9 @@ class TestConfigTUIUserWorkflows:
             # Mock config_loader (needed for compose() method)
             mock_config_loader = MagicMock()
             mock_config_loader.global_config_file = app_dir / "config.toml"
-            mock_services.config_loader = mock_config_loader
-
-            # Mock load_config
             test_config = Config()
-            mock_state.load_config.return_value = test_config
+            mock_config_loader.load_global_config_only.return_value = test_config
+            mock_services.config_loader = mock_config_loader
 
             app = ConfigApp(mock_services)
 
@@ -201,8 +209,10 @@ class TestConfigTUIUserWorkflows:
                 labels = app.query("Label")
                 label_texts = [str(label.render()) for label in labels]
 
-                # Should show global config path without crashing
-                global_labels = [text for text in label_texts if "Global:" in text]
+                # Should show global config path without crashing (text changed to "Global config file:")
+                global_labels = [
+                    text for text in label_texts if "Global config file:" in text
+                ]
                 assert len(global_labels) == 1
                 assert "config.toml" in global_labels[0]
                 assert str(app_dir / "config.toml") in global_labels[0]
@@ -217,15 +227,14 @@ class TestConfigTUIUserWorkflows:
         # Mock config_loader (needed for compose() method)
         mock_config_loader = MagicMock()
         mock_config_loader.global_config_file = Path("/tmp/test/config.toml")
-        mock_services.config_loader = mock_config_loader
-
         # Start with default config
         test_config = Config(
             terminal=TerminalConfig(always_new=False),
             worktree=WorktreeConfig(auto_fetch=True),
             cleanup=CleanupConfig(),
         )
-        mock_state.load_config.return_value = test_config
+        mock_config_loader.load_global_config_only.return_value = test_config
+        mock_services.config_loader = mock_config_loader
 
         app = ConfigApp(mock_services)
 

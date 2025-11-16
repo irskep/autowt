@@ -234,6 +234,22 @@ class ConfigLoader:
         # Convert to Config object
         return Config.from_dict(config_data)
 
+    def load_global_config_only(self) -> Config:
+        """Load only global configuration without project config or other overrides.
+
+        This is useful for the config TUI which should only show and edit global settings.
+        Uses built-in defaults as base, then applies global config.
+        """
+        logger.debug("Loading global configuration only (no project config)")
+
+        # Start with defaults, then apply only global config
+        config_data: dict[str, Any] = {}
+        global_data = self._load_global_config()
+        config_data = self._merge_dicts(config_data, global_data)
+
+        # Convert to Config object
+        return Config.from_dict(config_data)
+
     def _load_global_config(self) -> dict[str, Any]:
         """Load global configuration file."""
         if not self.global_config_file.exists():

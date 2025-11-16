@@ -33,12 +33,13 @@ class ConfigApp(App):
     def __init__(self, services: Services):
         super().__init__()
         self.services = services
-        self.config = services.state.load_config()
+        # Load only global config for editing (not merged with project config)
+        self.config = services.config_loader.load_global_config_only()
 
     def compose(self) -> ComposeResult:
         """Create the UI layout."""
         with Vertical(id="main-container"):
-            yield Label("Autowt Configuration")
+            yield Label("Global Configuration")
 
             yield Label("Terminal Mode:")
             with RadioSet(id="terminal-mode"):
@@ -79,12 +80,14 @@ class ConfigApp(App):
                 yield Button("Save", id="save", variant="primary", compact=True)
                 yield Button("Cancel", id="cancel", variant="error", compact=True)
 
-            yield Label("For all settings, edit the config file directly:")
+            yield Label("These settings apply globally to all repositories.")
 
             # Get the actual global config path for this platform
             global_config_path = self.services.config_loader.global_config_file
-            yield Label(f"• Global: {global_config_path}")
-            yield Label("• Project: autowt.toml or .autowt.toml in repository root")
+            yield Label(f"Global config file: {global_config_path}")
+            yield Label(
+                "For project-specific settings, create .autowt.toml in your repository root."
+            )
             yield Label(
                 "Navigation: Tab to move around • Ctrl+S to save • Esc/Q to cancel"
             )
