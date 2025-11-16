@@ -7,6 +7,7 @@
 ### Added
 
 - `post_create_async` hook runs after creating a worktree, after switching you to the new session, but in the _original_ terminal where it doesn't block interactivity in the new session
+- 'autowt switch' can take a path to a worktree as an argument
 
 ### Changed or removed
 

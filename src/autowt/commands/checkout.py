@@ -1,6 +1,7 @@
 """Checkout/create worktree command."""
 
 import logging
+from dataclasses import replace
 from pathlib import Path
 
 from autowt.cli_config import resolve_custom_script_with_interpolation
@@ -64,9 +65,68 @@ def _prompt_for_alternative_worktree(
     return confirm_default_yes(f"Create a new worktree at {alternative_path}?")
 
 
+def resolve_branch_or_path(input_str: str, services: Services) -> str:
+    """Resolve input as either a branch name or a worktree path.
+
+    Args:
+        input_str: The user input (could be branch name or path)
+        services: Services container for git operations
+
+    Returns:
+        The resolved branch name
+    """
+    # Check if the input exists as a path
+    input_path = Path(input_str).expanduser()
+
+    if not input_path.exists():
+        # Doesn't exist as a path, treat as branch name
+        return input_str
+
+    # Path exists - check if it contains path separators
+    has_path_separator = any(char in input_str for char in ["/", "\\", ".", "~"])
+
+    if not has_path_separator:
+        # Ambiguous case: exists as a directory but no path separators
+        # Prompt user to clarify
+        print_info(f"Directory '{input_str}' exists locally.")
+        response = confirm_default_yes(
+            f"Did you mean to switch to branch '{input_str}'? (no = use directory './{input_str}')"
+        )
+        if response:
+            return input_str
+        input_path = Path(f"./{input_str}")
+
+    # Resolve to absolute path (let it raise if it fails)
+    abs_path = input_path.resolve()
+
+    # Check if it's a git worktree (has .git file, not directory)
+    git_path = abs_path / ".git"
+    if not git_path.exists():
+        raise ValueError(f"Not a git worktree: {abs_path}")
+
+    # Get the branch name directly using existing method
+    branch = services.git.get_current_branch(abs_path)
+    if not branch:
+        raise ValueError(f"Could not determine branch for worktree: {abs_path}")
+
+    return branch
+
+
 def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     """Switch to or create a worktree for the specified branch."""
-    logger.debug(f"Checking out branch: {switch_cmd.branch}")
+    logger.debug(f"Checking out branch or path: {switch_cmd.branch}")
+
+    # Resolve branch or path to a branch name
+    try:
+        resolved_branch = resolve_branch_or_path(switch_cmd.branch, services)
+        logger.debug(f"Resolved to branch: {resolved_branch}")
+    except ValueError:
+        # Error already printed by resolve_branch_or_path
+        return
+
+    # Update the switch command with the resolved branch name
+    # Create a new SwitchCommand with the resolved branch
+    switch_cmd = replace(switch_cmd, branch=resolved_branch)
 
     # Find git repository
     try:
