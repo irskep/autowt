@@ -324,8 +324,6 @@ class TestCleanupCommand:
         services.git.repo_root = temp_repo_path
         services.git.worktrees = sample_worktrees
         services.git.branch_statuses = sample_branch_statuses
-        # Add mock processes to terminate (empty for now)
-        services.process.processes = []
 
         # Mock user confirmation and print output
         with (

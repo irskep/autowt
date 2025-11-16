@@ -89,9 +89,6 @@ class TestGitHubCleanupMode:
         ]
         mock_services.github.analyze_branches_for_cleanup.return_value = github_statuses
 
-        # Mock process service
-        mock_services.process.find_processes_in_directory.return_value = []
-
         # Mock user confirmation
         with patch("builtins.input", return_value="n"):  # User cancels
             cleanup_worktrees(cleanup_cmd, mock_services)
@@ -147,8 +144,7 @@ class TestGitHubCleanupMode:
         ]
         mock_services.github.analyze_branches_for_cleanup.return_value = github_statuses
 
-        # Mock process and git services
-        mock_services.process.find_processes_in_directory.return_value = []
+        # Mock git services
         mock_services.git.remove_worktree.return_value = True
         mock_services.git.delete_branch.return_value = True
         mock_services.state.remove_session_id.return_value = None
@@ -208,8 +204,6 @@ class TestGitHubCleanupMode:
         ]
         mock_services.github.analyze_branches_for_cleanup.return_value = github_statuses
 
-        # Mock process service
-        mock_services.process.find_processes_in_directory.return_value = []
         mock_services.state.remove_session_id.return_value = None
 
         # Run cleanup with dry-run
