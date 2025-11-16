@@ -1,0 +1,75 @@
+/* Compact styling for config TUI */
+
+/* Disable app-level scrolling */
+Screen {
+    overflow-y: hidden;
+}
+
+/* Main container - handles all scrolling */
+#main-container {
+    padding: 0;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* Prevent other Vertical containers from scrolling */
+Vertical {
+    overflow-y: hidden;
+}
+
+/* RadioSet - prevent scrolling */
+RadioSet {
+    overflow-y: hidden;
+}
+
+/* Labels - reduce spacing */
+Label {
+    height: auto;
+    padding: 0 1;
+    margin: 0 0 1 0;  /* Add 1 line spacing after labels */
+}
+
+/* Radio buttons - compact */
+RadioSet {
+    padding: 0;
+    margin: 0 0 1 0;  /* Add 1 line spacing after RadioSet */
+    overflow-y: hidden;  /* Prevent scrolling */
+    height: auto;
+}
+
+RadioButton {
+    height: auto;
+    padding: 0 1;
+    margin: 0;
+}
+
+/* Checkboxes - compact */
+Checkbox {
+    height: auto;
+    padding: 0;
+    margin: 0 0 1 0;  /* Add 1 line spacing after each checkbox */
+}
+
+/* Button row container */
+#button-row {
+    layout: horizontal;
+    height: auto;
+    align: center middle;
+    margin-top: 1;
+}
+
+/* Buttons */
+#button-row Button {
+    margin: 0 1;
+    min-width: 8;
+    height: 1;
+}
+
+Button#save {
+    text-style: bold;
+}
+
+Button#cancel {
+    text-style: bold;
+}

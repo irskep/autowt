@@ -2,7 +2,7 @@
 
 #main {
     layout: vertical;
-    padding: 1;
+    padding: 0;
 }
 
 #header-section {
@@ -54,7 +54,7 @@ ListItem {
     width: 100%;
     max-width: 100%;
     height: auto;
-    padding: 0 1;
+    padding: 0;
 }
 
 /* Branch info (left column) - flexible width */
@@ -106,14 +106,15 @@ ListView:focus > ListItem.-highlighted {
 
 #button-row {
     layout: horizontal;
-    height: 3;
+    height: auto;
     align: center middle;
-    margin-top: 1;
+    margin-top: 0;
 }
 
 #button-row Button {
-    margin: 0 2;
-    min-width: 16;
+    margin: 0 1;
+    min-width: 8;
+    height: 1;
 }
 
 Button#confirm {
