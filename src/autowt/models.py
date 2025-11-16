@@ -11,7 +11,6 @@ if TYPE_CHECKING:
     from autowt.hooks import HookRunner
     from autowt.services.git import GitService
     from autowt.services.github import GitHubService
-    from autowt.services.process import ProcessService
     from autowt.services.state import StateService
     from autowt.services.terminal import TerminalService
     from autowt.services.version_check import VersionCheckService
@@ -142,22 +141,12 @@ class ProjectConfig:
 
 
 @dataclass
-class ProcessInfo:
-    """Information about a running process."""
-
-    pid: int
-    command: str
-    working_dir: Path
-
-
-@dataclass
 class Services:
     """Container for all application services."""
 
     state: "StateService"
     git: "GitService"
     terminal: "TerminalService"
-    process: "ProcessService"
     github: "GitHubService"
     config_loader: "ConfigLoader"
     hooks: "HookRunner"
@@ -171,7 +160,6 @@ class Services:
         from autowt.hooks import HookRunner  # noqa: PLC0415
         from autowt.services.git import GitService  # noqa: PLC0415
         from autowt.services.github import GitHubService  # noqa: PLC0415
-        from autowt.services.process import ProcessService  # noqa: PLC0415
         from autowt.services.state import StateService  # noqa: PLC0415
         from autowt.services.terminal import TerminalService  # noqa: PLC0415
         from autowt.services.version_check import VersionCheckService  # noqa: PLC0415
@@ -183,7 +171,6 @@ class Services:
             state=state_service,
             git=GitService(),
             terminal=TerminalService(state_service),
-            process=ProcessService(),
             github=GitHubService(),
             config_loader=config_loader,
             hooks=HookRunner(),

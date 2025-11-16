@@ -4,9 +4,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from autowt.models import (
-    ProcessInfo,
-)
 from tests.fixtures.config_fixtures import build_sample_config
 from tests.fixtures.git_fixtures import (
     build_sample_branch_statuses,
@@ -39,19 +36,6 @@ def sample_worktrees(temp_repo_path):
 def sample_branch_statuses(sample_worktrees):
     """Sample branch status data for testing."""
     return build_sample_branch_statuses(sample_worktrees)
-
-
-@pytest.fixture
-def sample_processes(sample_worktrees):
-    """Sample process data for testing."""
-    return [
-        ProcessInfo(
-            pid=1234, command="python server.py", working_dir=sample_worktrees[0].path
-        ),
-        ProcessInfo(
-            pid=5678, command="npm run dev", working_dir=sample_worktrees[1].path
-        ),
-    ]
 
 
 @pytest.fixture(autouse=True)

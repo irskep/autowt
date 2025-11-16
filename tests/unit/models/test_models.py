@@ -5,7 +5,6 @@ from pathlib import Path
 from autowt.models import (
     BranchStatus,
     CleanupMode,
-    ProcessInfo,
     ProjectScriptsConfig,
     SwitchCommand,
     TerminalMode,
@@ -51,21 +50,6 @@ class TestBranchStatus:
         assert status.is_merged is False
         assert status.is_identical is False
         assert status.path == path
-
-
-class TestProcessInfo:
-    """Tests for ProcessInfo model."""
-
-    def test_process_info_creation(self):
-        """Test creating ProcessInfo instance."""
-        working_dir = Path("/test/dir")
-        process = ProcessInfo(
-            pid=1234, command="python server.py", working_dir=working_dir
-        )
-
-        assert process.pid == 1234
-        assert process.command == "python server.py"
-        assert process.working_dir == working_dir
 
 
 class TestSwitchCommand:

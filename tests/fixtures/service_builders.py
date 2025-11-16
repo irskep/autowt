@@ -7,7 +7,6 @@ from typing import Any
 from autowt.config import Config
 from autowt.models import (
     BranchStatus,
-    ProcessInfo,
     ProjectConfig,
     TerminalMode,
     WorktreeInfo,
@@ -183,33 +182,6 @@ class MockTerminalService:
         return self.switch_success
 
 
-class MockProcessService:
-    """Mock process service for testing."""
-
-    def __init__(self):
-        self.processes: list[ProcessInfo] = []
-        self.terminate_success = True
-
-        # Track method calls
-        self.find_calls = []
-        self.terminate_calls = []
-
-    def find_processes_in_directory(
-        self, directory: Path, max_depth: int = 2
-    ) -> list[ProcessInfo]:
-        self.find_calls.append(directory)
-        # Return processes that match this directory
-        return [p for p in self.processes if p.working_dir == directory]
-
-    def terminate_processes(self, processes: list[ProcessInfo]) -> bool:
-        self.terminate_calls.append(processes)
-        return self.terminate_success
-
-    def print_process_summary(self, processes: list[ProcessInfo]) -> None:
-        # Mock implementation - just track the call
-        pass
-
-
 class MockGitHubService:
     """Mock GitHub service for testing."""
 
@@ -320,7 +292,6 @@ class MockServices:
         self.state = MockStateService()
         self.git = MockGitService()
         self.terminal = MockTerminalService()
-        self.process = MockProcessService()
         self.github = MockGitHubService()
         self.config_loader = MockConfigLoader()
         self.hooks = MockHookRunner()
