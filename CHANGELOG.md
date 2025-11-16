@@ -38,10 +38,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 
 ## 0.4.8 - 2025-11-08
 
-### Added
-
-### Changed
-
 ### Fixed
 
 -   Autowt sets the correct base branch at all times instead of just when using `switch` (fix #71)
@@ -60,10 +56,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 -   Removed vibecoded terminal support
 -   Added Ghostty terminal support
 
-### Changed
-
-### Fixed
-
 ## 0.4.6 - 2025-08-13
 
 ### Added
@@ -71,15 +63,7 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 -   VSCode and Cursor support as terminal options - use `--terminal=vscode` or `--terminal=cursor` to open worktrees directly in editor windows
 -   Window detection for VSCode and Cursor on macOS - switches to existing editor windows when possible instead of opening duplicates
 
-### Changed
-
-### Fixed
-
 ## 0.4.5 - 2025-08-11
-
-### Added
-
-### Changed
 
 ### Fixed
 
@@ -113,10 +97,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   Can be bypassed with `-y`/`--yes` flag for automated workflows
     -   Only applies when no explicit `--from` branch is specified
 
-### Changed
-
-### Fixed
-
 ## 0.4.2 - 2025-07-26
 
 ### Added
@@ -126,10 +106,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   Shows appropriate upgrade command for detected package manager
     -   Rate-limited to check at most once per hour to avoid being intrusive
 -   `autowt switch` without a branch name will let you choose or create a worktree interactively
-
-### Changed
-
-### Fixed
 
 ## 0.4.1 - 2025-07-24
 
@@ -150,10 +126,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   Prompts "Create a branch 'branch-name' and worktree? (Y/n)" for commands like `autowt swtch`
     -   Defaults to "yes" for quick confirmation
     -   Can be bypassed with `-y`/`--yes` flag
-
-### Changed
-
-### Fixed
 
 ## 0.4.0 - 2025-07-22
 
@@ -197,15 +169,7 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   Supports both absolute and relative paths
     -   Available for both `autowt switch` and direct branch commands
 
-### Changed
-
-### Fixed
-
 ## 0.3.4 - 2025-07-22
-
-### Added
-
-### Changed
 
 ### Fixed
 
@@ -220,8 +184,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 -   Support for bare git repositories (#40)
     -   autowt now works from directories containing bare repositories (\*.git directories), matching `git worktree add` behavior
     -   When multiple bare repositories exist in the same directory, autowt shows a clear error message instead of picking one arbitrarily
-
-### Changed
 
 ### Fixed
 
@@ -238,15 +200,7 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 -   First-run warning displays terminal name, GitHub source link, and issue reporting URL
 -   User can confirm or decline to continue with experimental terminal support
 
-### Changed
-
-### Fixed
-
 ## 0.3.1 - 2025-07-21
-
-### Added
-
-### Changed
 
 ### Fixed
 
@@ -262,10 +216,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 -   Added `--show` flag to `hooks-install` to display current hook status
 -   Added `--waiting` and `--latest` flags to `autowt switch` for agent-aware navigation
 -   Enhanced `autowt ls` to display agent status indicators alongside terminal sessions
-
-### Changed
-
-### Fixed
 
 ## 0.2.1 - 2025-07-18
 
