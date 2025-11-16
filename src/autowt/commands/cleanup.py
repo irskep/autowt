@@ -14,6 +14,7 @@ from autowt.console import print_error, print_info, print_success
 from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
+from autowt.utils import resolve_branch_or_path
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,61 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     worktrees = [wt for wt in worktrees if wt.path != repo_path and not wt.is_primary]
     if not worktrees:
         print_info("No secondary worktrees found.")
+        return
+
+    # If specific worktrees were provided, handle them directly
+    if cleanup_cmd.worktrees:
+        # Resolve each worktree arg to a branch name
+        resolved_branches = []
+        for wt_arg in cleanup_cmd.worktrees:
+            try:
+                branch = resolve_branch_or_path(wt_arg, services)
+                resolved_branches.append(branch)
+            except ValueError as e:
+                print_error(str(e))
+                return
+
+        # Filter worktrees to only the ones specified
+        worktrees = [wt for wt in worktrees if wt.branch in resolved_branches]
+        if not worktrees:
+            print_error("None of the specified worktrees were found.")
+            return
+
+        # Get branch statuses for the specified worktrees
+        branch_statuses = services.git.analyze_branches_for_cleanup(
+            repo_path, worktrees
+        )
+
+        # Show confirmation and proceed
+        if not _confirm_cleanup(
+            branch_statuses,
+            cleanup_cmd.mode,
+            cleanup_cmd.dry_run,
+            cleanup_cmd.auto_confirm,
+        ):
+            print_info("Cleanup cancelled.")
+            return
+
+        # Run pre_cleanup hooks for each worktree
+        _run_pre_cleanup_hooks(
+            services, branch_statuses, repo_path, config, cleanup_cmd.dry_run
+        )
+
+        # Remove worktrees and update state
+        _remove_worktrees_and_update_state(
+            branch_statuses,
+            repo_path,
+            services,
+            cleanup_cmd.auto_confirm,
+            cleanup_cmd.force,
+            cleanup_cmd.dry_run,
+        )
+
+        # Run post_cleanup hooks for each worktree
+        _run_post_cleanup_hooks(
+            services, branch_statuses, repo_path, config, cleanup_cmd.dry_run
+        )
+
         return
 
     # Analyze branches

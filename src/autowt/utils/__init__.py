@@ -4,8 +4,13 @@ import logging
 import shlex
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from autowt.console import print_command
+from autowt.console import print_command, print_info
+from autowt.prompts import confirm_default_yes
+
+if TYPE_CHECKING:
+    from autowt.models import Services
 
 # Special logger for command execution
 command_logger = logging.getLogger("autowt.commands")
@@ -194,3 +199,50 @@ def setup_command_logging(debug: bool = False) -> None:
     # Also update handler level if it exists
     if command_logger.handlers:
         command_logger.handlers[0].setLevel(level)
+
+
+def resolve_branch_or_path(input_str: str, services: "Services") -> str:
+    """Resolve input as either a branch name or a worktree path.
+
+    Args:
+        input_str: The user input (could be branch name or path)
+        services: Services container for git operations
+
+    Returns:
+        The resolved branch name
+    """
+    # Check if the input exists as a path
+    input_path = Path(input_str).expanduser()
+
+    if not input_path.exists():
+        # Doesn't exist as a path, treat as branch name
+        return input_str
+
+    # Path exists - check if it contains path separators
+    has_path_separator = any(char in input_str for char in ["/", "\\", ".", "~"])
+
+    if not has_path_separator:
+        # Ambiguous case: exists as a directory but no path separators
+        # Prompt user to clarify
+        print_info(f"Directory '{input_str}' exists locally.")
+        response = confirm_default_yes(
+            f"Did you mean to switch to branch '{input_str}'? (no = use directory './{input_str}')"
+        )
+        if response:
+            return input_str
+        input_path = Path(f"./{input_str}")
+
+    # Resolve to absolute path (let it raise if it fails)
+    abs_path = input_path.resolve()
+
+    # Check if it's a git worktree (has .git file, not directory)
+    git_path = abs_path / ".git"
+    if not git_path.exists():
+        raise ValueError(f"Not a git worktree: {abs_path}")
+
+    # Get the branch name directly using existing method
+    branch = services.git.get_current_branch(abs_path)
+    if not branch:
+        raise ValueError(f"Could not determine branch for worktree: {abs_path}")
+
+    return branch
