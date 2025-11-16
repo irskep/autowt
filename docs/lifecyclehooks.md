@@ -16,12 +16,6 @@ Set the `scripts.session_init` key in your `.autowt.toml` file:
 session_init = "npm install"
 ```
 
-The `session_init` script is executed in your terminal session _after_ `autowt` has switched to the worktree, but _before_ any `--after-init` script is run.
-
-### Installing dependencies
-
-The most common use case for init scripts is to ensure dependencies are always up-to-date when you create a worktree. With the configuration above, `npm install` will run automatically every time you create a new worktree in this project.
-
 ### Copying `.env` files
 
 Worktrees start as clean checkouts, which means untracked files like `.env` are not automatically carried over. You can use an init script to copy these files from your main worktree.
@@ -40,7 +34,22 @@ fi
 """
 ```
 
-## Complete Lifecycle Hooks
+### Installing things in the background
+
+If your dependency installation step takes a long time, you might wish to do all this in `post_create_async` instead of `session_init`. That way, you can get an interactive terminal without waiting for everything to get set up.
+
+```toml
+# .autowt.toml
+[scripts]
+post_create_async = """
+npm install
+if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
+  cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
+fi
+"""
+```
+
+## Reference tables and diagrams
 
 Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
@@ -48,20 +57,18 @@ Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at spe
 
 | Hook | When it runs | Execution Context |
 | - | - | - |
-| `pre_create` | Before creating worktree | Workdir: main repo<br>Terminal: original |
-| `post_create` | After creating worktree, before terminal switch | Workdir: worktree<br>Terminal: original |
-| `post_create_async` | After terminal switch (or before `session_init`/`--after-init` in ECHO mode) | Workdir: worktree<br>Terminal: original |
-| `session_init` | In new terminal session after switching to worktree | Workdir: worktree<br>Terminal: new |
-| `pre_cleanup` | Before cleaning up worktrees | Workdir: worktree<br>Terminal: original |
-| `post_cleanup` | After worktrees are removed | Workdir: main repo<br>Terminal: original |
-| `pre_switch` | Before switching worktrees | Workdir: worktree<br>Terminal: original |
-| `post_switch` | After switching worktrees | Workdir: worktree<br>Terminal: original  |
+| [`pre_create`](#pre_create) | Before creating worktree | Workdir: main repo<br>Terminal: original |
+| [`post_create`](#post_create) | After creating worktree, before terminal switch | Workdir: worktree<br>Terminal: original |
+| [`post_create_async`](#post_create_async) | After terminal switch (or before `session_init`/`--after-init` in ECHO mode) | Workdir: worktree<br>Terminal: original |
+| [`session_init`](#session_init) | In new terminal session after switching to worktree | Workdir: worktree<br>Terminal: new |
+| [`pre_cleanup`](#pre_cleanup) | Before cleaning up worktrees | Workdir: worktree<br>Terminal: original |
+| [`post_cleanup`](#post_cleanup) | After worktrees are removed | Workdir: main repo<br>Terminal: original |
+| [`pre_switch`](#pre_switch) | Before switching worktrees | Workdir: worktree<br>Terminal: original |
+| [`post_switch`](#post_switch) | After switching worktrees | Workdir: worktree<br>Terminal: original  |
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
 
-## Hook Execution Flow
-
-### Creating/Switching to New Worktree
+### Creating and switching to a new worktree
 
 ```mermaid
 sequenceDiagram
@@ -80,7 +87,7 @@ sequenceDiagram
     autowt->>autowt: post_create_async hook
 ```
 
-### Switching Between Worktrees
+### Switching between existing worktrees
 
 ```mermaid
 sequenceDiagram
@@ -96,7 +103,7 @@ sequenceDiagram
     autowt->>autowt: post_switch hook
 ```
 
-### Cleanup Operation
+### Worktree cleanup
 
 ```mermaid
 sequenceDiagram
@@ -114,7 +121,7 @@ sequenceDiagram
 
 Project-level and global hooks run independently and do not override each other.
 
-### Project-level hooks
+### Project-level configuration
 
 Configure hooks in your project's `.autowt.toml` file:
 
@@ -130,7 +137,7 @@ pre_switch = "pkill -f 'npm run dev'"
 post_switch = "npm run dev &"
 ```
 
-### Global hooks
+### Global configuration
 
 Configure hooks globally in `~/.config/autowt/config.toml` (Linux) or `~/Library/Application Support/autowt/config.toml` (macOS):
 
@@ -142,7 +149,7 @@ pre_cleanup = "echo 'Cleaning up worktree...'"
 post_cleanup = "echo 'Worktree cleanup complete'"
 ```
 
-## Environment Variables and Arguments
+## Environment variables and arguments
 
 All hooks receive the following environment variables:
 
@@ -153,10 +160,10 @@ All hooks receive the following environment variables:
 
 **Working directory behavior**: Most hooks run with the worktree directory as their working directory. However, `pre_create` and `post_cleanup` hooks run with the **main repository directory** as their working directory, since the worktree doesn't exist yet (`pre_create`) or has been deleted (`post_cleanup`).
 
-### Example hook script
+### Example script
 
 ```bash
-# Hook script using environment variables
+# Using environment variables
 echo "Hook type: $AUTOWT_HOOK_TYPE"
 echo "Worktree: $AUTOWT_WORKTREE_DIR"
 echo "Branch: $AUTOWT_BRANCH_NAME"
@@ -205,9 +212,9 @@ If you need to use a different programming language, create a separate script fi
 
     This behavior is identical to Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`.
 
-## Hook Details
+## Complete reference
 
-### `pre_create` Hook
+### `pre_create`
 
 **Timing**: Before worktree creation begins 
 **Execution Context**: Subprocess in main repository directory 
@@ -228,7 +235,7 @@ fi
 """
 ```
 
-### `post_create` Hook
+### `post_create`
 
 **Timing**: After worktree creation, before terminal switch  
 **Execution Context**: Subprocess in worktree directory  
@@ -251,7 +258,7 @@ The post_create hook runs as a subprocess after the worktree is created but befo
 - Running git commands
 - File operations that don't need shell environment
 
-### `post_create_async` Hook
+### `post_create_async`
 
 **Timing**: After terminal switch (TAB/WINDOW modes) or before --after-init (ECHO/INPLACE modes)
 **Execution Context**: Original terminal where autowt was invoked
@@ -287,7 +294,7 @@ npm run build
 - Are fast and shouldn't delay terminal switching
 - Produce errors that should prevent terminal switching
 
-### `session_init` Hook
+### `session_init`
 
 **Timing**: In terminal session after switching to worktree  
 **Execution Context**: Terminal session (pasted/typed into terminal)  
@@ -304,7 +311,7 @@ export DEV_MODE=true
 
 The `session_init` hook is special—it's the only hook that runs **inside the new terminal session**. While other lifecycle hooks run inside the initial `autowt create` process, `session_init` scripts are literally pasted/typed into the terminal using terminal automation (i.e. AppleScript). This allows `session_init` scripts to: activate virtual environments or start interactive processes.
 
-### `pre_cleanup` Hook
+### `pre_cleanup`
 
 **Timing**: Before any cleanup operations begin  
 **Use cases**: Resource cleanup
@@ -317,7 +324,7 @@ pre_cleanup = """
 """
 ```
 
-### `post_cleanup` Hook
+### `post_cleanup`
 
 **Timing**: After worktrees and branches are removed 
 **Execution Context**: Subprocess in main repository directory 
@@ -333,7 +340,7 @@ docker volume rm ${AUTOWT_BRANCH_NAME}_db_data 2>/dev/null || true
 """
 ```
 
-### `pre_switch` Hook
+### `pre_switch`
 
 **Timing**: Before switching away from current worktree  
 **Use cases**: Stop services, save state
@@ -349,7 +356,7 @@ pkill -f "npm run dev" || true
 """
 ```
 
-### `post_switch` Hook
+### `post_switch`
 
 **Timing**: After switching to new worktree  
 **Use cases**: Start services, restore state
