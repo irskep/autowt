@@ -14,7 +14,7 @@ from autowt.console import print_error, print_info, print_success
 from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
-from autowt.utils import resolve_branch_or_path
+from autowt.utils import is_interactive_terminal, resolve_branch_or_path
 
 logger = logging.getLogger(__name__)
 
@@ -181,8 +181,27 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         merged_branches,
     )
     if not to_cleanup:
-        print_info("No worktrees selected for cleanup.")
-        return
+        # If not in interactive mode, in a TTY, and not auto-confirming,
+        # offer to enter interactive mode
+        if (
+            cleanup_cmd.mode != CleanupMode.INTERACTIVE
+            and is_interactive_terminal()
+            and not cleanup_cmd.auto_confirm
+        ):
+            if confirm_default_no(
+                "No branches found for cleanup. Enter interactive mode?"
+            ):
+                # Enter interactive mode with all branch statuses
+                to_cleanup = _interactive_selection(branch_statuses)
+                if not to_cleanup:
+                    print_info("No worktrees selected for cleanup.")
+                    return
+            else:
+                print_info("No worktrees selected for cleanup.")
+                return
+        else:
+            print_info("No worktrees selected for cleanup.")
+            return
 
     # Show what will be cleaned up and confirm
     if not _confirm_cleanup(

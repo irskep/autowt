@@ -3,6 +3,7 @@
 import logging
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,15 @@ if TYPE_CHECKING:
 
 # Special logger for command execution
 command_logger = logging.getLogger("autowt.commands")
+
+
+def is_interactive_terminal() -> bool:
+    """Check if running in an interactive terminal.
+
+    Uses the same approach as Click's internal TTY detection.
+    This function can be easily mocked in tests for consistent behavior.
+    """
+    return sys.stdin.isatty()
 
 
 def run_command(
