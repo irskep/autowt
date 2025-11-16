@@ -31,8 +31,7 @@ dependencies = [
     "textual>=0.50.0",
     "toml>=0.10.0",
     "rich>=13.0.0",
-    # TODO BEFORE RELEASE: pin to a specific version
-    "automate-terminal @ git+https://github.com/irskep/automate-terminal.git",
+    "automate-terminal==0.1.7",
 ]
 
 
