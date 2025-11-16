@@ -53,10 +53,6 @@ directory_pattern = "../{repo_name}-worktrees/{branch}"
 # ENV: AUTOWT_WORKTREE_AUTO_FETCH=false
 auto_fetch = true
 
-# Default remote to use when multiple remotes exist
-# ENV: AUTOWT_WORKTREE_DEFAULT_REMOTE=origin
-default_remote = "origin"
-
 # ============================================================================
 # Cleanup Configuration
 # ============================================================================

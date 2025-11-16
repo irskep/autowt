@@ -49,7 +49,6 @@ class TestConfigDataClasses:
         config = WorktreeConfig()
         assert config.directory_pattern == "../{repo_name}-worktrees/{branch}"
         assert config.auto_fetch is True
-        assert config.default_remote == "origin"
 
     def test_cleanup_config_defaults(self):
         """Test CleanupConfig default values."""
@@ -108,7 +107,6 @@ class TestConfigFromDict:
             "worktree": {
                 "directory_pattern": "$HOME/worktrees/{repo_name}/{branch}",
                 "auto_fetch": False,
-                "default_remote": "upstream",
             },
             "cleanup": {
                 "default_mode": "merged",
@@ -135,7 +133,6 @@ class TestConfigFromDict:
             config.worktree.directory_pattern == "$HOME/worktrees/{repo_name}/{branch}"
         )
         assert config.worktree.auto_fetch is False
-        assert config.worktree.default_remote == "upstream"
 
         # Cleanup config
         assert config.cleanup.default_mode == CleanupMode.MERGED
@@ -170,7 +167,6 @@ class TestConfigToDict:
             "worktree": {
                 "directory_pattern": "../{repo_name}-worktrees/{branch}",
                 "auto_fetch": True,
-                "default_remote": "origin",
             },
             "cleanup": {
                 "default_mode": "interactive",

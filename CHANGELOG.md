@@ -24,6 +24,7 @@
 - `autowt config` only shows/edits global config, not project config
 - `post_cleanup` and `pre_create` hooks execute with the main repo as the working directory, since worktree doesn't exist yet/anymore.
 - Removed all agent-related functionality. I haven't found value in it and I don't think anyone is using it.
+- Removed `worktree.default_remote` config option. autowt now queries git directly for branch tracking remotes instead of using a configured default. This respects git's actual branch configuration and is more flexible for repositories with non-standard remote names. Falls back to priority order (origin → upstream → first available) when no tracking remote is configured.
 - Remove process killing functionality. It has too many pitfalls.
 - Deleted `--init` flag, it was redundant in the presence of `--after-init`
 - Removed branch sanitization config options
