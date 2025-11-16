@@ -11,8 +11,8 @@ from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.utils import (
-    resolve_branch_or_path,
-    resolve_branch_with_prefix,
+    get_canonical_branch_name,
+    resolve_worktree_argument,
     sanitize_branch_name,
 )
 
@@ -75,10 +75,10 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
     # Resolve branch or path to a branch name
     try:
-        resolved_branch = resolve_branch_or_path(switch_cmd.branch, services)
+        resolved_branch = resolve_worktree_argument(switch_cmd.branch, services)
         logger.debug(f"Resolved to branch: {resolved_branch}")
     except ValueError:
-        # Error already printed by resolve_branch_or_path
+        # Error already printed by resolve_worktree_argument
         return
 
     # Update the switch command with the resolved branch name
@@ -103,7 +103,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     git_worktrees = services.git.list_worktrees(repo_path)
 
     # Apply branch prefix if configured
-    resolved_branch = resolve_branch_with_prefix(
+    canonical_branch = get_canonical_branch_name(
         switch_cmd.branch,
         config.worktree.branch_prefix,
         git_worktrees,
@@ -111,8 +111,8 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
         services,
         apply_to_new_branches=True,
     )
-    if resolved_branch != switch_cmd.branch:
-        switch_cmd = replace(switch_cmd, branch=resolved_branch)
+    if canonical_branch != switch_cmd.branch:
+        switch_cmd = replace(switch_cmd, branch=canonical_branch)
 
     # Use project config session_init as default if no init_script provided
     session_init_script = switch_cmd.init_script

@@ -247,7 +247,7 @@ def build_branch_template_context(
     return context
 
 
-def resolve_branch_with_prefix(
+def get_canonical_branch_name(
     branch: str,
     branch_prefix: str | None,
     worktrees: list,
@@ -255,7 +255,7 @@ def resolve_branch_with_prefix(
     services: "Services",
     apply_to_new_branches: bool = True,
 ) -> str:
-    """Resolve branch name, applying configured prefix if appropriate.
+    """Get the canonical branch name, applying configured prefix if appropriate.
 
     Args:
         apply_to_new_branches: If True, apply prefix even for new branches.
@@ -314,8 +314,8 @@ def setup_command_logging(debug: bool = False) -> None:
         command_logger.handlers[0].setLevel(level)
 
 
-def resolve_branch_or_path(input_str: str, services: "Services") -> str:
-    """Resolve input as either a branch name or a worktree path.
+def resolve_worktree_argument(input_str: str, services: "Services") -> str:
+    """Resolve worktree argument as either a branch name or a worktree path.
 
     Args:
         input_str: The user input (could be branch name or path)

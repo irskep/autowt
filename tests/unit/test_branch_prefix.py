@@ -8,7 +8,7 @@ from autowt.models import WorktreeInfo
 from autowt.utils import (
     apply_branch_prefix,
     build_branch_template_context,
-    resolve_branch_with_prefix,
+    get_canonical_branch_name,
 )
 
 
@@ -106,13 +106,13 @@ class TestBuildBranchTemplateContext:
         assert "github_username" not in context
 
 
-class TestResolveBranchWithPrefix:
-    """Tests for resolve_branch_with_prefix function."""
+class TestGetCanonicalBranchName:
+    """Tests for get_canonical_branch_name function."""
 
     def test_no_prefix_returns_branch_unchanged(self):
         """Test that None prefix returns branch unchanged."""
         worktrees = []
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-branch",
             None,
             worktrees,
@@ -129,7 +129,7 @@ class TestResolveBranchWithPrefix:
         mock_services = Mock()
         mock_services.github.get_github_username.return_value = None
 
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-branch",
             "feature/",
             worktrees,
@@ -146,7 +146,7 @@ class TestResolveBranchWithPrefix:
         mock_services = Mock()
         mock_services.github.get_github_username.return_value = None
 
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-branch",
             "feature/",
             worktrees,
@@ -161,7 +161,7 @@ class TestResolveBranchWithPrefix:
         mock_services = Mock()
         mock_services.github.get_github_username.return_value = None
 
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-branch",
             "feature/",
             worktrees,
@@ -177,7 +177,7 @@ class TestResolveBranchWithPrefix:
         mock_services = Mock()
         mock_services.github.get_github_username.return_value = None
 
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-branch",
             "feature/",
             worktrees,
@@ -193,7 +193,7 @@ class TestResolveBranchWithPrefix:
         mock_services = Mock()
         mock_services.github.get_github_username.return_value = "alice"
 
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-feature",
             "{github_username}/",
             worktrees,
@@ -212,7 +212,7 @@ class TestResolveBranchWithPrefix:
         mock_services = Mock()
         mock_services.github.get_github_username.return_value = None
 
-        result = resolve_branch_with_prefix(
+        result = get_canonical_branch_name(
             "my-branch",
             "feature/",
             worktrees,
