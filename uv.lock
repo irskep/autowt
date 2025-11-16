@@ -4,15 +4,19 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "automate-terminal"
-version = "0.1.8.dev0"
-source = { git = "https://github.com/irskep/automate-terminal.git#1fe317d816febfcc9a951932a92db4f73b476262" }
+version = "0.1.7"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "psutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/e6/98d3a5c075f0bbb23ba6060dbd4835696249711f1d20d14ec850fdafdc14/automate_terminal-0.1.7.tar.gz", hash = "sha256:971f34aed7b8f65b6d1dfb1cd8d4ed7d796efd67ae1845765da544ceb6b7788e", size = 53148, upload-time = "2025-11-15T22:46:15.53Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/02/83aa892a6d2eef928899ca700dc961f734de05806a1180e80900c36f97cd/automate_terminal-0.1.7-py3-none-any.whl", hash = "sha256:4434f2d18fd7b3edce1492df3e884f97af51d393ea86453b84e3b56da04fcab2", size = 33503, upload-time = "2025-11-15T22:46:14.411Z" },
 ]
 
 [[package]]
 name = "autowt"
-version = "0.5.0.dev1"
+version = "0.5.0.dev2"
 source = { editable = "." }
 dependencies = [
     { name = "automate-terminal" },
@@ -40,7 +44,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "automate-terminal", git = "https://github.com/irskep/automate-terminal.git" },
+    { name = "automate-terminal", specifier = "==0.1.7" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "click-aliases", specifier = ">=1.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
