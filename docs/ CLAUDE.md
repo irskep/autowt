@@ -1,0 +1,5 @@
+- Document titles are title-case, but section headings are sentence-case.
+- When making tables, format them without unnecessary dashes or whitespace. | - | - | is preferable to | --- | ----- |, for example.
+- Avoid making value judgments about feature use. Don't say what the "best" way to do something is, just say what the ways to do it are.
+- Keep any examples as minimal as possible.
+- Follow the house style.

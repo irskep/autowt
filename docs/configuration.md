@@ -58,16 +58,6 @@ Defines how worktrees are created and managed.
 | `auto_fetch`        | boolean | `true`                                | If `true`, automatically fetches from the remote before creating new worktrees. <br> **ENV**: `AUTOWT_WORKTREE_AUTO_FETCH` <br> **CLI**: `--no-fetch` (to disable)                                                                                                                                                                                                                                                                                                                                             |
 | `default_remote`    | string  | `"origin"`                            | The default remote to use when multiple remotes exist. <br> **ENV**: `AUTOWT_WORKTREE_DEFAULT_REMOTE`                                                                                                                                                                                                                                                                                                                                                                                                          |
 
-#### `[worktree.branch_sanitization]`
-
-Rules for converting git branch names into safe directory names.
-
-| Key             | Type    | Default    | Description                                                                                                                                     |
-| --------------- | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `replace_chars` | string  | `"/:#@^~"` | A string of characters to be replaced with underscores in the directory name. <br> **ENV**: `AUTOWT_WORKTREE_BRANCH_SANITIZATION_REPLACE_CHARS` |
-| `max_length`    | integer | `255`      | The maximum allowed length for the sanitized directory name. <br> **ENV**: `AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH`                     |
-| `lowercase`     | boolean | `false`    | If `true`, converts the entire directory name to lowercase. <br> **ENV**: `AUTOWT_WORKTREE_BRANCH_SANITIZATION_LOWERCASE`                       |
-
 ---
 
 ### `[cleanup]` - Cleanup behavior
@@ -82,18 +72,7 @@ Configures the `autowt cleanup` command.
 
 ### `[scripts]` - Lifecycle hooks and scripts
 
-Automate setup tasks with lifecycle hooks that run at different points during worktree operations.
-
-| Key            | Type   | Default | Description                                                                                                                                                                                                                                               |
-| -------------- | ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `post_create`  | string | `null`  | A command or script to run as a subprocess after creating a worktree, before terminal session. Ideal for file operations and dependency installation. <br> **ENV**: `AUTOWT_SCRIPTS_POST_CREATE`                                                          |
-| `session_init` | string | `null`  | A command or script to run in the terminal session after creating/switching to a worktree. Perfect for environment setup and shell configuration. <br> **ENV**: `AUTOWT_SCRIPTS_SESSION_INIT` |
-| `pre_cleanup`  | string | `null`  | A command or script to run before cleaning up worktrees. <br> **ENV**: `AUTOWT_SCRIPTS_PRE_CLEANUP`                                                                                                                                                       |
-| `post_cleanup` | string | `null`  | A command or script to run after worktrees are removed. <br> **ENV**: `AUTOWT_SCRIPTS_POST_CLEANUP`                                                                                                                                                       |
-| `pre_switch`   | string | `null`  | A command or script to run before switching away from current worktree. <br> **ENV**: `AUTOWT_SCRIPTS_PRE_SWITCH`                                                                                                                                         |
-| `post_switch`  | string | `null`  | A command or script to run after switching to new worktree. <br> **ENV**: `AUTOWT_SCRIPTS_POST_SWITCH`                                                                                                                                                    |
-
-See the [Lifecycle Hooks guide](lifecyclehooks.md) for detailed examples and execution context information.
+See [Lifecycle Hooks](lifecyclehooks.md).
 
 #### `[scripts.custom]`
 
@@ -110,6 +89,8 @@ release = 'claude "/release"'
 
 These are run _after_ the standard `session_init` script. You can invoke them with the `--custom-script` flag, and any additional arguments are passed to the script. For one-time commands, the `--after-init` flag is often simpler.
 
+This feature is very bare-bones, and is intended to lay the groundwork for future fanciness.
+
 ---
 
 ### `[confirmations]` - User interface
@@ -119,7 +100,6 @@ Manage which operations require a confirmation prompt.
 | Key                | Type    | Default | Description                                                                                                                               |
 | ------------------ | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `cleanup_multiple` | boolean | `true`  | Ask for confirmation before cleaning up multiple worktrees in non-interactive mode. <br> **ENV**: `AUTOWT_CONFIRMATIONS_CLEANUP_MULTIPLE` |
-| `kill_process`     | boolean | `true`  | Ask for confirmation before killing processes during cleanup. <br> **ENV**: `AUTOWT_CONFIRMATIONS_KILL_PROCESS`                           |
 | `force_operations` | boolean | `true`  | Ask for confirmation when using a `--force` flag. <br> **ENV**: `AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS`                                   |
 
 You can skip all confirmations for a single command by using the `-y` or `--yes` flag.

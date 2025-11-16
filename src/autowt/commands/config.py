@@ -144,7 +144,6 @@ class ConfigApp(App):
                 directory_pattern=self.config.worktree.directory_pattern,
                 auto_fetch=auto_fetch,
                 default_remote=self.config.worktree.default_remote,
-                branch_sanitization=self.config.worktree.branch_sanitization,
             ),
             cleanup=CleanupConfig(
                 default_mode=self.config.cleanup.default_mode,
@@ -180,7 +179,6 @@ def show_config(services: Services) -> None:
     print(f"  directory_pattern: {config.worktree.directory_pattern}")
     print(f"  auto_fetch: {config.worktree.auto_fetch}")
     print(f"  default_remote: {config.worktree.default_remote}")
-    print(f"  branch_sanitization: {config.worktree.branch_sanitization}")
     print()
 
     print("Cleanup:")
@@ -199,7 +197,6 @@ def show_config(services: Services) -> None:
 
     print("Confirmations:")
     print(f"  cleanup_multiple: {config.confirmations.cleanup_multiple}")
-    print(f"  kill_process: {config.confirmations.kill_process}")
     print(f"  force_operations: {config.confirmations.force_operations}")
     print()
 

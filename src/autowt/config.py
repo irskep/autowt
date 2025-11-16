@@ -32,24 +32,12 @@ class TerminalConfig:
 
 
 @dataclass(frozen=True)
-class BranchSanitizationConfig:
-    """Branch name sanitization rules."""
-
-    replace_chars: str = "/:#@^~"
-    max_length: int = 255
-    lowercase: bool = False
-
-
-@dataclass(frozen=True)
 class WorktreeConfig:
     """Worktree management configuration."""
 
     directory_pattern: str = "../{repo_name}-worktrees/{branch}"
     auto_fetch: bool = True
     default_remote: str = "origin"
-    branch_sanitization: BranchSanitizationConfig = field(
-        default_factory=BranchSanitizationConfig
-    )
 
 
 @dataclass(frozen=True)
@@ -79,7 +67,6 @@ class ConfirmationsConfig:
     """User confirmation settings."""
 
     cleanup_multiple: bool = True
-    kill_process: bool = True
     force_operations: bool = True
 
 
@@ -103,20 +90,12 @@ class Config:
         confirmations_data = data.get("confirmations", {})
 
         # Handle nested configurations
-        branch_sanitization_data = worktree_data.get("branch_sanitization", {})
-        branch_sanitization = BranchSanitizationConfig(
-            replace_chars=branch_sanitization_data.get("replace_chars", "/:#@^~"),
-            max_length=branch_sanitization_data.get("max_length", 255),
-            lowercase=branch_sanitization_data.get("lowercase", False),
-        )
-
         worktree_config = WorktreeConfig(
             directory_pattern=worktree_data.get(
                 "directory_pattern", "../{repo_name}-worktrees/{branch}"
             ),
             auto_fetch=worktree_data.get("auto_fetch", True),
             default_remote=worktree_data.get("default_remote", "origin"),
-            branch_sanitization=branch_sanitization,
         )
 
         # Handle case where terminal_data might be a string (legacy compatibility)
@@ -175,7 +154,6 @@ class Config:
 
         confirmations_config = ConfirmationsConfig(
             cleanup_multiple=confirmations_data.get("cleanup_multiple", True),
-            kill_process=confirmations_data.get("kill_process", True),
             force_operations=confirmations_data.get("force_operations", True),
         )
 
@@ -303,21 +281,6 @@ class ConfigLoader:
             "WORKTREE_DIRECTORY_PATTERN": ["worktree", "directory_pattern"],
             "WORKTREE_AUTO_FETCH": ["worktree", "auto_fetch"],
             "WORKTREE_DEFAULT_REMOTE": ["worktree", "default_remote"],
-            "WORKTREE_BRANCH_SANITIZATION_REPLACE_CHARS": [
-                "worktree",
-                "branch_sanitization",
-                "replace_chars",
-            ],
-            "WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": [
-                "worktree",
-                "branch_sanitization",
-                "max_length",
-            ],
-            "WORKTREE_BRANCH_SANITIZATION_LOWERCASE": [
-                "worktree",
-                "branch_sanitization",
-                "lowercase",
-            ],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
             "SCRIPTS_POST_CREATE_ASYNC": ["scripts", "post_create_async"],
@@ -327,7 +290,6 @@ class ConfigLoader:
             "SCRIPTS_PRE_SWITCH": ["scripts", "pre_switch"],
             "SCRIPTS_POST_SWITCH": ["scripts", "post_switch"],
             "CONFIRMATIONS_CLEANUP_MULTIPLE": ["confirmations", "cleanup_multiple"],
-            "CONFIRMATIONS_KILL_PROCESS": ["confirmations", "kill_process"],
             "CONFIRMATIONS_FORCE_OPERATIONS": ["confirmations", "force_operations"],
         }
 

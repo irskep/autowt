@@ -237,7 +237,6 @@ class TestCLIRouting:
 
             # Setup mock config
             mock_config = Mock()
-            mock_config.cleanup.kill_processes = False
             mock_get_config.return_value = mock_config
 
             # Test different modes

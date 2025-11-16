@@ -10,7 +10,6 @@ import toml
 
 import autowt.config
 from autowt.config import (
-    BranchSanitizationConfig,
     CleanupConfig,
     Config,
     ConfigLoader,
@@ -45,20 +44,12 @@ class TestConfigDataClasses:
         assert config.always_new is True
         assert config.program == "iterm2"
 
-    def test_branch_sanitization_config_defaults(self):
-        """Test BranchSanitizationConfig default values."""
-        config = BranchSanitizationConfig()
-        assert config.replace_chars == "/:#@^~"
-        assert config.max_length == 255
-        assert config.lowercase is False
-
     def test_worktree_config_defaults(self):
         """Test WorktreeConfig default values."""
         config = WorktreeConfig()
         assert config.directory_pattern == "../{repo_name}-worktrees/{branch}"
         assert config.auto_fetch is True
         assert config.default_remote == "origin"
-        assert isinstance(config.branch_sanitization, BranchSanitizationConfig)
 
     def test_cleanup_config_defaults(self):
         """Test CleanupConfig default values."""
@@ -76,7 +67,6 @@ class TestConfigDataClasses:
         """Test ConfirmationsConfig default values."""
         config = ConfirmationsConfig()
         assert config.cleanup_multiple is True
-        assert config.kill_process is True
         assert config.force_operations is True
 
     def test_main_config_defaults(self):
@@ -119,11 +109,6 @@ class TestConfigFromDict:
                 "directory_pattern": "$HOME/worktrees/{repo_name}/{branch}",
                 "auto_fetch": False,
                 "default_remote": "upstream",
-                "branch_sanitization": {
-                    "replace_chars": "/@#",
-                    "max_length": 100,
-                    "lowercase": True,
-                },
             },
             "cleanup": {
                 "default_mode": "merged",
@@ -134,7 +119,6 @@ class TestConfigFromDict:
             },
             "confirmations": {
                 "cleanup_multiple": False,
-                "kill_process": False,
                 "force_operations": True,
             },
         }
@@ -152,9 +136,6 @@ class TestConfigFromDict:
         )
         assert config.worktree.auto_fetch is False
         assert config.worktree.default_remote == "upstream"
-        assert config.worktree.branch_sanitization.replace_chars == "/@#"
-        assert config.worktree.branch_sanitization.max_length == 100
-        assert config.worktree.branch_sanitization.lowercase is True
 
         # Cleanup config
         assert config.cleanup.default_mode == CleanupMode.MERGED
@@ -165,7 +146,6 @@ class TestConfigFromDict:
 
         # Confirmations config
         assert config.confirmations.cleanup_multiple is False
-        assert config.confirmations.kill_process is False
         assert config.confirmations.force_operations is True
 
     def test_config_invalid_enum_values(self):
@@ -191,11 +171,6 @@ class TestConfigToDict:
                 "directory_pattern": "../{repo_name}-worktrees/{branch}",
                 "auto_fetch": True,
                 "default_remote": "origin",
-                "branch_sanitization": {
-                    "replace_chars": "/:#@^~",
-                    "max_length": 255,
-                    "lowercase": False,
-                },
             },
             "cleanup": {
                 "default_mode": "interactive",
@@ -213,7 +188,6 @@ class TestConfigToDict:
             },
             "confirmations": {
                 "cleanup_multiple": True,
-                "kill_process": True,
                 "force_operations": True,
             },
         }
@@ -372,7 +346,6 @@ class TestConfigLoader:
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "true",
                 "AUTOWT_CLEANUP_DEFAULT_MODE": "merged",
                 "AUTOWT_WORKTREE_AUTO_FETCH": "false",
-                "AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": "100",
                 "AUTOWT_SCRIPTS_SESSION_INIT": "make setup",
             }
 
@@ -384,7 +357,6 @@ class TestConfigLoader:
                 assert config.terminal.always_new is True
                 assert config.cleanup.default_mode == CleanupMode.MERGED
                 assert config.worktree.auto_fetch is False
-                assert config.worktree.branch_sanitization.max_length == 100
                 assert config.scripts.session_init == "make setup"
 
     def test_cli_overrides(self):
@@ -503,7 +475,6 @@ class TestConfigLoader:
             env_vars = {
                 "AUTOWT_TERMINAL_ALWAYS_NEW": "yes",  # Boolean true
                 "AUTOWT_CLEANUP_DEFAULT_MODE": "all",  # String
-                "AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": "150",  # Integer
                 "AUTOWT_SCRIPTS_SESSION_INIT": "echo hello",  # String
             }
 
@@ -513,7 +484,6 @@ class TestConfigLoader:
 
                 assert config.terminal.always_new is True
                 assert config.cleanup.default_mode == CleanupMode.ALL
-                assert config.worktree.branch_sanitization.max_length == 150
                 assert config.scripts.session_init == "echo hello"
 
     def test_save_config(self):

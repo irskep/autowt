@@ -6,7 +6,7 @@ This page provides a comprehensive reference for all `autowt` commands, their op
 
 _(Aliases: `autowt switch <branch-name>`, `autowt sw <branch-name>`, `autowt checkout <branch-name>`, `autowt co <branch-name>`, `autowt goto <branch-name>`, `autowt go <branch-name>`)_
 
-Switch to a worktree, or create a new one. Intelligently checks out existing branches from `origin`, or offers to create a new one if none exists.
+Switch to a worktree, or create a new one. Intelligently checks out existing branches from your default remote (i.e. `origin`), or offers to create a new one if none exists.
 
 **Interactive Mode**: Running `autowt switch` with no arguments opens an interactive TUI.
 
