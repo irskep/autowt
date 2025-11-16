@@ -1,0 +1,24 @@
+{
+  // Use Ruff for Python formatting
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // Ruff extension settings
+  "ruff.enable": true,
+  "ruff.importStrategy": "fromEnvironment",
+
+  // Optional: Use uv run ruff explicitly
+  // "ruff.path": ["uv", "run", "ruff"],
+
+  // Python settings
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.extraPaths": ["${workspaceFolder}/src"],
+  "python.autoComplete.extraPaths": ["${workspaceFolder}/src"]
+}
