@@ -402,7 +402,7 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     aliases=["sw", "checkout", "co", "goto", "go"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.argument("branch", required=False)
+@click.argument("branch", required=False, metavar="BRANCH_OR_PATH")
 @click.option(
     "--terminal",
     type=click.Choice(["tab", "window", "inplace", "echo", "vscode", "cursor"]),
@@ -445,7 +445,11 @@ def switch(
     custom_script: str | None,
     dir: str | None,
 ) -> None:
-    """Switch to or create a worktree for the specified branch."""
+    """Switch to or create a worktree for the specified branch or path.
+
+    BRANCH_OR_PATH can be either a branch name (e.g., 'my-feature') or
+    a path to an existing worktree (e.g., '../myproject-worktrees/feature').
+    """
     setup_logging(debug)
 
     # If no branch provided, show interactive TUI
