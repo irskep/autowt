@@ -290,6 +290,7 @@ def ls(debug: bool) -> None:
     aliases=["cl", "clean", "prune"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
+@click.argument("worktrees", nargs=-1, metavar="[WORKTREES...]")
 @click.option(
     "--mode",
     type=click.Choice(["all", "remoteless", "merged", "interactive", "github"]),
@@ -307,13 +308,18 @@ def ls(debug: bool) -> None:
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def cleanup(
+    worktrees: tuple[str, ...],
     mode: str | None,
     dry_run: bool,
     yes: bool,
     force: bool,
     debug: bool,
 ) -> None:
-    """Clean up merged or remoteless worktrees."""
+    """Clean up merged or remoteless worktrees.
+
+    Can optionally specify worktrees (by branch name or path) to remove.
+    If no worktrees are specified, uses mode-based selection.
+    """
     setup_logging(debug)
 
     # Create CLI overrides for cleanup command
@@ -362,6 +368,7 @@ def cleanup(
         auto_confirm=yes,
         force=force,
         debug=debug,
+        worktrees=list(worktrees) if worktrees else None,
     )
     cleanup_worktrees(cleanup_cmd, services)
 

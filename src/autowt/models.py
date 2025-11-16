@@ -217,3 +217,4 @@ class CleanupCommand:
     auto_confirm: bool = False
     force: bool = False
     debug: bool = False
+    worktrees: list[str] | None = None  # Branch names or paths to clean up

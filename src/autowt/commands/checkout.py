@@ -10,7 +10,7 @@ from autowt.global_config import options
 from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
-from autowt.utils import sanitize_branch_name
+from autowt.utils import resolve_branch_or_path, sanitize_branch_name
 
 logger = logging.getLogger(__name__)
 
@@ -63,53 +63,6 @@ def _prompt_for_alternative_worktree(
         f"That branch's original worktree is now on a different branch ('{conflicting_branch}')"
     )
     return confirm_default_yes(f"Create a new worktree at {alternative_path}?")
-
-
-def resolve_branch_or_path(input_str: str, services: Services) -> str:
-    """Resolve input as either a branch name or a worktree path.
-
-    Args:
-        input_str: The user input (could be branch name or path)
-        services: Services container for git operations
-
-    Returns:
-        The resolved branch name
-    """
-    # Check if the input exists as a path
-    input_path = Path(input_str).expanduser()
-
-    if not input_path.exists():
-        # Doesn't exist as a path, treat as branch name
-        return input_str
-
-    # Path exists - check if it contains path separators
-    has_path_separator = any(char in input_str for char in ["/", "\\", ".", "~"])
-
-    if not has_path_separator:
-        # Ambiguous case: exists as a directory but no path separators
-        # Prompt user to clarify
-        print_info(f"Directory '{input_str}' exists locally.")
-        response = confirm_default_yes(
-            f"Did you mean to switch to branch '{input_str}'? (no = use directory './{input_str}')"
-        )
-        if response:
-            return input_str
-        input_path = Path(f"./{input_str}")
-
-    # Resolve to absolute path (let it raise if it fails)
-    abs_path = input_path.resolve()
-
-    # Check if it's a git worktree (has .git file, not directory)
-    git_path = abs_path / ".git"
-    if not git_path.exists():
-        raise ValueError(f"Not a git worktree: {abs_path}")
-
-    # Get the branch name directly using existing method
-    branch = services.git.get_current_branch(abs_path)
-    if not branch:
-        raise ValueError(f"Could not determine branch for worktree: {abs_path}")
-
-    return branch
 
 
 def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
