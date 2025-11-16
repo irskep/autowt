@@ -74,8 +74,10 @@ class CleanupTUI(App):
                 yield self.list_view
 
             with Horizontal(id="button-row"):
-                yield Button("Confirm Selection", id="confirm", variant="primary")
-                yield Button("Cancel", id="cancel", variant="error")
+                yield Button(
+                    "Confirm Selection", id="confirm", variant="primary", compact=True
+                )
+                yield Button("Cancel", id="cancel", variant="error", compact=True)
 
         yield Footer()
 

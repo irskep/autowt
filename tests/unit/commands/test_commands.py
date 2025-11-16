@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from autowt.commands import checkout, cleanup, ls
 from autowt.models import (
+    BranchStatus,
     CleanupCommand,
     CleanupMode,
     SwitchCommand,
@@ -357,3 +358,185 @@ class TestCleanupCommand:
 
         # Verify no removal calls were made
         assert len(services.git.remove_worktree_calls) == 0
+
+    def test_cleanup_no_branches_found_in_non_interactive_mode(
+        self, temp_repo_path, sample_worktrees, capsys
+    ):
+        """Test that cleanup exits cleanly when no branches are found in non-TTY."""
+        # Setup mocks - worktrees exist but none match cleanup criteria
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        # Set branch statuses where none are merged (so MERGED mode finds nothing)
+        services.git.branch_statuses = [
+            BranchStatus(
+                branch=wt.branch,
+                has_remote=True,
+                is_merged=False,  # Not merged
+                is_identical=False,
+                path=wt.path,
+            )
+            for wt in sample_worktrees
+        ]
+
+        with patch(
+            "autowt.commands.cleanup.is_interactive_terminal", return_value=False
+        ):
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.MERGED, auto_confirm=False)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify it exited cleanly with appropriate message
+        captured = capsys.readouterr()
+        assert "No worktrees selected for cleanup" in captured.out
+
+        # Verify no removal calls were made
+        assert len(services.git.remove_worktree_calls) == 0
+
+    def test_cleanup_no_branches_offers_interactive_mode_in_tty(
+        self, temp_repo_path, sample_worktrees, capsys
+    ):
+        """Test that cleanup offers interactive mode when no branches found in TTY."""
+        # Setup mocks - worktrees exist but none match cleanup criteria
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        # Set branch statuses where none are merged
+        services.git.branch_statuses = [
+            BranchStatus(
+                branch=wt.branch,
+                has_remote=True,
+                is_merged=False,  # Not merged
+                is_identical=False,
+                path=wt.path,
+            )
+            for wt in sample_worktrees
+        ]
+
+        # Mock TTY and user declining interactive mode
+        with (
+            patch("autowt.commands.cleanup.is_interactive_terminal", return_value=True),
+            patch("autowt.commands.cleanup.confirm_default_no", return_value=False),
+        ):
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.MERGED, auto_confirm=False)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify it prompted for interactive mode
+        captured = capsys.readouterr()
+        assert "No worktrees selected for cleanup" in captured.out
+
+        # Verify no removal calls were made
+        assert len(services.git.remove_worktree_calls) == 0
+
+    def test_cleanup_no_branches_enters_interactive_mode_when_accepted(
+        self, temp_repo_path, sample_worktrees
+    ):
+        """Test entering interactive mode when user accepts after no branches found."""
+        # Setup mocks - no branches match the initial MERGED mode criteria
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        # All branches have status but none are merged
+        branch_statuses = [
+            BranchStatus(
+                branch=wt.branch,
+                has_remote=True,
+                is_merged=False,  # Not merged, so MERGED mode finds nothing
+                is_identical=False,
+                path=wt.path,
+            )
+            for wt in sample_worktrees
+        ]
+        services.git.branch_statuses = branch_statuses
+
+        # Mock TTY and user accepting interactive mode
+        with (
+            patch("autowt.commands.cleanup.is_interactive_terminal", return_value=True),
+            patch("autowt.commands.cleanup.confirm_default_no", return_value=True),
+            patch(
+                "autowt.commands.cleanup._interactive_selection",
+                return_value=branch_statuses[:1],
+            ),  # User selects one branch
+            patch("builtins.input", return_value="y"),  # Confirm cleanup
+            patch("builtins.print"),  # Suppress output
+        ):
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.MERGED, auto_confirm=False)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify removal was called (interactive mode returned branches)
+        assert len(services.git.remove_worktree_calls) == 1
+
+    def test_cleanup_no_branches_skips_prompt_with_auto_confirm(
+        self, temp_repo_path, sample_worktrees, capsys
+    ):
+        """Test that auto_confirm skips interactive mode prompt."""
+        # Setup mocks - no branches to clean up
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        # Set branch statuses where none are merged
+        services.git.branch_statuses = [
+            BranchStatus(
+                branch=wt.branch,
+                has_remote=True,
+                is_merged=False,
+                is_identical=False,
+                path=wt.path,
+            )
+            for wt in sample_worktrees
+        ]
+
+        # Even in TTY, auto_confirm should skip the prompt
+        with (
+            patch("autowt.commands.cleanup.is_interactive_terminal", return_value=True),
+            patch("autowt.commands.cleanup.confirm_default_no") as mock_confirm,
+        ):
+            cleanup_cmd = CleanupCommand(mode=CleanupMode.MERGED, auto_confirm=True)
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify prompt was NOT shown (confirm_default_no never called)
+        mock_confirm.assert_not_called()
+
+        # Verify it just exited with message
+        captured = capsys.readouterr()
+        assert "No worktrees selected for cleanup" in captured.out
+
+    def test_cleanup_no_branches_skips_prompt_in_interactive_mode(
+        self, temp_repo_path, sample_worktrees, capsys
+    ):
+        """Test that interactive mode doesn't prompt again when no branches."""
+        # Setup mocks - no branches to clean up
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        services.git.worktrees = sample_worktrees
+        # Set branch statuses where none are merged
+        services.git.branch_statuses = [
+            BranchStatus(
+                branch=wt.branch,
+                has_remote=True,
+                is_merged=False,
+                is_identical=False,
+                path=wt.path,
+            )
+            for wt in sample_worktrees
+        ]
+
+        # When already in interactive mode, shouldn't prompt to enter interactive mode
+        # but will call _interactive_selection, so mock that to return nothing
+        with (
+            patch("autowt.commands.cleanup.is_interactive_terminal", return_value=True),
+            patch("autowt.commands.cleanup.confirm_default_no") as mock_confirm,
+            patch(
+                "autowt.commands.cleanup._interactive_selection", return_value=[]
+            ),  # User selects nothing
+        ):
+            cleanup_cmd = CleanupCommand(
+                mode=CleanupMode.INTERACTIVE, auto_confirm=False
+            )
+            cleanup.cleanup_worktrees(cleanup_cmd, services)
+
+        # Verify prompt was NOT shown
+        mock_confirm.assert_not_called()
+
+        # Verify it just exited with message
+        captured = capsys.readouterr()
+        assert "No worktrees selected for cleanup" in captured.out

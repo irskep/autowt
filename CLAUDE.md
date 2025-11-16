@@ -71,3 +71,7 @@ Worktree paths are generated through configurable patterns with variable interpo
 **New git operations**: Add to GitService following the GitCommands builder pattern for testability. Complex operations use BranchResolver for strategy determination.
 
 **New TUI screens**: Follow textual app pattern in tui/ directory. CSS files are co-located with Python files for styling.
+
+## Style
+
+- Inline imports are considered errors. Put all imports at the top of the file. If concerned about circular imports in new code, propose changes to the module structure to ensure imports are a DAG.

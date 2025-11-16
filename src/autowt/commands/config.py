@@ -5,7 +5,7 @@ import logging
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
+from textual.widgets import Button, Checkbox, Label, RadioButton, RadioSet
 
 from autowt.config import (
     CleanupConfig,
@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 class ConfigApp(App):
     """Simple configuration interface."""
 
+    CSS_PATH = "config.css"
+    AUTO_FOCUS = None  # Disable auto-focus to prevent scroll-on-mount
+
     BINDINGS = [
         Binding("ctrl+s", "save", "Save & Exit"),
         Binding("escape", "cancel", "Cancel & Exit"),
@@ -34,9 +37,8 @@ class ConfigApp(App):
 
     def compose(self) -> ComposeResult:
         """Create the UI layout."""
-        with Vertical():
+        with Vertical(id="main-container"):
             yield Label("Autowt Configuration")
-            yield Label("")
 
             yield Label("Terminal Mode:")
             with RadioSet(id="terminal-mode"):
@@ -61,35 +63,36 @@ class ConfigApp(App):
                     id="mode-echo",
                 )
 
-            yield Label("")
+            yield Checkbox(
+                "Always create new terminal",
+                value=self.config.terminal.always_new,
+                id="always-new",
+            )
 
-            with Horizontal():
-                yield Switch(value=self.config.terminal.always_new, id="always-new")
-                yield Label("Always create new terminal")
+            yield Checkbox(
+                "Automatically fetch from remote before creating worktrees",
+                value=self.config.worktree.auto_fetch,
+                id="auto-fetch",
+            )
 
-            yield Label("")
+            with Horizontal(id="button-row"):
+                yield Button("Save", id="save", variant="primary", compact=True)
+                yield Button("Cancel", id="cancel", variant="error", compact=True)
 
-            with Horizontal():
-                yield Switch(value=self.config.worktree.auto_fetch, id="auto-fetch")
-                yield Label("Automatically fetch from remote before creating worktrees")
-
-            yield Label("")
-
-            with Horizontal():
-                yield Button("Save", id="save")
-                yield Button("Cancel", id="cancel")
-
-            yield Label("")
             yield Label("For all settings, edit the config file directly:")
 
             # Get the actual global config path for this platform
             global_config_path = self.services.config_loader.global_config_file
             yield Label(f"• Global: {global_config_path}")
             yield Label("• Project: autowt.toml or .autowt.toml in repository root")
-            yield Label("")
             yield Label(
                 "Navigation: Tab to move around • Ctrl+S to save • Esc/Q to cancel"
             )
+
+    def on_mount(self) -> None:
+        """Ensure scroll position starts at top when app loads."""
+        container = self.query_one("#main-container")
+        container.scroll_to(0, 0, animate=False)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
@@ -125,12 +128,12 @@ class ConfigApp(App):
                 terminal_mode = TerminalMode.ECHO
 
         # Get always new setting
-        always_new_switch = self.query_one("#always-new", Switch)
-        always_new = always_new_switch.value
+        always_new_checkbox = self.query_one("#always-new", Checkbox)
+        always_new = always_new_checkbox.value
 
         # Get auto fetch setting
-        auto_fetch_switch = self.query_one("#auto-fetch", Switch)
-        auto_fetch = auto_fetch_switch.value
+        auto_fetch_checkbox = self.query_one("#auto-fetch", Checkbox)
+        auto_fetch = auto_fetch_checkbox.value
 
         # Create new config with updated values (immutable dataclasses)
 

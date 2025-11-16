@@ -14,10 +14,12 @@
   - Shows simple confirmation with worktree list before removal
   - Works with all existing flags: `--dry-run`, `--force`, `-y`
 - Added `rm`, `remove`, `del`, and `delete` as aliases for `cleanup` command
+- When non-interactive cleanup modes (merged, remoteless, all, github) find no branches to clean up, autowt now offers to enter interactive mode (only in TTY environments, skipped with `-y` flag)
 
 ### Changed or removed
 
 - Hook output is no longer captured by autowt and will output to your terminal.
+- Visual overhaul of the interactive terminal UIs
 - `post_cleanup` and `pre_create` hooks execute with the main repo as the working directory, since worktree doesn't exist yet/anymore.
 - Removed all agent-related functionality. I haven't found value in it and I don't think anyone is using it.
 - Remove process killing functionality. It has too many pitfalls.

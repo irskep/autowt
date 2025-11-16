@@ -121,8 +121,8 @@ class SwitchTUI(App):
             yield self.new_branch_input
 
             with Horizontal(id="button-row"):
-                yield Button("Switch", id="confirm", variant="primary")
-                yield Button("Cancel", id="cancel", variant="error")
+                yield Button("Switch", id="confirm", variant="primary", compact=True)
+                yield Button("Cancel", id="cancel", variant="error", compact=True)
 
         yield Footer()
 

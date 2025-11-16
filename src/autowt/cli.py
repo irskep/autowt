@@ -2,7 +2,6 @@
 
 import logging
 import os
-import sys
 from importlib.metadata import version
 from pathlib import Path
 
@@ -26,7 +25,11 @@ from autowt.models import (
 from autowt.prompts import prompt_cleanup_mode_selection
 from autowt.shell_integrations import show_shell_config
 from autowt.tui.switch import run_switch_tui
-from autowt.utils import run_command_quiet_on_failure, setup_command_logging
+from autowt.utils import (
+    is_interactive_terminal,
+    run_command_quiet_on_failure,
+    setup_command_logging,
+)
 
 
 def setup_logging(debug: bool) -> None:
@@ -79,15 +82,6 @@ def check_for_version_updates(services: Services) -> None:
     except Exception:
         # Silently fail - version checking should never break the main command
         pass
-
-
-def is_interactive_terminal() -> bool:
-    """Check if running in an interactive terminal.
-
-    Uses the same approach as Click's internal TTY detection.
-    This function can be easily mocked in tests for consistent behavior.
-    """
-    return sys.stdin.isatty()
 
 
 def _run_interactive_switch(services) -> tuple[str | None, bool]:
