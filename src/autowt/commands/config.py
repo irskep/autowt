@@ -13,7 +13,7 @@ from autowt.config import (
     TerminalConfig,
     WorktreeConfig,
 )
-from autowt.models import Services, TerminalMode
+from autowt.models import CleanupMode, Services, TerminalMode
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,34 @@ class ConfigApp(App):
                 value=self.config.worktree.auto_fetch,
                 id="auto-fetch",
             )
+
+            yield Label("Default Cleanup Mode:")
+            with RadioSet(id="cleanup-mode"):
+                yield RadioButton(
+                    "interactive - Choose branches via TUI",
+                    value=self.config.cleanup.default_mode == CleanupMode.INTERACTIVE,
+                    id="cleanup-interactive",
+                )
+                yield RadioButton(
+                    "merged - Auto-select merged branches",
+                    value=self.config.cleanup.default_mode == CleanupMode.MERGED,
+                    id="cleanup-merged",
+                )
+                yield RadioButton(
+                    "remoteless - Auto-select branches without remote",
+                    value=self.config.cleanup.default_mode == CleanupMode.REMOTELESS,
+                    id="cleanup-remoteless",
+                )
+                yield RadioButton(
+                    "all - Auto-select merged + remoteless branches",
+                    value=self.config.cleanup.default_mode == CleanupMode.ALL,
+                    id="cleanup-all",
+                )
+                yield RadioButton(
+                    "github - Use GitHub CLI to find merged/closed PRs",
+                    value=self.config.cleanup.default_mode == CleanupMode.GITHUB,
+                    id="cleanup-github",
+                )
 
             with Horizontal(id="button-row"):
                 yield Button("Save", id="save", variant="primary", compact=True)
@@ -138,6 +166,23 @@ class ConfigApp(App):
         auto_fetch_checkbox = self.query_one("#auto-fetch", Checkbox)
         auto_fetch = auto_fetch_checkbox.value
 
+        # Get cleanup mode from radio buttons
+        cleanup_radio_set = self.query_one("#cleanup-mode", RadioSet)
+        cleanup_pressed_button = cleanup_radio_set.pressed_button
+
+        cleanup_mode = self.config.cleanup.default_mode
+        if cleanup_pressed_button:
+            if cleanup_pressed_button.id == "cleanup-interactive":
+                cleanup_mode = CleanupMode.INTERACTIVE
+            elif cleanup_pressed_button.id == "cleanup-merged":
+                cleanup_mode = CleanupMode.MERGED
+            elif cleanup_pressed_button.id == "cleanup-remoteless":
+                cleanup_mode = CleanupMode.REMOTELESS
+            elif cleanup_pressed_button.id == "cleanup-all":
+                cleanup_mode = CleanupMode.ALL
+            elif cleanup_pressed_button.id == "cleanup-github":
+                cleanup_mode = CleanupMode.GITHUB
+
         # Create new config with updated values (immutable dataclasses)
 
         new_config = Config(
@@ -152,7 +197,7 @@ class ConfigApp(App):
                 default_remote=self.config.worktree.default_remote,
             ),
             cleanup=CleanupConfig(
-                default_mode=self.config.cleanup.default_mode,
+                default_mode=cleanup_mode,
             ),
             scripts=self.config.scripts,
             confirmations=self.config.confirmations,
