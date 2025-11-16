@@ -20,6 +20,8 @@
 
 - Hook output is no longer captured by autowt and will output to your terminal.
 - Visual overhaul of the interactive terminal UIs
+- Default cleanup mode can be edited with `autowt config`
+- `autowt config` only shows/edits global config, not project config
 - `post_cleanup` and `pre_create` hooks execute with the main repo as the working directory, since worktree doesn't exist yet/anymore.
 - Removed all agent-related functionality. I haven't found value in it and I don't think anyone is using it.
 - Remove process killing functionality. It has too many pitfalls.
