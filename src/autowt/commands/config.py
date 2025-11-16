@@ -13,7 +13,7 @@ from autowt.config import (
     TerminalConfig,
     WorktreeConfig,
 )
-from autowt.models import Services, TerminalMode
+from autowt.models import CleanupMode, Services, TerminalMode
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,13 @@ class ConfigApp(App):
     def __init__(self, services: Services):
         super().__init__()
         self.services = services
-        self.config = services.state.load_config()
+        # Load only global config for editing (not merged with project config)
+        self.config = services.config_loader.load_global_config_only()
 
     def compose(self) -> ComposeResult:
         """Create the UI layout."""
         with Vertical(id="main-container"):
-            yield Label("Autowt Configuration")
+            yield Label("Global Configuration")
 
             yield Label("Terminal Mode:")
             with RadioSet(id="terminal-mode"):
@@ -75,16 +76,46 @@ class ConfigApp(App):
                 id="auto-fetch",
             )
 
+            yield Label("Default Cleanup Mode:")
+            with RadioSet(id="cleanup-mode"):
+                yield RadioButton(
+                    "interactive - Choose branches via TUI",
+                    value=self.config.cleanup.default_mode == CleanupMode.INTERACTIVE,
+                    id="cleanup-interactive",
+                )
+                yield RadioButton(
+                    "merged - Auto-select merged branches",
+                    value=self.config.cleanup.default_mode == CleanupMode.MERGED,
+                    id="cleanup-merged",
+                )
+                yield RadioButton(
+                    "remoteless - Auto-select branches without remote",
+                    value=self.config.cleanup.default_mode == CleanupMode.REMOTELESS,
+                    id="cleanup-remoteless",
+                )
+                yield RadioButton(
+                    "all - Auto-select merged + remoteless branches",
+                    value=self.config.cleanup.default_mode == CleanupMode.ALL,
+                    id="cleanup-all",
+                )
+                yield RadioButton(
+                    "github - Use GitHub CLI to find merged/closed PRs",
+                    value=self.config.cleanup.default_mode == CleanupMode.GITHUB,
+                    id="cleanup-github",
+                )
+
             with Horizontal(id="button-row"):
                 yield Button("Save", id="save", variant="primary", compact=True)
                 yield Button("Cancel", id="cancel", variant="error", compact=True)
 
-            yield Label("For all settings, edit the config file directly:")
+            yield Label("These settings apply globally to all repositories.")
 
             # Get the actual global config path for this platform
             global_config_path = self.services.config_loader.global_config_file
-            yield Label(f"• Global: {global_config_path}")
-            yield Label("• Project: autowt.toml or .autowt.toml in repository root")
+            yield Label(f"Global config file: {global_config_path}")
+            yield Label(
+                "For project-specific settings, create .autowt.toml in your repository root."
+            )
             yield Label(
                 "Navigation: Tab to move around • Ctrl+S to save • Esc/Q to cancel"
             )
@@ -135,6 +166,23 @@ class ConfigApp(App):
         auto_fetch_checkbox = self.query_one("#auto-fetch", Checkbox)
         auto_fetch = auto_fetch_checkbox.value
 
+        # Get cleanup mode from radio buttons
+        cleanup_radio_set = self.query_one("#cleanup-mode", RadioSet)
+        cleanup_pressed_button = cleanup_radio_set.pressed_button
+
+        cleanup_mode = self.config.cleanup.default_mode
+        if cleanup_pressed_button:
+            if cleanup_pressed_button.id == "cleanup-interactive":
+                cleanup_mode = CleanupMode.INTERACTIVE
+            elif cleanup_pressed_button.id == "cleanup-merged":
+                cleanup_mode = CleanupMode.MERGED
+            elif cleanup_pressed_button.id == "cleanup-remoteless":
+                cleanup_mode = CleanupMode.REMOTELESS
+            elif cleanup_pressed_button.id == "cleanup-all":
+                cleanup_mode = CleanupMode.ALL
+            elif cleanup_pressed_button.id == "cleanup-github":
+                cleanup_mode = CleanupMode.GITHUB
+
         # Create new config with updated values (immutable dataclasses)
 
         new_config = Config(
@@ -149,7 +197,7 @@ class ConfigApp(App):
                 default_remote=self.config.worktree.default_remote,
             ),
             cleanup=CleanupConfig(
-                default_mode=self.config.cleanup.default_mode,
+                default_mode=cleanup_mode,
             ),
             scripts=self.config.scripts,
             confirmations=self.config.confirmations,
