@@ -29,6 +29,7 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 
 ### Removed
 
+-   Removed automatic process killing during cleanup. If you want this behavior, use the lifecycle scripts. Open a GitHub issue if you were relying on it and we can work out an appopriate solution.
 -   Removed unnecessary config options
     -   `worktree.default_remote`: autowt now queries git for branch tracking remotes with fallback priority (origin → upstream → first available)
     -   `worktree.branch_name_sanitization_enabled` and `worktree.branch_name_sanitization_replacements`: no one ever used these
