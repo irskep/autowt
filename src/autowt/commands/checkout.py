@@ -4,10 +4,9 @@ import logging
 from pathlib import Path
 
 from autowt.cli_config import resolve_custom_script_with_interpolation
-from autowt.config import get_config_loader
 from autowt.console import print_error, print_info, print_success
 from autowt.global_config import options
-from autowt.hooks import HookRunner, HookType, extract_hook_scripts
+from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.utils import sanitize_branch_name
@@ -135,8 +134,14 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
         )
         try:
             # Run pre_switch hooks
-            _run_pre_switch_hooks(
-                existing_worktree.path, repo_path, config, switch_cmd.branch
+            _run_hook_set(
+                services,
+                HookType.PRE_SWITCH,
+                existing_worktree.path,
+                repo_path,
+                config,
+                switch_cmd.branch,
+                abort_on_failure=False,
             )
 
             success = services.terminal.switch_to_worktree(
@@ -154,8 +159,14 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
                 return
 
             # Run post_switch hooks
-            _run_post_switch_hooks(
-                existing_worktree.path, repo_path, config, switch_cmd.branch
+            _run_hook_set(
+                services,
+                HookType.POST_SWITCH,
+                existing_worktree.path,
+                repo_path,
+                config,
+                switch_cmd.branch,
+                abort_on_failure=False,
             )
 
             # Session ID will be registered by the new tab itself
@@ -262,7 +273,15 @@ def _create_new_worktree(
     config = services.state.load_config(project_dir=repo_path)
 
     # Run pre_create hooks before creating the worktree
-    if not _run_pre_create_hooks(worktree_path, repo_path, config, switch_cmd.branch):
+    if not _run_hook_set(
+        services,
+        HookType.PRE_CREATE,
+        worktree_path,
+        repo_path,
+        config,
+        switch_cmd.branch,
+        abort_on_failure=True,
+    ):
         print_error("pre_create hooks failed, aborting worktree creation")
         return
 
@@ -276,12 +295,47 @@ def _create_new_worktree(
     print_success(f"✓ Worktree created at {worktree_path}")
 
     # Run post_create hooks after worktree creation
-    if not _run_post_create_hooks(worktree_path, repo_path, config, switch_cmd.branch):
+    if not _run_hook_set(
+        services,
+        HookType.POST_CREATE,
+        worktree_path,
+        repo_path,
+        config,
+        switch_cmd.branch,
+        abort_on_failure=True,
+    ):
         print_error("post_create hooks failed, aborting worktree creation")
         return
 
     # Run pre_switch hooks for new worktree
-    _run_pre_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
+    _run_hook_set(
+        services,
+        HookType.PRE_SWITCH,
+        worktree_path,
+        repo_path,
+        config,
+        switch_cmd.branch,
+        abort_on_failure=False,
+    )
+
+    # Determine if terminal mode performs an actual switch
+    # ECHO/INPLACE modes don't actually switch terminals
+    runs_async_before_switch = terminal_mode in (
+        TerminalMode.ECHO,
+        TerminalMode.INPLACE,
+    )
+
+    # For ECHO/INPLACE modes, run async hooks before switching (since no actual switch happens)
+    if runs_async_before_switch:
+        _run_hook_set(
+            services,
+            HookType.POST_CREATE_ASYNC,
+            worktree_path,
+            repo_path,
+            config,
+            switch_cmd.branch,
+            abort_on_failure=False,
+        )
 
     # Switch to the new worktree
     # Combine after_init and custom script
@@ -302,7 +356,28 @@ def _create_new_worktree(
         return
 
     # Run post_switch hooks for new worktree
-    _run_post_switch_hooks(worktree_path, repo_path, config, switch_cmd.branch)
+    _run_hook_set(
+        services,
+        HookType.POST_SWITCH,
+        worktree_path,
+        repo_path,
+        config,
+        switch_cmd.branch,
+        abort_on_failure=False,
+    )
+
+    # For modes that actually switch terminals, run async hooks after switching
+    # (user is already in new terminal, this runs in original terminal)
+    if not runs_async_before_switch:
+        _run_hook_set(
+            services,
+            HookType.POST_CREATE_ASYNC,
+            worktree_path,
+            repo_path,
+            config,
+            switch_cmd.branch,
+            abort_on_failure=False,
+        )
 
     # Session ID will be registered by the new tab itself
 
@@ -387,135 +462,61 @@ def _generate_worktree_path(
     return worktree_path
 
 
-def _run_pre_create_hooks(
+def _run_hook_set(
+    services: Services,
+    hook_type: str,
     worktree_path: Path,
     repo_path: Path,
     config,
     branch_name: str,
+    *,
+    abort_on_failure: bool = False,
+    dry_run: bool = False,
 ) -> bool:
-    """Run pre_create hooks before creating a worktree.
+    """Generic hook runner for all hook types.
+
+    Args:
+        services: Services container
+        hook_type: Type of hook (from HookType constants)
+        worktree_path: Path to the worktree
+        repo_path: Path to the repository
+        config: Project configuration (already loaded)
+        branch_name: Name of the branch
+        abort_on_failure: If True, return False on failure; if False, warn and continue
+        dry_run: If True, just print what would run
 
     Returns:
-        True if all hooks succeeded, False if any failed
+        True if hooks succeeded or no hooks exist, False if hooks failed and abort_on_failure=True
     """
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
+    if dry_run:
+        print_info(f"[DRY RUN] Would run {hook_type} hooks for {branch_name}")
+        return True
 
-    # Get global config by loading without project dir
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
+    # Load global config
+    global_config = services.config_loader.load_config(project_dir=None)
 
+    # Extract hook scripts
     global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, HookType.PRE_CREATE
+        global_config, config, hook_type
     )
 
-    if global_scripts or project_scripts:
-        print_info(f"Running pre_create hooks for {branch_name}")
-        return hook_runner.run_hooks(
-            global_scripts,
-            project_scripts,
-            HookType.PRE_CREATE,
-            worktree_path,
-            repo_path,
-            branch_name,
-        )
+    # Early return if no hooks
+    if not global_scripts and not project_scripts:
+        return True
 
-    return True
-
-
-def _run_post_create_hooks(
-    worktree_path: Path,
-    repo_path: Path,
-    config,
-    branch_name: str,
-) -> bool:
-    """Run post_create hooks after creating a worktree but before terminal switch.
-
-    Returns:
-        True if all hooks succeeded, False if any failed
-    """
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
-
-    # Get global config by loading without project dir
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
-
-    global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, HookType.POST_CREATE
+    # Run hooks
+    print_info(f"Running {hook_type} hooks for {branch_name}")
+    success = services.hooks.run_hooks(
+        global_scripts,
+        project_scripts,
+        hook_type,
+        worktree_path,
+        repo_path,
+        branch_name,
     )
 
-    if global_scripts or project_scripts:
-        print_info(f"Running post_create hooks for {branch_name}")
-        return hook_runner.run_hooks(
-            global_scripts,
-            project_scripts,
-            HookType.POST_CREATE,
-            worktree_path,
-            repo_path,
-            branch_name,
-        )
+    # Handle failure
+    if not success and not abort_on_failure:
+        print_info(f"Warning: {hook_type} hooks failed, but continuing anyway")
 
-    return True
-
-
-def _run_pre_switch_hooks(
-    worktree_path: Path,
-    repo_path: Path,
-    config,
-    branch_name: str,
-) -> None:
-    """Run pre_switch hooks before switching to a worktree."""
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
-
-    # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
-
-    global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, HookType.PRE_SWITCH
-    )
-
-    if global_scripts or project_scripts:
-        print_info(f"Running pre_switch hooks for {branch_name}")
-        hook_runner.run_hooks(
-            global_scripts,
-            project_scripts,
-            HookType.PRE_SWITCH,
-            worktree_path,
-            repo_path,
-            branch_name,
-        )
-
-
-def _run_post_switch_hooks(
-    worktree_path: Path,
-    repo_path: Path,
-    config,
-    branch_name: str,
-) -> None:
-    """Run post_switch hooks after switching to a worktree."""
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
-
-    # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
-
-    global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, HookType.POST_SWITCH
-    )
-
-    if global_scripts or project_scripts:
-        print_info(f"Running post_switch hooks for {branch_name}")
-        hook_runner.run_hooks(
-            global_scripts,
-            project_scripts,
-            HookType.POST_SWITCH,
-            worktree_path,
-            repo_path,
-            branch_name,
-        )
+    return success if abort_on_failure else True

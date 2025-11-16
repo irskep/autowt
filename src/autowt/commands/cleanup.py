@@ -10,8 +10,8 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
-from autowt.config import get_config_loader
-from autowt.hooks import HookRunner, HookType, extract_hook_scripts
+from autowt.console import print_error, print_info, print_success
+from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
 from autowt.prompts import confirm_default_no, confirm_default_yes
 
@@ -43,7 +43,7 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     # Find git repository
     repo_path = services.git.find_repo_root()
     if not repo_path:
-        print("Error: Not in a git repository")
+        print_error("Not in a git repository")
         return
 
     # Load config (still needed for other settings)
@@ -55,25 +55,25 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
             # This will raise RuntimeError if gh is not available
             services.github.analyze_branches_for_cleanup(repo_path, [], services.git)
         except RuntimeError as e:
-            print(f"Error: {e}")
+            print_error(str(e))
             return
 
-    print("Fetching branches...")
+    print_info("Fetching branches...")
     if not services.git.fetch_branches(repo_path):
-        print("Warning: Failed to fetch latest branches")
+        print_info("Warning: Failed to fetch latest branches")
 
-    print("Checking branch status...")
+    print_info("Checking branch status...")
 
     # Get worktrees and analyze them
     worktrees = services.git.list_worktrees(repo_path)
     if not worktrees:
-        print("No worktrees found.")
+        print_info("No worktrees found.")
         return
 
     # Filter out primary clone and any primary worktrees
     worktrees = [wt for wt in worktrees if wt.path != repo_path and not wt.is_primary]
     if not worktrees:
-        print("No secondary worktrees found.")
+        print_info("No secondary worktrees found.")
         return
 
     # Analyze branches
@@ -94,13 +94,13 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
 
         # Display GitHub-specific status
         if github_merged_branches:
-            print("Branches with merged or closed PRs:")
+            print_info("Branches with merged or closed PRs:")
             for branch_status in github_merged_branches:
                 print(f"- {branch_status.branch}")
             print()
 
         if github_open_branches:
-            print("Branches with open or no PRs (will be kept):")
+            print_info("Branches with open or no PRs (will be kept):")
             for branch_status in github_open_branches:
                 print(f"- {branch_status.branch}")
             print()
@@ -125,18 +125,18 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         merged_branches,
     )
     if not to_cleanup:
-        print("No worktrees selected for cleanup.")
+        print_info("No worktrees selected for cleanup.")
         return
 
     # Show what will be cleaned up and confirm
     if not _confirm_cleanup(
         to_cleanup, cleanup_cmd.mode, cleanup_cmd.dry_run, cleanup_cmd.auto_confirm
     ):
-        print("Cleanup cancelled.")
+        print_info("Cleanup cancelled.")
         return
 
     # Run pre_cleanup hooks for each worktree
-    _run_pre_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+    _run_pre_cleanup_hooks(services, to_cleanup, repo_path, config, cleanup_cmd.dry_run)
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
@@ -149,7 +149,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
     )
 
     # Run post_cleanup hooks for each worktree
-    _run_post_cleanup_hooks(to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+    _run_post_cleanup_hooks(
+        services, to_cleanup, repo_path, config, cleanup_cmd.dry_run
+    )
 
 
 def _display_branch_status(
@@ -159,19 +161,19 @@ def _display_branch_status(
 ) -> None:
     """Display the status of branches for cleanup."""
     if remoteless_branches:
-        print("Branches without remotes:")
+        print_info("Branches without remotes:")
         for branch_status in remoteless_branches:
             print(f"- {branch_status.branch}")
         print()
 
     if identical_branches:
-        print("Branches identical to main:")
+        print_info("Branches identical to main:")
         for branch_status in identical_branches:
             print(f"- {branch_status.branch}")
         print()
 
     if merged_branches:
-        print("Branches that were merged:")
+        print_info("Branches that were merged:")
         for branch_status in merged_branches:
             print(f"- {branch_status.branch}")
         print()
@@ -191,7 +193,7 @@ def _select_branches_for_cleanup(
         clean_branches = [b for b in branches if not b.has_uncommitted_changes]
         dirty_count = len(branches) - len(clean_branches)
         if dirty_count > 0:
-            print(f"Skipping {dirty_count} worktree(s) with uncommitted changes")
+            print_info(f"Skipping {dirty_count} worktree(s) with uncommitted changes")
         return clean_branches
 
     if mode == CleanupMode.ALL:
@@ -225,7 +227,7 @@ def _select_branches_for_cleanup(
         # Users can make informed decisions about what to clean up
         return _interactive_selection(all_statuses)
     else:
-        print(f"Unknown cleanup mode: {mode}")
+        print_error(f"Unknown cleanup mode: {mode}")
         return []
 
 
@@ -238,7 +240,7 @@ def _confirm_cleanup(
     """Show what will be cleaned up and get user confirmation."""
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
 
-    print(f"\n{dry_run_prefix}Worktrees to be removed:")
+    print_info(f"\n{dry_run_prefix}Worktrees to be removed:")
     for branch_status in to_cleanup:
         display_path = _format_path_for_display(branch_status.path)
         print(f"- {branch_status.branch} ({display_path})")
@@ -266,14 +268,14 @@ def _remove_worktrees_and_update_state(
 ) -> None:
     """Remove worktrees and update application state."""
     dry_run_prefix = "[DRY RUN] " if dry_run else ""
-    print(f"{dry_run_prefix}Removing worktrees...")
+    print_info(f"{dry_run_prefix}Removing worktrees...")
     removed_count = 0
     successfully_removed_branches = []
 
     for branch_status in to_cleanup:
         if dry_run:
             # Simulate successful removal in dry-run mode
-            print(f"{dry_run_prefix}✓ Would remove {branch_status.branch}")
+            print_info(f"{dry_run_prefix}✓ Would remove {branch_status.branch}")
             removed_count += 1
             successfully_removed_branches.append(branch_status.branch)
         else:
@@ -281,11 +283,11 @@ def _remove_worktrees_and_update_state(
             if services.git.remove_worktree(
                 repo_path, branch_status.path, force=force, interactive=not auto_confirm
             ):
-                print(f"✓ Removed {branch_status.branch}")
+                print_success(f"✓ Removed {branch_status.branch}")
                 removed_count += 1
                 successfully_removed_branches.append(branch_status.branch)
             else:
-                print(f"✗ Failed to remove {branch_status.branch}")
+                print_error(f"✗ Failed to remove {branch_status.branch}")
 
     # Delete local branches for successfully removed worktrees
     deleted_branches = 0
@@ -293,7 +295,9 @@ def _remove_worktrees_and_update_state(
         should_delete_branches = auto_confirm
 
         if not auto_confirm:
-            print(f"\n{dry_run_prefix}The following local branches will be deleted:")
+            print_info(
+                f"\n{dry_run_prefix}The following local branches will be deleted:"
+            )
             for branch in successfully_removed_branches:
                 print(f"  - {branch}")
 
@@ -303,32 +307,32 @@ def _remove_worktrees_and_update_state(
             should_delete_branches = confirm_default_yes(prompt)
 
         if should_delete_branches:
-            print(f"{dry_run_prefix}Deleting local branches...")
+            print_info(f"{dry_run_prefix}Deleting local branches...")
             for branch in successfully_removed_branches:
                 if dry_run:
                     # Simulate successful branch deletion in dry-run mode
-                    print(f"{dry_run_prefix}✓ Would delete branch {branch}")
+                    print_info(f"{dry_run_prefix}✓ Would delete branch {branch}")
                     deleted_branches += 1
                 else:
                     # Real execution
                     if services.git.delete_branch(repo_path, branch, force=True):
-                        print(f"✓ Deleted branch {branch}")
+                        print_success(f"✓ Deleted branch {branch}")
                         deleted_branches += 1
                     else:
-                        print(f"✗ Failed to delete branch {branch}")
+                        print_error(f"✗ Failed to delete branch {branch}")
         else:
-            print(f"{dry_run_prefix}Skipped branch deletion.")
+            print_info(f"{dry_run_prefix}Skipped branch deletion.")
 
     # Update state if we removed any worktrees
     if removed_count == 0:
-        print(f"\n{dry_run_prefix}Cleanup complete. No worktrees were removed.")
+        print_info(f"\n{dry_run_prefix}Cleanup complete. No worktrees were removed.")
         return
 
     summary = f"\n{dry_run_prefix}Cleanup complete. {'Would remove' if dry_run else 'Removed'} {removed_count} worktrees"
     if deleted_branches > 0:
         summary += f" and {'would delete' if dry_run else 'deleted'} {deleted_branches} local branches"
     summary += "."
-    print(summary)
+    print_success(summary)
 
 
 def _interactive_selection(branch_statuses: list[BranchStatus]) -> list[BranchStatus]:
@@ -348,8 +352,8 @@ def _simple_interactive_selection(
     branch_statuses: list[BranchStatus],
 ) -> list[BranchStatus]:
     """Simple text-based interactive selection."""
-    print("\nInteractive cleanup mode")
-    print("Select worktrees to remove:")
+    print_info("\nInteractive cleanup mode")
+    print_info("Select worktrees to remove:")
     print()
 
     selected = []
@@ -367,12 +371,13 @@ def _simple_interactive_selection(
             selected.append(branch_status)
 
     if selected:
-        print(f"\nSelected {len(selected)} worktrees for removal.")
+        print_info(f"\nSelected {len(selected)} worktrees for removal.")
 
     return selected
 
 
 def _run_pre_cleanup_hooks(
+    services: Services,
     to_cleanup: list[BranchStatus],
     repo_path: Path,
     config,
@@ -380,35 +385,31 @@ def _run_pre_cleanup_hooks(
 ) -> None:
     """Run pre_cleanup hooks for worktrees being cleaned up."""
     if dry_run:
-        print("[DRY RUN] Would run pre_cleanup hooks")
+        print_info("[DRY RUN] Would run pre_cleanup hooks")
         return
 
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
+    global_config = services.config_loader.load_config(project_dir=None)
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.PRE_CLEANUP
+    )
 
-    # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
+    if not global_scripts and not project_scripts:
+        return
 
     for branch_status in to_cleanup:
-        global_scripts, project_scripts = extract_hook_scripts(
-            global_config, config, HookType.PRE_CLEANUP
+        print_info(f"Running pre_cleanup hooks for {branch_status.branch}")
+        services.hooks.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.PRE_CLEANUP,
+            branch_status.path,
+            repo_path,
+            branch_status.branch,
         )
-
-        if global_scripts or project_scripts:
-            print(f"Running pre_cleanup hooks for {branch_status.branch}")
-            hook_runner.run_hooks(
-                global_scripts,
-                project_scripts,
-                HookType.PRE_CLEANUP,
-                branch_status.path,
-                repo_path,
-                branch_status.branch,
-            )
 
 
 def _run_post_cleanup_hooks(
+    services: Services,
     to_cleanup: list[BranchStatus],
     repo_path: Path,
     config,
@@ -416,31 +417,26 @@ def _run_post_cleanup_hooks(
 ) -> None:
     """Run post_cleanup hooks for worktrees that were cleaned up."""
     if dry_run:
-        print("[DRY RUN] Would run post_cleanup hooks")
+        print_info("[DRY RUN] Would run post_cleanup hooks")
         return
 
-    # Load both global and project configurations to run both sets of hooks
-    hook_runner = HookRunner()
+    global_config = services.config_loader.load_config(project_dir=None)
+    global_scripts, project_scripts = extract_hook_scripts(
+        global_config, config, HookType.POST_CLEANUP
+    )
 
-    # Get global config by loading without project dir
-
-    loader = get_config_loader()
-    global_config = loader.load_config(project_dir=None)
+    if not global_scripts and not project_scripts:
+        return
 
     for branch_status in to_cleanup:
-        global_scripts, project_scripts = extract_hook_scripts(
-            global_config, config, HookType.POST_CLEANUP
+        print_info(f"Running post_cleanup hooks for {branch_status.branch}")
+        # Note: For post_cleanup hooks, the worktree_dir might no longer exist
+        # But we still pass it as hooks may need the path information
+        services.hooks.run_hooks(
+            global_scripts,
+            project_scripts,
+            HookType.POST_CLEANUP,
+            branch_status.path,
+            repo_path,
+            branch_status.branch,
         )
-
-        if global_scripts or project_scripts:
-            print(f"Running post_cleanup hooks for {branch_status.branch}")
-            # Note: For post_cleanup hooks, the worktree_dir might no longer exist
-            # But we still pass it as hooks may need the path information
-            hook_runner.run_hooks(
-                global_scripts,
-                project_scripts,
-                HookType.POST_CLEANUP,
-                branch_status.path,
-                repo_path,
-                branch_status.branch,
-            )

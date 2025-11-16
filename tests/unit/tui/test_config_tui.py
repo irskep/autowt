@@ -143,6 +143,11 @@ class TestConfigTUIUserWorkflows:
         mock_state.app_dir = Path("/tmp/test")
         mock_services.state = mock_state
 
+        # Mock config_loader (needed for compose() method)
+        mock_config_loader = MagicMock()
+        mock_config_loader.global_config_file = Path("/tmp/test/config.toml")
+        mock_services.config_loader = mock_config_loader
+
         # Mock load_config to return a test config
         test_config = Config(
             terminal=TerminalConfig(mode=TerminalMode.TAB, always_new=False),
@@ -177,6 +182,11 @@ class TestConfigTUIUserWorkflows:
             mock_state.app_dir = app_dir
             mock_services.state = mock_state
 
+            # Mock config_loader (needed for compose() method)
+            mock_config_loader = MagicMock()
+            mock_config_loader.global_config_file = app_dir / "config.toml"
+            mock_services.config_loader = mock_config_loader
+
             # Mock load_config
             test_config = Config()
             mock_state.load_config.return_value = test_config
@@ -203,6 +213,11 @@ class TestConfigTUIUserWorkflows:
         mock_state = MagicMock(spec=StateService)
         mock_state.app_dir = Path("/tmp/test")
         mock_services.state = mock_state
+
+        # Mock config_loader (needed for compose() method)
+        mock_config_loader = MagicMock()
+        mock_config_loader.global_config_file = Path("/tmp/test/config.toml")
+        mock_services.config_loader = mock_config_loader
 
         # Start with default config
         test_config = Config(
@@ -236,6 +251,11 @@ class TestConfigTUIUserWorkflows:
         mock_state = MagicMock(spec=StateService)
         mock_state.app_dir = Path("/tmp/test")
         mock_services.state = mock_state
+
+        # Mock config_loader (needed for compose() method)
+        mock_config_loader = MagicMock()
+        mock_config_loader.global_config_file = Path("/tmp/test/config.toml")
+        mock_services.config_loader = mock_config_loader
 
         test_config = Config()
         mock_state.load_config.return_value = test_config

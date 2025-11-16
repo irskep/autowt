@@ -13,7 +13,6 @@ def build_custom_config(
     terminal_mode: TerminalMode = TerminalMode.TAB,
     cleanup_mode: CleanupMode = CleanupMode.INTERACTIVE,
     always_new: bool = False,
-    kill_processes: bool = False,
 ) -> Config:
     """Build custom configuration with specific settings."""
     return Config(
@@ -23,6 +22,5 @@ def build_custom_config(
         ),
         cleanup=CleanupConfig(
             default_mode=cleanup_mode,
-            kill_processes=kill_processes,
         ),
     )

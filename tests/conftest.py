@@ -12,7 +12,7 @@ from tests.fixtures.git_fixtures import (
     build_sample_branch_statuses,
     build_sample_worktrees,
 )
-from tests.fixtures.service_builders import MockTerminalService
+from tests.fixtures.service_builders import MockServices, MockTerminalService
 
 
 @pytest.fixture
@@ -73,3 +73,19 @@ def mock_terminal_operations():
 def mock_terminal_service():
     """Provide a fully mocked terminal service."""
     return MockTerminalService()
+
+
+@pytest.fixture
+def mock_services() -> MockServices:
+    """Create a fresh MockServices instance for each test.
+
+    Example:
+        def test_something(mock_services):
+            # Configure as needed
+            mock_services.hooks.run_hooks_success = True
+            mock_services.git.create_success = True
+
+            result = my_function(mock_services)
+            assert result is True
+    """
+    return MockServices()

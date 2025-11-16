@@ -25,20 +25,6 @@ class TestCLIOptionsE2E:
             assert "cd " in result.output
             assert "test-branch" in result.output
 
-    def test_init_script_option(self, temp_git_repo, force_echo_mode, cli_runner):
-        """Test --init option processing."""
-        with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(
-                main,
-                ["init-test-branch", "--init", "npm install && npm run build", "-y"],
-            )
-
-        assert result.exit_code == 0
-
-        assert "cd " in result.output
-        assert "npm install && npm run build" in result.output
-        assert "init-test-branch" in result.output
-
     def test_after_init_option(self, temp_git_repo, force_echo_mode, cli_runner):
         """Test --after-init option processing."""
         with patch("os.getcwd", return_value=str(temp_git_repo)):
@@ -57,28 +43,6 @@ class TestCLIOptionsE2E:
         assert "cd " in result.output
         assert "code . && echo 'Ready to code!'" in result.output
         assert "after-init-branch" in result.output
-
-    def test_combined_init_options(self, temp_git_repo, force_echo_mode, cli_runner):
-        """Test combining --init and --after-init options."""
-        with patch("os.getcwd", return_value=str(temp_git_repo)):
-            result = cli_runner.invoke(
-                main,
-                [
-                    "combined-branch",
-                    "--init",
-                    "echo 'Setting up environment'",
-                    "--after-init",
-                    "echo 'Opening editor'",
-                    "-y",
-                ],
-            )
-
-        assert result.exit_code == 0
-
-        assert "cd " in result.output
-        assert "Setting up environment" in result.output
-        assert "Opening editor" in result.output
-        assert "combined-branch" in result.output
 
     def test_yes_auto_confirm_option(self, temp_git_repo, force_echo_mode, cli_runner):
         """Test -y/--yes auto-confirm option."""
@@ -127,8 +91,6 @@ class TestCLIOptionsE2E:
                     "complex-options-branch",
                     "--terminal",
                     "window",
-                    "--init",
-                    "echo 'Initialize project'",
                     "--after-init",
                     "echo 'Project ready'",
                     "--ignore-same-session",
@@ -141,7 +103,6 @@ class TestCLIOptionsE2E:
 
         assert "cd " in result.output
         assert "complex-options-branch" in result.output
-        assert "Initialize project" in result.output
         assert "Project ready" in result.output
 
     def test_invalid_terminal_option(self, temp_git_repo, cli_runner):
@@ -165,8 +126,8 @@ class TestCLIOptionsE2E:
                 main,
                 [
                     "config-override-branch",
-                    "--init",
-                    "echo 'CLI overrides config'",
+                    "--after-init",
+                    "echo 'CLI provided after-init'",
                     "-y",
                 ],
             )
@@ -174,5 +135,5 @@ class TestCLIOptionsE2E:
         assert result.exit_code == 0
 
         assert "cd " in result.output
-        assert "CLI overrides config" in result.output
+        assert "CLI provided after-init" in result.output
         assert "config-override-branch" in result.output

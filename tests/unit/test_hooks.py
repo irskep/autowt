@@ -265,6 +265,99 @@ class TestHookRunner:
         assert command == multiline_script  # Script should be unchanged
         assert "\n" in command  # Newlines should be preserved
 
+    @patch("subprocess.run")
+    def test_pre_create_hook_runs_in_main_repo_dir(self, mock_subprocess_run):
+        """Test that pre_create hooks run in main repo directory since worktree doesn't exist yet."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_subprocess_run.return_value = mock_result
+
+        # Run pre_create hook
+        success = self.hook_runner.run_hook(
+            "echo 'pre_create'",
+            HookType.PRE_CREATE,
+            self.test_worktree_dir,
+            self.test_main_repo_dir,
+            self.test_branch_name,
+        )
+
+        assert success is True
+
+        # Verify hook ran in main repo directory (not worktree which doesn't exist yet)
+        call_args = mock_subprocess_run.call_args
+        kwargs = call_args[1]
+        assert kwargs["cwd"] == str(self.test_main_repo_dir)
+
+        # Verify worktree dir is still set in environment variable for future reference
+        env = kwargs["env"]
+        assert env["AUTOWT_WORKTREE_DIR"] == str(self.test_worktree_dir)
+        assert env["AUTOWT_MAIN_REPO_DIR"] == str(self.test_main_repo_dir)
+
+    @patch("subprocess.run")
+    def test_post_cleanup_hook_runs_in_main_repo_dir(self, mock_subprocess_run):
+        """Test that post_cleanup hooks run in main repo directory since worktree was deleted."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_subprocess_run.return_value = mock_result
+
+        # Run post_cleanup hook
+        success = self.hook_runner.run_hook(
+            "echo 'post_cleanup'",
+            HookType.POST_CLEANUP,
+            self.test_worktree_dir,
+            self.test_main_repo_dir,
+            self.test_branch_name,
+        )
+
+        assert success is True
+
+        # Verify hook ran in main repo directory (not worktree which was deleted)
+        call_args = mock_subprocess_run.call_args
+        kwargs = call_args[1]
+        assert kwargs["cwd"] == str(self.test_main_repo_dir)
+
+        # Verify worktree dir is still set in environment variable for reference
+        env = kwargs["env"]
+        assert env["AUTOWT_WORKTREE_DIR"] == str(self.test_worktree_dir)
+        assert env["AUTOWT_MAIN_REPO_DIR"] == str(self.test_main_repo_dir)
+
+    @patch("subprocess.run")
+    def test_other_hooks_run_in_worktree_dir(self, mock_subprocess_run):
+        """Test that hooks other than pre_create and post_cleanup run in worktree directory."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_subprocess_run.return_value = mock_result
+
+        # Test various hook types that should run in worktree directory
+        hook_types = [
+            HookType.POST_CREATE,
+            HookType.SESSION_INIT,
+            HookType.PRE_CLEANUP,
+            HookType.PRE_SWITCH,
+            HookType.POST_SWITCH,
+            HookType.POST_CREATE_ASYNC,
+        ]
+
+        for hook_type in hook_types:
+            mock_subprocess_run.reset_mock()
+
+            success = self.hook_runner.run_hook(
+                f"echo '{hook_type}'",
+                hook_type,
+                self.test_worktree_dir,
+                self.test_main_repo_dir,
+                self.test_branch_name,
+            )
+
+            assert success is True
+
+            # Verify hook ran in worktree directory
+            call_args = mock_subprocess_run.call_args
+            kwargs = call_args[1]
+            assert kwargs["cwd"] == str(self.test_worktree_dir), (
+                f"{hook_type} should run in worktree_dir"
+            )
+
 
 class TestExtractHookScripts:
     """Test the extract_hook_scripts function."""

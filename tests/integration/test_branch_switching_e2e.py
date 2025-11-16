@@ -47,17 +47,19 @@ class TestBranchSwitchingE2E:
         assert "cd " in result.output, f"Expected 'cd' in output: {repr(result.output)}"
         assert "test-branch" in result.output
 
-    def test_switch_with_init_script(self, temp_git_repo, force_echo_mode, cli_runner):
-        """Test branch switching with init script."""
+    def test_switch_with_after_init_script(
+        self, temp_git_repo, force_echo_mode, cli_runner
+    ):
+        """Test branch switching with after-init script."""
         # Change to the test repo directory
         with patch("os.getcwd", return_value=str(temp_git_repo)):
             result = cli_runner.invoke(
-                main, ["script-branch", "--init", "npm install", "-y"]
+                main, ["script-branch", "--after-init", "npm install", "-y"]
             )
 
         assert result.exit_code == 0
 
-        # Should contain both cd command and init script in CLI output
+        # Should contain both cd command and after-init script in CLI output
         assert "cd " in result.output
         assert "npm install" in result.output
         assert "script-branch" in result.output
@@ -92,8 +94,6 @@ class TestBranchSwitchingE2E:
                     "complex-branch",
                     "--terminal",
                     "tab",
-                    "--init",
-                    "echo 'Setting up'",
                     "--after-init",
                     "code .",
                     "-y",
@@ -102,10 +102,9 @@ class TestBranchSwitchingE2E:
 
         assert result.exit_code == 0
 
-        # Should contain cd command and both scripts in CLI output
+        # Should contain cd command and after-init script in CLI output
         assert "cd " in result.output
         assert "complex-branch" in result.output
-        assert "Setting up" in result.output
         assert "code ." in result.output
 
     def test_error_handling_invalid_repo(

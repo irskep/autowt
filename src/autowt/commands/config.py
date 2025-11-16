@@ -10,7 +10,6 @@ from textual.widgets import Button, Label, RadioButton, RadioSet, Switch
 from autowt.config import (
     CleanupConfig,
     Config,
-    ConfigLoader,
     TerminalConfig,
     WorktreeConfig,
 )
@@ -84,8 +83,7 @@ class ConfigApp(App):
             yield Label("For all settings, edit the config file directly:")
 
             # Get the actual global config path for this platform
-            config_loader = ConfigLoader(app_dir=self.services.state.app_dir)
-            global_config_path = config_loader.global_config_file
+            global_config_path = self.services.config_loader.global_config_file
             yield Label(f"• Global: {global_config_path}")
             yield Label("• Project: autowt.toml or .autowt.toml in repository root")
             yield Label("")
@@ -146,7 +144,6 @@ class ConfigApp(App):
                 directory_pattern=self.config.worktree.directory_pattern,
                 auto_fetch=auto_fetch,
                 default_remote=self.config.worktree.default_remote,
-                branch_sanitization=self.config.worktree.branch_sanitization,
             ),
             cleanup=CleanupConfig(
                 default_mode=self.config.cleanup.default_mode,
@@ -167,7 +164,6 @@ class ConfigApp(App):
 def show_config(services: Services) -> None:
     """Show current configuration values."""
     config = services.state.load_config()
-    config_loader = ConfigLoader(app_dir=services.state.app_dir)
 
     print("Current Configuration:")
     print("=" * 50)
@@ -183,7 +179,6 @@ def show_config(services: Services) -> None:
     print(f"  directory_pattern: {config.worktree.directory_pattern}")
     print(f"  auto_fetch: {config.worktree.auto_fetch}")
     print(f"  default_remote: {config.worktree.default_remote}")
-    print(f"  branch_sanitization: {config.worktree.branch_sanitization}")
     print()
 
     print("Cleanup:")
@@ -202,12 +197,11 @@ def show_config(services: Services) -> None:
 
     print("Confirmations:")
     print(f"  cleanup_multiple: {config.confirmations.cleanup_multiple}")
-    print(f"  kill_process: {config.confirmations.kill_process}")
     print(f"  force_operations: {config.confirmations.force_operations}")
     print()
 
     print("Config Files:")
-    print(f"  Global: {config_loader.global_config_file}")
+    print(f"  Global: {services.config_loader.global_config_file}")
     print("  Project: autowt.toml or .autowt.toml in repository root")
 
 

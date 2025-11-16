@@ -10,14 +10,12 @@ from pathlib import Path
 from typing import Any
 
 from autowt.config import get_config, load_config
-from autowt.models import CleanupMode, TerminalMode
 
 logger = logging.getLogger(__name__)
 
 
 def create_cli_config_overrides(
     terminal: str | None = None,
-    init: str | None = None,
     after_init: str | None = None,
     ignore_same_session: bool | None = None,
     mode: str | None = None,
@@ -28,7 +26,6 @@ def create_cli_config_overrides(
 
     Args:
         terminal: Terminal mode override
-        init: Init script override
         after_init: After-init script override
         ignore_same_session: Always new terminal override
         mode: Cleanup mode override
@@ -46,10 +43,6 @@ def create_cli_config_overrides(
 
     if ignore_same_session is not None:
         overrides.setdefault("terminal", {})["always_new"] = ignore_same_session
-
-    # Scripts configuration overrides
-    if init is not None:
-        overrides.setdefault("scripts", {})["init"] = init
 
     # Handle custom scripts
     if custom_script is not None:
@@ -89,43 +82,6 @@ def initialize_config(cli_overrides: dict[str, Any] | None = None) -> None:
         load_config(cli_overrides=cli_overrides)
 
 
-def get_terminal_mode_from_config() -> TerminalMode:
-    """Get the terminal mode from current configuration."""
-    config = get_config()
-    return config.terminal.mode
-
-
-def get_init_script_from_config() -> str | None:
-    """Get the init script from current configuration."""
-    config = get_config()
-    return config.scripts.session_init
-
-
-def get_cleanup_mode_from_config() -> CleanupMode:
-    """Get the cleanup default mode from current configuration."""
-    config = get_config()
-    return config.cleanup.default_mode
-
-
-def get_always_new_from_config() -> bool:
-    """Get the terminal always_new setting from current configuration."""
-    config = get_config()
-    return config.terminal.always_new
-
-
-def get_custom_script_from_config(script_name: str) -> str | None:
-    """Get a custom script command from current configuration.
-
-    Args:
-        script_name: Name of the custom script to retrieve
-
-    Returns:
-        The script command string, or None if not found
-    """
-    config = get_config()
-    return config.scripts.custom.get(script_name)
-
-
 def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
     """Resolve a custom script specification with argument interpolation.
 
@@ -163,7 +119,7 @@ def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
     args = parts[1:]
 
     # Get the script template from config
-    script_template = get_custom_script_from_config(script_name)
+    script_template = get_config().scripts.custom.get(script_name)
     if not script_template:
         logger.warning(f"Custom script '{script_name}' not found in configuration")
         return None
@@ -175,25 +131,3 @@ def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
         resolved_script = resolved_script.replace(placeholder, arg)
 
     return resolved_script
-
-
-def should_confirm_operation(operation_type: str) -> bool:
-    """Check if an operation should require user confirmation.
-
-    Args:
-        operation_type: Type of operation ('cleanup_multiple', 'kill_process', 'force_operations')
-
-    Returns:
-        True if confirmation is required, False otherwise
-    """
-    config = get_config()
-
-    if operation_type == "cleanup_multiple":
-        return config.confirmations.cleanup_multiple
-    elif operation_type == "kill_process":
-        return config.confirmations.kill_process
-    elif operation_type == "force_operations":
-        return config.confirmations.force_operations
-    else:
-        # Default to requiring confirmation for unknown operations
-        return True

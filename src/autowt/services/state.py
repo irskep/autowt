@@ -1,8 +1,6 @@
 """State management service for autowt."""
 
 import logging
-import os
-import platform
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +8,7 @@ import toml
 
 from autowt.config import Config, ConfigLoader
 from autowt.models import ProjectConfig
+from autowt.utils.platform import get_default_state_dir
 
 logger = logging.getLogger(__name__)
 
@@ -17,33 +16,25 @@ logger = logging.getLogger(__name__)
 class StateService:
     """Manages application state and configuration files."""
 
-    def __init__(self, app_dir: Path | None = None):
-        """Initialize state service with optional custom app directory."""
+    def __init__(self, config_loader: ConfigLoader, app_dir: Path | None = None):
+        """Initialize state service with config loader and optional app directory."""
         if app_dir is None:
-            app_dir = self._get_default_app_dir()
+            app_dir = get_default_state_dir()
 
         self.app_dir = app_dir
         self.config_file = app_dir / "config.toml"
         self.state_file = app_dir / "state.toml"
+        self._setup_done = False
+        self.config_loader = config_loader
 
-        # Ensure app directory exists
-        self.app_dir.mkdir(parents=True, exist_ok=True)
         logger.debug(f"State service initialized with app dir: {self.app_dir}")
 
-    def _get_default_app_dir(self) -> Path:
-        """Get the default application directory based on platform."""
-        system = platform.system()
-        if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "autowt"
-        elif system == "Linux":
-            # Follow XDG Base Directory Specification
-            xdg_data = Path(
-                os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share")
-            )
-            return xdg_data / "autowt"
-        else:
-            # Windows or other
-            return Path.home() / ".autowt"
+    def setup(self) -> None:
+        """Ensure app directory exists. Called lazily when needed."""
+        if not self._setup_done:
+            self.app_dir.mkdir(parents=True, exist_ok=True)
+            self._setup_done = True
+            logger.debug(f"State service setup complete: {self.app_dir}")
 
     def load_config(self, project_dir: Path | None = None) -> Config:
         """Load application configuration using new config system."""
@@ -51,9 +42,8 @@ class StateService:
             f"Loading configuration via ConfigLoader with project_dir={project_dir}"
         )
 
-        # Use the new configuration system
-        config_loader = ConfigLoader(app_dir=self.app_dir)
-        return config_loader.load_config(project_dir=project_dir)
+        # Use the injected configuration loader
+        return self.config_loader.load_config(project_dir=project_dir)
 
     def load_project_config(self, cwd: Path) -> ProjectConfig:
         """Load project configuration from autowt.toml or .autowt.toml in current directory."""
@@ -81,11 +71,11 @@ class StateService:
 
     def save_config(self, config: Config) -> None:
         """Save application configuration using new config system."""
+        self.setup()  # Ensure directory exists
         logger.debug("Saving configuration via ConfigLoader")
 
-        # Use the new configuration system
-        config_loader = ConfigLoader(app_dir=self.app_dir)
-        config_loader.save_config(config)
+        # Use the injected configuration loader
+        self.config_loader.save_config(config)
 
     def load_app_state(self) -> dict[str, Any]:
         """Load application state including UI preferences and prompt tracking."""
@@ -105,6 +95,7 @@ class StateService:
 
     def save_app_state(self, state: dict[str, Any]) -> None:
         """Save application state including UI preferences and prompt tracking."""
+        self.setup()  # Ensure directory exists
         logger.debug("Saving application state")
 
         try:

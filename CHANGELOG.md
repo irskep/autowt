@@ -6,10 +6,16 @@
 
 ### Added
 
-### Changed
+- `post_create_async` hook runs after creating a worktree, after switching you to the new session, but in the _original_ terminal where it doesn't block interactivity in the new session
 
+### Changed or removed
+
+- Hook output is no longer captured by autowt and will output to your terminal.
+- `post_cleanup` and `pre_create` hooks execute with the main repo as the working directory, since worktree doesn't exist yet/anymore.
 - Removed all agent-related functionality. I haven't found value in it and I don't think anyone is using it.
 - Remove process killing functionality. It has too many pitfalls.
+- Deleted `--init` flag, it was redundant in the presence of `--after-init`
+- Removed branch sanitization config options
 
 ### Fixed
 
@@ -85,7 +91,7 @@
 
 - Remote branch detection and confirmation prompts when creating worktrees
   - When attempting to create a worktree for a branch that doesn't exist locally, autowt now checks if it exists on remote
-  - Automatically fetches the specific branch from origin if available (optimized to only fetch when not already cached)
+  - Automatically fetches the specific branch from your default remote (e.g. `origin`) if available (optimized to only fetch when not already cached)
   - Prompts user to confirm creating a local worktree that tracks the remote branch
   - Can be bypassed with `-y`/`--yes` flag for automated workflows
   - Only applies when no explicit `--from` branch is specified

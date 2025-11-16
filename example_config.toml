@@ -57,19 +57,6 @@ auto_fetch = true
 # ENV: AUTOWT_WORKTREE_DEFAULT_REMOTE=origin
 default_remote = "origin"
 
-# Rules for sanitizing branch names into directory names
-# Each rule is applied in order
-[worktree.branch_sanitization]
-# Replace these characters with underscores
-# ENV: AUTOWT_WORKTREE_BRANCH_SANITIZATION_REPLACE_CHARS="/:#@^~"
-replace_chars = "/:#@^~"
-# Maximum directory name length
-# ENV: AUTOWT_WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH=255
-max_length = 255
-# Convert to lowercase
-# ENV: AUTOWT_WORKTREE_BRANCH_SANITIZATION_LOWERCASE=true
-lowercase = false
-
 # ============================================================================
 # Cleanup Configuration
 # ============================================================================
@@ -110,8 +97,5 @@ release = 'claude "/release"' # asks claude to run .claude/commands/release.md
 # ENV: AUTOWT_CONFIRMATIONS_CLEANUP_MULTIPLE=false
 cleanup_multiple = true  # When cleaning up multiple worktrees
 
-# ENV: AUTOWT_CONFIRMATIONS_KILL_PROCESS=false
-kill_process = true  # When killing processes
-
-# ENV: AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS=false  
+# ENV: AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS=false
 force_operations = true  # When using --force flag

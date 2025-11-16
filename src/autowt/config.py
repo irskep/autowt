@@ -9,7 +9,6 @@ This module provides type-safe configuration management with support for:
 
 import logging
 import os
-import platform
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -18,6 +17,7 @@ from typing import Any
 import toml
 
 from autowt.models import CleanupMode, TerminalMode
+from autowt.utils.platform import get_default_config_dir
 
 logger = logging.getLogger(__name__)
 
@@ -32,24 +32,12 @@ class TerminalConfig:
 
 
 @dataclass(frozen=True)
-class BranchSanitizationConfig:
-    """Branch name sanitization rules."""
-
-    replace_chars: str = "/:#@^~"
-    max_length: int = 255
-    lowercase: bool = False
-
-
-@dataclass(frozen=True)
 class WorktreeConfig:
     """Worktree management configuration."""
 
     directory_pattern: str = "../{repo_name}-worktrees/{branch}"
     auto_fetch: bool = True
     default_remote: str = "origin"
-    branch_sanitization: BranchSanitizationConfig = field(
-        default_factory=BranchSanitizationConfig
-    )
 
 
 @dataclass(frozen=True)
@@ -65,6 +53,7 @@ class ScriptsConfig:
 
     pre_create: str | None = None
     post_create: str | None = None
+    post_create_async: str | None = None
     session_init: str | None = None
     pre_cleanup: str | None = None
     post_cleanup: str | None = None
@@ -78,7 +67,6 @@ class ConfirmationsConfig:
     """User confirmation settings."""
 
     cleanup_multiple: bool = True
-    kill_process: bool = True
     force_operations: bool = True
 
 
@@ -102,20 +90,12 @@ class Config:
         confirmations_data = data.get("confirmations", {})
 
         # Handle nested configurations
-        branch_sanitization_data = worktree_data.get("branch_sanitization", {})
-        branch_sanitization = BranchSanitizationConfig(
-            replace_chars=branch_sanitization_data.get("replace_chars", "/:#@^~"),
-            max_length=branch_sanitization_data.get("max_length", 255),
-            lowercase=branch_sanitization_data.get("lowercase", False),
-        )
-
         worktree_config = WorktreeConfig(
             directory_pattern=worktree_data.get(
                 "directory_pattern", "../{repo_name}-worktrees/{branch}"
             ),
             auto_fetch=worktree_data.get("auto_fetch", True),
             default_remote=worktree_data.get("default_remote", "origin"),
-            branch_sanitization=branch_sanitization,
         )
 
         # Handle case where terminal_data might be a string (legacy compatibility)
@@ -161,7 +141,9 @@ class Config:
             session_init_value = init_value
 
         scripts_config = ScriptsConfig(
+            pre_create=scripts_data.get("pre_create"),
             post_create=scripts_data.get("post_create"),
+            post_create_async=scripts_data.get("post_create_async"),
             session_init=session_init_value,
             pre_cleanup=scripts_data.get("pre_cleanup"),
             post_cleanup=scripts_data.get("post_cleanup"),
@@ -172,7 +154,6 @@ class Config:
 
         confirmations_config = ConfirmationsConfig(
             cleanup_multiple=confirmations_data.get("cleanup_multiple", True),
-            kill_process=confirmations_data.get("kill_process", True),
             force_operations=confirmations_data.get("force_operations", True),
         )
 
@@ -200,27 +181,19 @@ class ConfigLoader:
     def __init__(self, app_dir: Path | None = None):
         """Initialize configuration loader."""
         if app_dir is None:
-            app_dir = self._get_default_app_dir()
+            app_dir = get_default_config_dir()
 
         self.app_dir = app_dir
         self.global_config_file = app_dir / "config.toml"
-
-        # Ensure app directory exists
-        self.app_dir.mkdir(parents=True, exist_ok=True)
+        self._setup_done = False
         logger.debug(f"Config loader initialized with app dir: {self.app_dir}")
 
-    def _get_default_app_dir(self) -> Path:
-        """Get the default application directory based on platform."""
-        system = platform.system()
-        if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "autowt"
-        elif system == "Linux":
-            # Follow XDG Base Directory Specification
-            xdg_config = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
-            return xdg_config / "autowt"
-        else:
-            # Windows or other
-            return Path.home() / ".autowt"
+    def setup(self) -> None:
+        """Ensure app directory exists. Called lazily when needed."""
+        if not self._setup_done:
+            self.app_dir.mkdir(parents=True, exist_ok=True)
+            self._setup_done = True
+            logger.debug(f"Config loader setup complete: {self.app_dir}")
 
     def load_config(
         self,
@@ -308,30 +281,15 @@ class ConfigLoader:
             "WORKTREE_DIRECTORY_PATTERN": ["worktree", "directory_pattern"],
             "WORKTREE_AUTO_FETCH": ["worktree", "auto_fetch"],
             "WORKTREE_DEFAULT_REMOTE": ["worktree", "default_remote"],
-            "WORKTREE_BRANCH_SANITIZATION_REPLACE_CHARS": [
-                "worktree",
-                "branch_sanitization",
-                "replace_chars",
-            ],
-            "WORKTREE_BRANCH_SANITIZATION_MAX_LENGTH": [
-                "worktree",
-                "branch_sanitization",
-                "max_length",
-            ],
-            "WORKTREE_BRANCH_SANITIZATION_LOWERCASE": [
-                "worktree",
-                "branch_sanitization",
-                "lowercase",
-            ],
             "CLEANUP_DEFAULT_MODE": ["cleanup", "default_mode"],
             "SCRIPTS_POST_CREATE": ["scripts", "post_create"],
+            "SCRIPTS_POST_CREATE_ASYNC": ["scripts", "post_create_async"],
             "SCRIPTS_SESSION_INIT": ["scripts", "session_init"],
             "SCRIPTS_PRE_CLEANUP": ["scripts", "pre_cleanup"],
             "SCRIPTS_POST_CLEANUP": ["scripts", "post_cleanup"],
             "SCRIPTS_PRE_SWITCH": ["scripts", "pre_switch"],
             "SCRIPTS_POST_SWITCH": ["scripts", "post_switch"],
             "CONFIRMATIONS_CLEANUP_MULTIPLE": ["confirmations", "cleanup_multiple"],
-            "CONFIRMATIONS_KILL_PROCESS": ["confirmations", "kill_process"],
             "CONFIRMATIONS_FORCE_OPERATIONS": ["confirmations", "force_operations"],
         }
 
@@ -420,6 +378,7 @@ class ConfigLoader:
 
     def save_cleanup_mode(self, mode: CleanupMode) -> None:
         """Save just the cleanup mode preference, preserving other settings."""
+        self.setup()  # Ensure directory exists
         logger.debug(f"Saving cleanup mode preference: {mode.value}")
 
         # Load existing config or start with empty
@@ -446,6 +405,7 @@ class ConfigLoader:
 
     def save_config(self, config: Config) -> None:
         """Save configuration to global config file."""
+        self.setup()  # Ensure directory exists
         logger.debug("Saving global configuration")
 
         try:
@@ -459,7 +419,6 @@ class ConfigLoader:
 
 # Global configuration instance
 _config: Config | None = None
-_config_loader: ConfigLoader | None = None
 
 
 def get_config() -> Config:
@@ -470,14 +429,6 @@ def get_config() -> Config:
     if _config is None:
         raise RuntimeError("Configuration not initialized. Call load_config() first.")
     return _config
-
-
-def get_config_loader() -> ConfigLoader:
-    """Get the global configuration loader instance."""
-    global _config_loader
-    if _config_loader is None:
-        _config_loader = ConfigLoader()
-    return _config_loader
 
 
 def load_config(
@@ -494,7 +445,7 @@ def load_config(
     """
     global _config
 
-    loader = get_config_loader()
+    loader = ConfigLoader()
     _config = loader.load_config(project_dir=project_dir, cli_overrides=cli_overrides)
 
     logger.debug("Global configuration loaded and set")
@@ -512,5 +463,5 @@ def save_config() -> None:
     if _config is None:
         raise RuntimeError("No configuration to save")
 
-    loader = get_config_loader()
+    loader = ConfigLoader()
     loader.save_config(_config)

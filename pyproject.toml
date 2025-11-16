@@ -73,7 +73,7 @@ dev = [
     "pytest-asyncio>=1.1.0",
 ]
 docs = [
-    "zensical>=0.0.5",
+    "zensical==0.0.8",
     "pymdown-extensions>=10.3.1",
     "mkdocs-github-admonitions-plugin",
 ]

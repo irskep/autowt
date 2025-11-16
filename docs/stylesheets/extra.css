@@ -8,3 +8,19 @@
   width: 25% !important;
   min-width: 10rem !important;
 }
+
+/*
+  Target tables specifically on the Lifecycle Hooks page.
+  The .md-page--reference-lifecyclehooks class is added by Material for MkDocs
+  to the body tag of that specific page.
+*/
+.autowt-hooks-wrapper + div table th:first-of-type,
+.autowt-hooks-wrapper + div table td:first-of-type {
+  width: 23% !important;
+  min-width: 8rem !important;
+}
+
+.autowt-hooks-wrapper + div table th,
+.autowt-hooks-wrapper + div table td {
+  width: 25% !important;
+}

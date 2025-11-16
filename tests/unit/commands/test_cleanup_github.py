@@ -43,9 +43,7 @@ class TestGitHubCleanupMode:
         # Create mock services
         mock_services = Mock()
         mock_services.git.find_repo_root.return_value = Path("/test/repo")
-        mock_services.state.load_config.return_value = Mock(
-            cleanup=Mock(kill_processes=False)
-        )
+        mock_services.state.load_config.return_value = Mock()
         mock_services.git.fetch_branches.return_value = True
 
         # Mock worktrees
@@ -114,9 +112,7 @@ class TestGitHubCleanupMode:
         # Create mock services
         mock_services = Mock()
         mock_services.git.find_repo_root.return_value = Path("/test/repo")
-        mock_services.state.load_config.return_value = Mock(
-            cleanup=Mock(kill_processes=False)
-        )
+        mock_services.state.load_config.return_value = Mock()
         mock_services.git.fetch_branches.return_value = True
 
         # Mock worktrees
@@ -187,9 +183,7 @@ class TestGitHubCleanupMode:
         # Create mock services
         mock_services = Mock()
         mock_services.git.find_repo_root.return_value = Path("/test/repo")
-        mock_services.state.load_config.return_value = Mock(
-            cleanup=Mock(kill_processes=False)
-        )
+        mock_services.state.load_config.return_value = Mock()
         mock_services.git.fetch_branches.return_value = True
 
         # Mock worktrees

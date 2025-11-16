@@ -18,6 +18,7 @@ class HookType:
 
     PRE_CREATE = "pre_create"
     POST_CREATE = "post_create"
+    POST_CREATE_ASYNC = "post_create_async"
     SESSION_INIT = "session_init"
     PRE_CLEANUP = "pre_cleanup"
     POST_CLEANUP = "post_cleanup"
@@ -65,29 +66,35 @@ class HookRunner:
         )
 
         try:
+            # Determine working directory based on hook type
+            # For pre_create, use main repo since worktree doesn't exist yet
+            # For post_cleanup, use main repo since worktree has been deleted
+            working_dir = (
+                main_repo_dir
+                if hook_type in (HookType.PRE_CREATE, HookType.POST_CLEANUP)
+                else worktree_dir
+            )
+
             # Execute the hook script directly with shell=True
             # The shell naturally handles multi-line scripts without preprocessing
+            # Output streams directly to terminal for visibility
             result = subprocess.run(
                 hook_script,
                 shell=True,
-                cwd=str(worktree_dir),
+                cwd=str(working_dir),
                 env=env,
                 timeout=timeout,
-                capture_output=True,
+                capture_output=False,
                 text=True,
             )
 
             if result.returncode == 0:
-                if result.stdout.strip():
-                    logger.debug(f"{hook_type} hook output: {result.stdout.strip()}")
                 logger.info(f"{hook_type} hook completed successfully")
                 return True
             else:
                 logger.error(
                     f"{hook_type} hook failed with exit code {result.returncode}"
                 )
-                if result.stderr.strip():
-                    logger.error(f"{hook_type} hook stderr: {result.stderr.strip()}")
                 return False
 
         except subprocess.TimeoutExpired:

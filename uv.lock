@@ -60,7 +60,7 @@ dev = [
 docs = [
     { name = "mkdocs-github-admonitions-plugin" },
     { name = "pymdown-extensions", specifier = ">=10.3.1" },
-    { name = "zensical", specifier = ">=0.0.5" },
+    { name = "zensical", specifier = "==0.0.8" },
 ]
 
 [[package]]

@@ -14,7 +14,7 @@ from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
 from autowt.commands.ls import list_worktrees
-from autowt.config import get_config, get_config_loader
+from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
     CleanupCommand,
@@ -24,14 +24,12 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.prompts import prompt_cleanup_mode_selection
-from autowt.services.version_check import VersionCheckService
 from autowt.shell_integrations import show_shell_config
 from autowt.tui.switch import run_switch_tui
 from autowt.utils import run_command_quiet_on_failure, setup_command_logging
 
 
 def setup_logging(debug: bool) -> None:
-    """Configure logging based on debug flag."""
     level = logging.DEBUG if debug else logging.WARNING
     logging.basicConfig(
         level=level,
@@ -43,20 +41,17 @@ def setup_logging(debug: bool) -> None:
 
 
 def create_services() -> Services:
-    """Create and return a Services container with all service instances."""
     return Services.create()
 
 
 def check_for_version_updates(services: Services) -> None:
     """Check for version updates and show notification if available."""
     try:
-        version_service = VersionCheckService(services.state.app_dir)
-
         # Check for secret environment variable to force showing upgrade prompt
         force_upgrade_prompt = os.getenv("AUTOWT_FORCE_UPGRADE_PROMPT")
         if force_upgrade_prompt:
             # Force display of upgrade prompt for testing
-            method = version_service._detect_installation_method()
+            method = services.version_check._detect_installation_method()
             click.echo(
                 "💡 Update available: autowt 0.99.0 (you have 0.4.2-dev) [FORCED]",
                 err=True,
@@ -68,7 +63,7 @@ def check_for_version_updates(services: Services) -> None:
             click.echo("", err=True)
             return
 
-        version_info = version_service.check_for_updates()
+        version_info = services.version_check.check_for_updates()
 
         if version_info and version_info.update_available:
             click.echo(
@@ -152,7 +147,6 @@ class AutowtGroup(ClickAliasedGroup):
             # Create CLI overrides for this specific command
             cli_overrides = create_cli_config_overrides(
                 terminal=kwargs.get("terminal"),
-                init=kwargs.get("init"),
                 after_init=kwargs.get("after_init"),
                 ignore_same_session=kwargs.get("ignore_same_session", False),
             )
@@ -206,10 +200,6 @@ class AutowtGroup(ClickAliasedGroup):
                     help="Automatically confirm all prompts",
                 ),
                 click.Option(["--debug"], is_flag=True, help="Enable debug logging"),
-                click.Option(
-                    ["--init"],
-                    help="Session init script to run in the new terminal (maps to session_init hook)",
-                ),
                 click.Option(
                     ["--after-init"],
                     help="Command to run after session_init script completes",
@@ -336,22 +326,22 @@ def cleanup(
 
     # Get configuration values
     config = get_config()
-    config_loader = get_config_loader()
 
+    # Create services (includes ConfigLoader)
     services = create_services()
 
     # Use configured mode if not specified
     if mode is None:
         if is_interactive_terminal():
             # Check if user has ever configured a cleanup mode preference
-            if not config_loader.has_user_configured_cleanup_mode():
+            if not services.config_loader.has_user_configured_cleanup_mode():
                 # First run - prompt for preference
                 selected_mode = prompt_cleanup_mode_selection()
                 mode = selected_mode.value
 
                 # Save preference for future use
                 print(f"\nSaving '{mode}' as your default cleanup mode...")
-                config_loader.save_cleanup_mode(selected_mode)
+                services.config_loader.save_cleanup_mode(selected_mode)
                 print(
                     "You can change this later using 'autowt config' or by editing config.toml\n"
                 )
@@ -419,10 +409,6 @@ def shellconfig(debug: bool, shell: str | None) -> None:
     help="How to open the worktree terminal",
 )
 @click.option(
-    "--init",
-    help="Session init script to run in the new terminal (maps to session_init hook)",
-)
-@click.option(
     "--after-init",
     help="Command to run after session_init script completes",
 )
@@ -451,7 +437,6 @@ def shellconfig(debug: bool, shell: str | None) -> None:
 def switch(
     branch: str | None,
     terminal: str | None,
-    init: str | None,
     after_init: str | None,
     ignore_same_session: bool,
     auto_confirm: bool,
@@ -489,7 +474,6 @@ def switch(
     # Create CLI overrides for switch command (now includes all options)
     cli_overrides = create_cli_config_overrides(
         terminal=terminal,
-        init=init,
         after_init=after_init,
         ignore_same_session=ignore_same_session,
         custom_script=custom_script,
