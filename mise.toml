@@ -18,5 +18,12 @@ format = "uv run ruff format"
 format-check = "uv run ruff format --check"
 claude-hook-lint = "./scripts/claude-hook-lint.sh"
 docs-install = "uv sync --group docs"
-docs-serve = "uv run zensical serve"
-docs-build = "uv run zensical build"
+docs-prep = "cp CHANGELOG.md docs/CHANGELOG.md"
+
+[tasks.docs-serve]
+run = "uv run zensical serve"
+depends = ["docs-prep"]
+
+[tasks.docs-build]
+run = "uv run zensical build"
+depends = ["docs-prep"]
