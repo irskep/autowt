@@ -7,7 +7,15 @@ repos:
         language: system
         files: \.py$
         stages: [pre-commit]
-      
+
+      - id: sync-readme
+        name: Sync README.md from docs/index.md
+        entry: mise run sync-readme
+        language: system
+        files: ^docs/index\.md$
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: auto-commit-format
         name: Auto-commit formatting changes
         entry: bash -c 'if [ -n "$(git diff --name-only)" ]; then git add -A && git commit --amend --no-edit; fi'

@@ -1,10 +1,18 @@
 # autowt: a better git worktree experience
 
-**autowt** is a layer of convenience over [git worktree](https://git-scm.com/docs/git-worktree). It automates the creation, management, and cleanup of git worktrees, giving each branch its own dedicated directory and terminal tab or window.
-
 [**Full documentation**](https://steveasleep.com/autowt/)
 
-Consider what it takes to set up a fresh worktree in a typical workflow:
+<!-- BEGIN SYNCED CONTENT -->
+<!-- This content is synced from docs/index.md - do not edit directly -->
+<!-- Run 'mise run sync-readme' to update -->
+
+## What are worktrees?
+
+[Worktrees](https://git-scm.com/docs/git-worktree) are a built-in feature of git, which are essentially free clones of a local git repo. History is shared and synced across all worktrees for a given repo. Creating a new worktree is cheap, and you can list all your worktrees with a single command. This makes them a great fit for doing work “in parallel,” or not worrying about having uncommitted changes before working on another branch.
+
+## How autowt simplifies common workflows
+
+While worktrees are powerful, the built-in tooling is minimalistic. Consider what it takes to set up a fresh worktree in a typical workflow:
 
 1. Make a decision about where to put the worktree
 2. `git worktree add <worktree_path> -b <branch>`
@@ -18,13 +26,10 @@ Congrats, you're done! Type type type, open a PR, and merge it. Now you need to 
 1. `git worktree rm .`
 2. Close the tab
 
-Of course, you might close the tab and forget to clean up the worktree, and your set of worktrees will grow.
-
-On the other hand, with autowt, it looks like this:
+On the other hand, **with autowt, it looks like this:**
 
 ```sh
 autowt <branch>
-# there is no step 2
 ```
 
 And deleting branches that have been merged or are associated with closed PRs looks like this:
@@ -35,13 +40,14 @@ autowt cleanup
 
 A lot nicer, right?
 
-**Type less**
+## What autowt can do for you
 
-The built-in worktree commands are verbose. `autowt` makes them shorter, and adds automation hooks.
+**What autowt can do for you:**
 
-**Terminal program automation**
-
-If you like to keep multiple tabs open, `autowt` can create tabs for new worktrees, and switch to the correct tab for a worktree if you already have it open.
+- **Ergonomics**: It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. And autowt integrates with your terminal program to automate opening new sessions. It supports everything [automate-terminal](https://github.com/irskep/automate-terminal), including iTerm2, tmux, Ghostty, and more.
+- **Deep, customizable automation**: You can define scripts in `.autowt.toml` to run at various points, like after creating a worktree but before switching to it, or before a worktree is cleaned up. Check out [Lifecycle Hooks](https://steveasleep.com/autowt/lifecyclehooks/) for more information.
+- **Smart cleanup**: You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches which are associated with closed pull requests on GitHub.
+- **Friendly TUIs**: autowt uses interactive terminal-based UIs where it makes sense. For example, `autowt config` gives you an easy way to edit global settings. `autowt switch` lets you review your worktrees and pick which one to navigate to.
 
 ## Getting started
 
@@ -60,6 +66,9 @@ autowt my-new-feature
 ```
 
 Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window.
+
+
+<!-- END SYNCED CONTENT -->
 
 ## Contributing
 
