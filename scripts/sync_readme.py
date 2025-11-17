@@ -104,7 +104,7 @@ def sync_readme():
 
     # Write back
     readme.write_text(new_readme)
-    print(f"✓ Synced README.md from docs/index.md")
+    print("✓ Synced README.md from docs/index.md")
 
 
 if __name__ == "__main__":
