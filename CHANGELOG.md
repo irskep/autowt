@@ -20,6 +20,7 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   Supports template variables: `{repo_name}` and `{github_username}` (when gh CLI is available)
     -   Smart prefix resolution: when switching to or cleaning up a branch, tries adding the prefix if exact match doesn't exist
     -   Prevents double-prefixing when branch name already includes the prefix
+    -   Can be edited within `autowt config`
 
 ### Changed
 

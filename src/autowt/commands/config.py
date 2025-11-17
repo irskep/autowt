@@ -5,7 +5,7 @@ import logging
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Checkbox, Label, RadioButton, RadioSet
+from textual.widgets import Button, Checkbox, Input, Label, RadioButton, RadioSet
 
 from autowt.config import (
     CleanupConfig,
@@ -74,6 +74,15 @@ class ConfigApp(App):
                 "Automatically fetch from remote before creating worktrees",
                 value=self.config.worktree.auto_fetch,
                 id="auto-fetch",
+            )
+
+            yield Label(
+                "Branch prefix (optional, e.g., 'feature/' or '{github_username}/'):"
+            )
+            yield Input(
+                value=self.config.worktree.branch_prefix or "",
+                placeholder="e.g., feature/ or {github_username}/",
+                id="branch-prefix",
             )
 
             yield Label("Default Cleanup Mode:")
@@ -166,6 +175,10 @@ class ConfigApp(App):
         auto_fetch_checkbox = self.query_one("#auto-fetch", Checkbox)
         auto_fetch = auto_fetch_checkbox.value
 
+        # Get branch prefix setting
+        branch_prefix_input = self.query_one("#branch-prefix", Input)
+        branch_prefix = branch_prefix_input.value.strip() or None
+
         # Get cleanup mode from radio buttons
         cleanup_radio_set = self.query_one("#cleanup-mode", RadioSet)
         cleanup_pressed_button = cleanup_radio_set.pressed_button
@@ -194,6 +207,7 @@ class ConfigApp(App):
             worktree=WorktreeConfig(
                 directory_pattern=self.config.worktree.directory_pattern,
                 auto_fetch=auto_fetch,
+                branch_prefix=branch_prefix,
             ),
             cleanup=CleanupConfig(
                 default_mode=cleanup_mode,
@@ -228,6 +242,7 @@ def show_config(services: Services) -> None:
     print("Worktree:")
     print(f"  directory_pattern: {config.worktree.directory_pattern}")
     print(f"  auto_fetch: {config.worktree.auto_fetch}")
+    print(f"  branch_prefix: {config.worktree.branch_prefix}")
     print()
 
     print("Cleanup:")

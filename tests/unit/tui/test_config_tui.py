@@ -67,6 +67,10 @@ class TestConfigTUIBusinessLogic:
             mock_auto_fetch_switch = MagicMock()
             mock_auto_fetch_switch.value = False
 
+            # Mock branch prefix input
+            mock_branch_prefix_input = MagicMock()
+            mock_branch_prefix_input.value = "feature/"
+
             # Mock cleanup mode radio buttons
             mock_cleanup_radio_set = MagicMock()
             mock_cleanup_pressed_button = MagicMock()
@@ -81,6 +85,8 @@ class TestConfigTUIBusinessLogic:
                     return mock_always_new_switch
                 elif selector == "#auto-fetch":
                     return mock_auto_fetch_switch
+                elif selector == "#branch-prefix":
+                    return mock_branch_prefix_input
                 elif selector == "#cleanup-mode":
                     return mock_cleanup_radio_set
 
@@ -134,6 +140,10 @@ class TestConfigTUIBusinessLogic:
                 "#auto-fetch": MagicMock(value=True),
             }
 
+            # Mock branch prefix input
+            mock_branch_prefix_input = MagicMock()
+            mock_branch_prefix_input.value = ""
+
             # Mock cleanup mode radio buttons
             mock_cleanup_radio_set = MagicMock()
             mock_cleanup_radio_set.pressed_button = None  # No change
@@ -143,6 +153,8 @@ class TestConfigTUIBusinessLogic:
                     return mock_radio_set
                 elif selector == "#cleanup-mode":
                     return mock_cleanup_radio_set
+                elif selector == "#branch-prefix":
+                    return mock_branch_prefix_input
                 return mock_switches.get(selector, MagicMock())
 
             mock_query.side_effect = query_side_effect
@@ -170,14 +182,15 @@ class TestConfigTUIUserWorkflows:
         # Mock config_loader (needed for compose() method)
         mock_config_loader = MagicMock()
         mock_config_loader.global_config_file = Path("/tmp/test/config.toml")
-        mock_services.config_loader = mock_config_loader
-
-        # Mock load_config to return a test config
         test_config = Config(
             terminal=TerminalConfig(mode=TerminalMode.TAB, always_new=False),
             worktree=WorktreeConfig(auto_fetch=True),
             cleanup=CleanupConfig(),
         )
+        mock_config_loader.load_global_config_only.return_value = test_config
+        mock_services.config_loader = mock_config_loader
+
+        # Mock load_config to return a test config
         mock_state.load_config.return_value = test_config
 
         app = ConfigApp(mock_services)
@@ -287,9 +300,10 @@ class TestConfigTUIUserWorkflows:
         # Mock config_loader (needed for compose() method)
         mock_config_loader = MagicMock()
         mock_config_loader.global_config_file = Path("/tmp/test/config.toml")
+        test_config = Config()
+        mock_config_loader.load_global_config_only.return_value = test_config
         mock_services.config_loader = mock_config_loader
 
-        test_config = Config()
         mock_state.load_config.return_value = test_config
 
         app = ConfigApp(mock_services)
