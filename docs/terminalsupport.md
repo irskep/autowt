@@ -13,16 +13,4 @@ Add this to your `.autowt.toml` or set it at the user level with `autowt config`
 mode = 'echo'
 ```
 
-This will cause autowt to print commands to the console instead of having your terminal run them automatically.
-
-You can still benefit from being automatically cd'd into worktrees by adding a shell alias. Run `autowt shellconfig` to have autowt print an appropriate code block to add to your shell config file (`.zshrc`, etc).
-
-```bash
-> autowt shellconfig
-# Add to your shell config (e.g., ~/.zshrc)
-autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
-
-# Usage: autowt_cd my-branch
-```
-
-This functionality isn't battle-tested, but bugs are easy to identify and fix, so please be liberal with [opening GitHub issues](https://github.com/irskep/autowt/issues).
+This will cause autowt to print commands to the console instead of having your terminal run them automatically. You can then manually run the printed commands to navigate to the worktree.

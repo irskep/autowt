@@ -19,7 +19,7 @@
 #   - tab: Open in a new tab
 #   - window: Open in a new window
 #   - inplace: Switch the current terminal to the worktree directory
-#   - echo: Output shell commands (for shell integration)
+#   - echo: Output shell commands to stdout
 # CLI: --terminal=tab
 # ENV: AUTOWT_TERMINAL_MODE=tab
 mode = "tab"

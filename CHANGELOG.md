@@ -35,6 +35,7 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 
 ### Removed
 
+-   Removed experimental `shellconfig` command - shell integration was not functional due to hook and script output contaminating stdout
 -   Removed automatic process killing during cleanup. If you want this behavior, use the lifecycle scripts. Open a GitHub issue if you were relying on it and we can work out an appopriate solution.
 -   Removed unnecessary config options
     -   `worktree.default_remote`: autowt now queries git for branch tracking remotes with fallback priority (origin → upstream → first available)
@@ -126,7 +127,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
     -   `ls` → `list`, `ll`
     -   `cleanup` → `cl`, `clean`, `prune`
     -   `config` → `configure`, `settings`, `cfg`, `conf`
-    -   `shellconfig` → `shconf`
     -   `switch` → `sw`, `checkout`, `co`, `goto`, `go`
 -   Confirmation prompt for dynamic branch commands to prevent typos
     -   Prompts "Create a branch 'branch-name' and worktree? (Y/n)" for commands like `autowt swtch`

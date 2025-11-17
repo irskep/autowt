@@ -111,35 +111,6 @@ Opens an interactive TUI to configure global `autowt` settings, such as the defa
 | -------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `--show` | Display current configuration values from all sources (global and project). Useful for debugging configuration issues. |
 
-## `autowt shellconfig`
-
-!!! warning
-
-    This feature is experimental.
-
-_(Alias: `shconf`)_
-
-Displays a function you could choose to add to your shell config to cd to worktrees without needing autowt to control your terminal program.
-
-<div class="autowt-clitable-wrapper"></div>
-
-| Option            | Description                                                                                              |
-| ----------------- | -------------------------------------------------------------------------------------------------------- |
-| `--shell <shell>` | Override shell detection. Supported shells: `bash`, `zsh`, `fish`, `tcsh`, `csh`, `nu`, `oil`, `elvish`. |
-
-For example, if you use zsh, you'd see this:
-
-```zsh
-# Shell Integration for autowt
-# Add this function to your shell configuration for convenient worktree switching:
-
-# Add to ~/.zshrc:
-# Example usage: autowt_cd feature-branch
-autowt_cd() { eval "$(autowt "$@" --terminal=echo)"; }
-```
-
-Once added to your shell's config, you can run `autowt_cd my-branch` to change the directory of your _current_ terminal session, which is useful in terminals that don't support advanced control.
-
 ## Global options
 
 These options can be used with any `autowt` command.

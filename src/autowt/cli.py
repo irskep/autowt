@@ -23,7 +23,6 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.prompts import prompt_cleanup_mode_selection
-from autowt.shell_integrations import show_shell_config
 from autowt.tui.switch import run_switch_tui
 from autowt.utils import (
     is_interactive_terminal,
@@ -382,21 +381,6 @@ def config(debug: bool, show: bool) -> None:
         show_config(services)
     else:
         configure_settings(services)
-
-
-@main.command(
-    aliases=["shconf"], context_settings={"help_option_names": ["-h", "--help"]}
-)
-@click.option("--debug", is_flag=True, help="Enable debug logging")
-@click.option(
-    "--shell",
-    type=click.Choice(["bash", "zsh", "fish", "tcsh", "csh", "nu", "oil", "elvish"]),
-    help="Override shell detection (useful for generating docs)",
-)
-def shellconfig(debug: bool, shell: str | None) -> None:
-    """Show shell integration instructions for your current shell."""
-    setup_logging(debug)
-    show_shell_config(shell)
 
 
 @main.command(
