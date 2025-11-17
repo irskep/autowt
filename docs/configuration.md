@@ -40,6 +40,8 @@ This section provides a comprehensive reference for all available configuration 
 
 Controls how `autowt` interacts with your terminal.
 
+<div class="autowt-clitable-wrapper"></div>
+
 | Key          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                            |
 | ------------ | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mode`       | string  | `"tab"` | Determines how `autowt` opens worktrees. <br> • `tab`: Open in a new tab (default). <br> • `window`: Open in a new window. <br> • `inplace`: Switch the current terminal to the worktree directory. <br> • `echo`: Output shell commands for shell integration. <br> **ENV**: `AUTOWT_TERMINAL_MODE` <br> **CLI**: `--terminal <mode>` |
@@ -52,6 +54,8 @@ Controls how `autowt` interacts with your terminal.
 
 Defines how worktrees are created and managed.
 
+<div class="autowt-clitable-wrapper"></div>
+
 | Key                 | Type    | Default                               | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------- | ------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `directory_pattern` | string  | `"../{repo_name}-worktrees/{branch}"` | The template for creating worktree directory paths. Can use variables `{repo_dir}` (full repo path), `{repo_name}` (repo directory name), `{repo_parent_dir}` (parent directory of repo), `{branch}` (branch name), and environment variables like `$HOME`. Examples: `"{repo_parent_dir}/worktrees/{branch}"`, `"$HOME/worktrees/{repo_name}/{branch}"`. This can be overridden on a per-command basis using the `--dir` flag. <br> **ENV**: `AUTOWT_WORKTREE_DIRECTORY_PATTERN` <br> **CLI**: `--dir <path>` |
@@ -63,6 +67,8 @@ Defines how worktrees are created and managed.
 ### `[cleanup]` - Cleanup behavior
 
 Configures the `autowt cleanup` command.
+
+<div class="autowt-clitable-wrapper"></div>
 
 | Key            | Type   | Default         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------- | ------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -96,6 +102,8 @@ This feature is very bare-bones, and is intended to lay the groundwork for futur
 ### `[confirmations]` - User interface
 
 Manage which operations require a confirmation prompt.
+
+<div class="autowt-clitable-wrapper"></div>
 
 | Key                | Type    | Default | Description                                                                                                                               |
 | ------------------ | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |

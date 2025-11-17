@@ -22,7 +22,7 @@ docs-prep = "cp CHANGELOG.md docs/CHANGELOG.md"
 
 [tasks.docs-serve]
 run = "uv run zensical serve"
-depends = ["docs-prep"]
+depends = ["docs-install", "docs-prep"]
 
 [tasks.docs-build]
 run = "uv run zensical build"
