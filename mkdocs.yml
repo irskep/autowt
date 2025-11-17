@@ -8,10 +8,10 @@ nav:
   - Home: index.md
   - Getting Started: gettingstarted.md
   - Branch Management: branchmanagement.md
-  - Lifecycle Hooks: lifecyclehooks.md
   - Reference:
       - CLI Reference: clireference.md
       - Configuration: configuration.md
+      - Lifecycle Hooks: lifecyclehooks.md
       - Terminal Support: terminalsupport.md
       - Troubleshooting: troubleshooting.md
   - Changelog: CHANGELOG.md
