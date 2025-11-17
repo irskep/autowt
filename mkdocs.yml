@@ -7,7 +7,6 @@ repo_name: irskep/autowt
 nav:
   - Home: index.md
   - Getting Started: gettingstarted.md
-  - Branch Management: branchmanagement.md
   - Reference:
       - CLI Reference: clireference.md
       - Configuration: configuration.md
