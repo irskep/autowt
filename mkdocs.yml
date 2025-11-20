@@ -3,61 +3,67 @@ site_description: git worktree manager with automatic terminal switching and cle
 site_url: https://irskep.github.io/autowt/
 repo_url: https://github.com/irskep/autowt
 repo_name: irskep/autowt
+edit_uri: edit/main/docs/
 
 nav:
-  - Home: index.md
-  - Getting Started: gettingstarted.md
-  - Reference:
-      - CLI Reference: clireference.md
-      - Configuration: configuration.md
-      - Lifecycle Hooks: lifecyclehooks.md
-      - Terminal Support: terminalsupport.md
-      - Troubleshooting: troubleshooting.md
-  - Changelog: CHANGELOG.md
+    - Home: index.md
+    - Getting Started: gettingstarted.md
+    - Reference:
+          - CLI Reference: clireference.md
+          - Configuration: configuration.md
+          - Lifecycle Hooks: lifecyclehooks.md
+          - Terminal Support: terminalsupport.md
+          - Troubleshooting: troubleshooting.md
+    - Changelog: CHANGELOG.md
 
 plugins:
-  - search
-  - help-output:
-      command_prefix: "uv run"
-  - gh-admonitions
+    - search
+    - help-output:
+          command_prefix: "uv run"
+    - gh-admonitions
 
 extra:
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/irskep/autowt
-    - icon: fontawesome/brands/python
-      link: https://pypi.org/project/autowt/
-  version:
-    provider: mike
+    social:
+        - icon: fontawesome/brands/github
+          link: https://github.com/irskep/autowt
+        - icon: fontawesome/brands/python
+          link: https://pypi.org/project/autowt/
+    version:
+        provider: mike
 
 extra_css:
-  - stylesheets/extra.css
+    - stylesheets/extra.css
 
 theme:
-  name: material
-  palette:
-    # Palette toggle for light mode
-    - scheme: default
-      primary: "deep orange"
-      accent: "deep orange"
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    # Palette toggle for dark mode
-    - scheme: slate
-      primary: "deep purple"
-      accent: "deep purple"
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-  features:
-    - navigation.sections
-    - navigation.expand
-    - navigation.path
-    - navigation.top
-    - navigation.footer
-    - search.highlight
-    - search.share
-    - content.code.copy
-    - content.code.annotate
-    - content.tooltips
+    name: material
+    font:
+        text: IBM Plex Sans
+    icon:
+        logo: lucide/folder-tree
+        repo: fontawesome/brands/github
+    palette:
+        # Palette toggle for light mode
+        - scheme: default
+          primary: "deep orange"
+          accent: "deep orange"
+          toggle:
+              icon: material/brightness-7
+              name: Switch to dark mode
+        # Palette toggle for dark mode
+        - scheme: slate
+          primary: "deep purple"
+          accent: "deep purple"
+          toggle:
+              icon: material/brightness-4
+              name: Switch to light mode
+    features:
+        - navigation.sections
+        - navigation.expand
+        - navigation.path
+        - navigation.top
+        - navigation.footer
+        - search.highlight
+        - search.share
+        - content.code.copy
+        - content.code.annotate
+        - content.tooltips

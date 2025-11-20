@@ -1,3 +1,54 @@
+/* General */
+
+:root,
+body[data-md-color-scheme="default"] {
+    --md-default-bg-color: rgb(250, 251, 252) !important;
+}
+
+@media screen {
+    body[data-md-color-scheme="slate"] {
+        --md-default-bg-color: rgb(49, 49, 56) !important;
+    }
+}
+
+.md-typeset {
+    line-height: 165%;
+}
+
+.md-typeset ol li,
+.md-typeset ul li {
+    margin-bottom: 0.35em;
+}
+
+.md-typeset code {
+    border: 0.05rem solid rgba(0, 0, 0, 0.1);
+}
+
+.md-nav--primary .md-nav__item .md-nav__link.md-nav__link--active {
+    border-left: 4px solid var(--md-accent-fg-color--transparent);
+    background: none;
+}
+
+.md-nav--primary .md-nav__item .md-nav__link {
+    border-radius: 0;
+    border-left: 4px solid transparent;
+}
+
+.md-nav--primary .md-nav__item .md-nav__link:hover {
+    background: none !important;
+    /* text-decoration: underline; */
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+/* :root {
+  --md-text-font-family:
+} */
+
+/* Specific */
+
 /*
   Target tables specifically on the CLI Reference page.
   The .md-page--reference-clireference class is added by Material for MkDocs
@@ -5,8 +56,8 @@
 */
 .autowt-clitable-wrapper + div table th:first-of-type,
 .autowt-clitable-wrapper + div table td:first-of-type {
-  width: 25% !important;
-  min-width: 10rem !important;
+    width: 25% !important;
+    min-width: 10rem !important;
 }
 
 /*
@@ -16,11 +67,11 @@
 */
 .autowt-hooks-wrapper + div table th:first-of-type,
 .autowt-hooks-wrapper + div table td:first-of-type {
-  width: 23% !important;
-  min-width: 8rem !important;
+    width: 23% !important;
+    min-width: 8rem !important;
 }
 
 .autowt-hooks-wrapper + div table th,
 .autowt-hooks-wrapper + div table td {
-  width: 25% !important;
+    width: 25% !important;
 }
