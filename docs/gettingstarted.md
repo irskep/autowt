@@ -6,9 +6,9 @@ This guide will walk you through installing `autowt`, setting it up for a projec
 
 Before you begin, make sure you have the following installed:
 
-*   **Python 3.10+**: You can check your version with `python3 --version`.
-*   **Git 2.5+**: `autowt` relies on modern git worktree functionality. Check your version with `git --version`. Git 2.5 was released in 2015, so this shouldn’t be a problem.
-*   **A supported terminal (recommended)**: For the best experience, use a terminal with good tab and window management, like iTerm2 on macOS. See the [Terminal Support](terminalsupport.md) page for more details.
+-   **Python 3.10+**: You can check your version with `python3 --version`.
+-   **Git 2.5+**: `autowt` relies on modern git worktree functionality. Check your version with `git --version`. Git 2.5 was released in 2015, so this shouldn’t be a problem.
+-   **A supported terminal (recommended)**: For the best experience, use a terminal with good tab and window management, like iTerm2 on macOS. See the [Terminal Support](terminalsupport.md) page for more details.
 
 ## Installation
 
@@ -97,6 +97,7 @@ The output will look something like this, with an arrow `→` indicating your cu
 !!! tip "Interactive switching"
 
     You can also use `autowt switch` with no arguments to open an interactive TUI that lets you:
+
     - Select from existing worktrees to switch to
     - Choose branches without worktrees (automatically creates a new worktree)
     - Create a new branch by entering its name
@@ -160,5 +161,6 @@ On first run, `autowt` will ask you to select your preferred cleanup mode (inter
 If `autowt cleanup` doesn't want to automatically clean up your branch, you can run `autowt cleanup <branch-name>` explicitly.
 
 ---
-*[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
-*[main worktree]: The original repository directory, as opposed to the worktree directories managed by `autowt`.
+
+_[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
+_[main worktree]: The original repository directory, as opposed to the worktree directories managed by `autowt`.
