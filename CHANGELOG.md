@@ -2,6 +2,16 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.5.1 - Unreleased
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## 0.5.0 - 2026-01-02
 
 See [this discussion](https://github.com/irskep/autowt/discussions/75) for more background on this release.
