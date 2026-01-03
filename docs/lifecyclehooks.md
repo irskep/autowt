@@ -55,16 +55,16 @@ Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at spe
 
 <div class="autowt-hooks-wrapper"></div>
 
-| Hook | When it runs | Execution Context |
-| - | - | - |
-| [`pre_create`](#pre_create) | Before creating worktree | Workdir: main repo<br>Terminal: original |
-| [`post_create`](#post_create) | After creating worktree, before terminal switch | Workdir: worktree<br>Terminal: original |
-| [`post_create_async`](#post_create_async) | After terminal switch (or before `session_init`/`--after-init` in ECHO mode) | Workdir: worktree<br>Terminal: original |
-| [`session_init`](#session_init) | In new terminal session after switching to worktree | Workdir: worktree<br>Terminal: new |
-| [`pre_cleanup`](#pre_cleanup) | Before cleaning up worktrees | Workdir: worktree<br>Terminal: original |
-| [`post_cleanup`](#post_cleanup) | After worktrees are removed | Workdir: main repo<br>Terminal: original |
-| [`pre_switch`](#pre_switch) | Before switching worktrees | Workdir: worktree<br>Terminal: original |
-| [`post_switch`](#post_switch) | After switching worktrees | Workdir: worktree<br>Terminal: original  |
+| Hook                                      | When it runs                                                                 | Execution Context                        |
+| ----------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------- |
+| [`pre_create`](#pre_create)               | Before creating worktree                                                     | Workdir: main repo<br>Terminal: original |
+| [`post_create`](#post_create)             | After creating worktree, before terminal switch                              | Workdir: worktree<br>Terminal: original  |
+| [`post_create_async`](#post_create_async) | After terminal switch (or before `session_init`/`--after-init` in ECHO mode) | Workdir: worktree<br>Terminal: original  |
+| [`session_init`](#session_init)           | In new terminal session after switching to worktree                          | Workdir: worktree<br>Terminal: new       |
+| [`pre_cleanup`](#pre_cleanup)             | Before cleaning up worktrees                                                 | Workdir: worktree<br>Terminal: original  |
+| [`post_cleanup`](#post_cleanup)           | After worktrees are removed                                                  | Workdir: main repo<br>Terminal: original |
+| [`pre_switch`](#pre_switch)               | Before switching worktrees                                                   | Workdir: worktree<br>Terminal: original  |
+| [`post_switch`](#post_switch)             | After switching worktrees                                                    | Workdir: worktree<br>Terminal: original  |
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
 
@@ -153,10 +153,10 @@ post_cleanup = "echo 'Worktree cleanup complete'"
 
 All hooks receive the following environment variables:
 
-- `AUTOWT_WORKTREE_DIR`: Path to the worktree directory (always set, even if directory doesn't exist yet or has been deleted)
-- `AUTOWT_MAIN_REPO_DIR`: Path to the main repository directory
-- `AUTOWT_BRANCH_NAME`: Name of the branch
-- `AUTOWT_HOOK_TYPE`: Type of hook being executed
+-   `AUTOWT_WORKTREE_DIR`: Path to the worktree directory (always set, even if directory doesn't exist yet or has been deleted)
+-   `AUTOWT_MAIN_REPO_DIR`: Path to the main repository directory
+-   `AUTOWT_BRANCH_NAME`: Name of the branch
+-   `AUTOWT_HOOK_TYPE`: Type of hook being executed
 
 **Working directory behavior**: Most hooks run with the worktree directory as their working directory. However, `pre_create` and `post_cleanup` hooks run with the **main repository directory** as their working directory, since the worktree doesn't exist yet (`pre_create`) or has been deleted (`post_cleanup`).
 
@@ -183,10 +183,10 @@ Hook scripts are executed by passing the script text directly to the system shel
 
 This execution model means:
 
-- **Multi-line scripts work naturally**—the shell handles newlines and command separation
-- **All shell features are available**—variables, conditionals, loops, pipes, redirections, etc.
-- **Shebangs are ignored**—since no file is created, `#!/bin/bash` lines are treated as comments
-- **Cross-platform behavior is tricky**—PowerShell and bash are quite different! GitHub issues and pull requests on this topic are welcome.
+-   **Multi-line scripts work naturally**—the shell handles newlines and command separation
+-   **All shell features are available**—variables, conditionals, loops, pipes, redirections, etc.
+-   **Shebangs are ignored**—since no file is created, `#!/bin/bash` lines are treated as comments
+-   **Cross-platform behavior is tricky**—PowerShell and bash are quite different! GitHub issues and pull requests on this topic are welcome.
 
 ```toml
 [scripts]
@@ -216,8 +216,8 @@ If you need to use a different programming language, create a separate script fi
 
 ### `pre_create`
 
-**Timing**: Before worktree creation begins 
-**Execution Context**: Subprocess in main repository directory 
+**Timing**: Before worktree creation begins  
+**Execution Context**: Subprocess in main repository directory  
 **Use cases**: Pre-flight validation, resource availability checks, branch name validation
 
 The `pre_create` hook runs in the **main repository directory** (not the worktree directory, which doesn't exist yet). However, the `AUTOWT_WORKTREE_DIR` environment variable is still set to the path where the worktree will be created.
@@ -253,10 +253,10 @@ cp .env.example .env
 
 The post_create hook runs as a subprocess after the worktree is created but before switching to the terminal session. It's ideal for:
 
-- Installing dependencies that don't require shell interaction
-- Setting up configuration files
-- Running git commands
-- File operations that don't need shell environment
+-   Installing dependencies that don't require shell interaction
+-   Setting up configuration files
+-   Running git commands
+-   File operations that don't need shell environment
 
 ### `post_create_async`
 
@@ -276,23 +276,23 @@ npm run build
 
 **Execution behavior varies by terminal mode:**
 
-- **TAB/WINDOW/VSCODE/CURSOR modes**: Runs in the original terminal _after_ the new terminal tab/window opens. The user can immediately start working in the new terminal while dependencies install in the background. The `autowt` process waits for completion before exiting.
+-   **TAB/WINDOW/VSCODE/CURSOR modes**: Runs in the original terminal _after_ the new terminal tab/window opens. The user can immediately start working in the new terminal while dependencies install in the background. The `autowt` process waits for completion before exiting.
 
-- **ECHO/INPLACE modes**: Runs _before_ `--after-init` since no actual terminal switch occurs. Ensures expensive operations complete before any after-init commands run.
+-   **ECHO/INPLACE modes**: Runs _before_ `--after-init` since no actual terminal switch occurs. Ensures expensive operations complete before any after-init commands run.
 
 **Failure handling**: Unlike `pre_create` and `post_create`, failures in this hook show a warning but don't abort the operation. Since the hook may run asynchronously, failures might not be detectable until after the user is already working.
 
 **When to use**: Use `post_create_async` for operations that:
 
-- Are expensive but not critical for immediate work
-- Don't produce output the user needs to see right away
-- Can safely run while the user starts working (installing dependencies, building assets, etc.)
+-   Are expensive but not critical for immediate work
+-   Don't produce output the user needs to see right away
+-   Can safely run while the user starts working (installing dependencies, building assets, etc.)
 
 **When to use `post_create` instead**: Use the synchronous `post_create` hook for operations that:
 
-- Must complete before the user can work (copying config files, setting permissions)
-- Are fast and shouldn't delay terminal switching
-- Produce errors that should prevent terminal switching
+-   Must complete before the user can work (copying config files, setting permissions)
+-   Are fast and shouldn't delay terminal switching
+-   Produce errors that should prevent terminal switching
 
 ### `session_init`
 
@@ -326,8 +326,8 @@ pre_cleanup = """
 
 ### `post_cleanup`
 
-**Timing**: After worktrees and branches are removed 
-**Execution Context**: Subprocess in main repository directory 
+**Timing**: After worktrees and branches are removed
+**Execution Context**: Subprocess in main repository directory
 **Use cases**: Volume cleanup, global state updates
 
 The `post_cleanup` hook runs in the **main repository directory** (not the worktree directory, which has been deleted). However, the `AUTOWT_WORKTREE_DIR` environment variable is still set to the path where the worktree was located.
