@@ -18,6 +18,7 @@ nav:
           - GitHub Issues: cookbook/github.md
           - Linear: cookbook/linear.md
           - Coding Agents: cookbook/agents.md
+          - .env Files: cookbook/env.md
     - Changelog: CHANGELOG.md
 
 plugins:
