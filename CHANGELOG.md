@@ -2,19 +2,13 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.1 - Unreleased
+## 0.5.1 - 2026-01-03
 
 ### Added
 
 -   Custom scripts can be invoked directly as subcommands: `awt ghllm 123` instead of `awt --custom-script="ghllm 123"`
     -   Custom scripts appear in `awt --help` output in a separate "Custom Scripts:" section
     -   New `description` field for custom scripts provides help text in command listings
-
-### Changed
-
-### Fixed
-
-### Removed
 
 ## 0.5.0 - 2026-01-02
 
