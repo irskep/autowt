@@ -24,6 +24,10 @@ body[data-md-color-scheme="default"] {
     border: 0.05rem solid rgba(0, 0, 0, 0.1);
 }
 
+.md-nav--primary > .md-nav__list {
+    gap: 1rem;
+}
+
 .md-nav--primary .md-nav__item .md-nav__link.md-nav__link--active {
     border-left: 4px solid var(--md-accent-fg-color--transparent);
     background: none;

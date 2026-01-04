@@ -14,6 +14,10 @@ nav:
           - Lifecycle Hooks: lifecyclehooks.md
           - Terminal Support: terminalsupport.md
           - Troubleshooting: troubleshooting.md
+    - Cookbook:
+          - GitHub Issues: cookbook/github.md
+          - Linear: cookbook/linear.md
+          - Coding Agents: cookbook/agents.md
     - Changelog: CHANGELOG.md
 
 plugins:

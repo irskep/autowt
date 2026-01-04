@@ -20,9 +20,9 @@ For a comprehensive example configuration file with comments explaining all opti
 
 Your global settings are stored in a `config.toml` file in a platform-appropriate directory:
 
-- **macOS**: `~/Library/Application Support/autowt/config.toml`
-- **Linux**: `~/.config/autowt/config.toml` (or `$XDG_CONFIG_HOME/autowt/config.toml`)
-- **Windows**: `~/.autowt/config.toml`
+-   **macOS**: `~/Library/Application Support/autowt/config.toml`
+-   **Linux**: `~/.config/autowt/config.toml` (or `$XDG_CONFIG_HOME/autowt/config.toml`)
+-   **Windows**: `~/.autowt/config.toml`
 
 The easiest way to manage common settings is with the `autowt config` command, which launches an interactive TUI (Text-based User Interface) for the most frequently used options. For the complete set of configuration options, you can edit the config file directly.
 
@@ -42,11 +42,11 @@ Controls how `autowt` interacts with your terminal.
 
 <div class="autowt-clitable-wrapper"></div>
 
-| Key          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                            |
-| ------------ | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                |
+| ------------ | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mode`       | string  | `"tab"` | Determines how `autowt` opens worktrees. <br> • `tab`: Open in a new tab (default). <br> • `window`: Open in a new window. <br> • `inplace`: Switch the current terminal to the worktree directory. <br> • `echo`: Output shell commands to stdout. <br> **ENV**: `AUTOWT_TERMINAL_MODE` <br> **CLI**: `--terminal <mode>` |
-| `always_new` | boolean | `false` | If `true`, always creates a new terminal session instead of switching to an existing one for a worktree. <br> **ENV**: `AUTOWT_TERMINAL_ALWAYS_NEW` <br> **CLI**: `--ignore-same-session`                                                                                                                                              |
-| `program`    | string  | `null`  | Force `autowt` to use a specific terminal program instead of auto-detecting one. <br> _Examples: `iterm2`, `terminal`, `tmux`_ <br> **ENV**: `AUTOWT_TERMINAL_PROGRAM`                                                                                                                                                                 |
+| `always_new` | boolean | `false` | If `true`, always creates a new terminal session instead of switching to an existing one for a worktree. <br> **ENV**: `AUTOWT_TERMINAL_ALWAYS_NEW` <br> **CLI**: `--ignore-same-session`                                                                                                                                  |
+| `program`    | string  | `null`  | Force `autowt` to use a specific terminal program instead of auto-detecting one. <br> _Examples: `iterm2`, `terminal`, `tmux`_ <br> **ENV**: `AUTOWT_TERMINAL_PROGRAM`                                                                                                                                                     |
 
 ---
 
@@ -60,7 +60,7 @@ Defines how worktrees are created and managed.
 | ------------------- | ------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `directory_pattern` | string  | `"../{repo_name}-worktrees/{branch}"` | The template for creating worktree directory paths. Can use variables `{repo_dir}` (full repo path), `{repo_name}` (repo directory name), `{repo_parent_dir}` (parent directory of repo), `{branch}` (branch name), and environment variables like `$HOME`. Examples: `"{repo_parent_dir}/worktrees/{branch}"`, `"$HOME/worktrees/{repo_name}/{branch}"`. This can be overridden on a per-command basis using the `--dir` flag. <br> **ENV**: `AUTOWT_WORKTREE_DIRECTORY_PATTERN` <br> **CLI**: `--dir <path>` |
 | `auto_fetch`        | boolean | `true`                                | If `true`, automatically fetches from the remote before creating new worktrees. <br> **ENV**: `AUTOWT_WORKTREE_AUTO_FETCH` <br> **CLI**: `--no-fetch` (to disable)                                                                                                                                                                                                                                                                                                                                             |
-| `branch_prefix`     | string  | `null`                                | Automatically prefix new branch names with a template. Can use variables `{repo_name}`, `{github_username}` (if `gh` CLI is available), and environment variables. Examples: `"feature/"`, `"{github_username}/"`. When set, `autowt my-feature` creates `feature/my-feature`. Also applies when switching: `autowt my-feature` switches to `feature/my-feature` if it exists. Prevents double-prefixing if the branch name already includes the prefix. <br> **ENV**: `AUTOWT_WORKTREE_BRANCH_PREFIX`          |
+| `branch_prefix`     | string  | `null`                                | Automatically prefix new branch names with a template. Can use variables `{repo_name}`, `{github_username}` (if `gh` CLI is available), and environment variables. Examples: `"feature/"`, `"{github_username}/"`. When set, `autowt my-feature` creates `feature/my-feature`. Also applies when switching: `autowt my-feature` switches to `feature/my-feature` if it exists. Prevents double-prefixing if the branch name already includes the prefix. <br> **ENV**: `AUTOWT_WORKTREE_BRANCH_PREFIX`         |
 
 ---
 
@@ -119,19 +119,21 @@ session_init = 'claude "Work on GitHub issue $1"'
 
 ##### Custom script fields
 
-| Field              | Type    | Default | Description                                                                                    |
-| ------------------ | ------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `description`      | string  | `null`  | Help text shown in `awt --help` output.                                                        |
-| `branch_name`      | string  | `null`  | Shell command whose stdout becomes the branch name. Output is automatically normalized.        |
-| `inherit_hooks`    | boolean | `true`  | When `true`, global/project hooks run before custom script hooks. When `false`, only custom script hooks run. |
-| `pre_create`       | string  | `null`  | Runs before worktree creation (in main repo directory).                                        |
-| `post_create`      | string  | `null`  | Runs after worktree creation (in worktree directory).                                          |
-| `post_create_async`| string  | `null`  | Runs after worktree creation, non-blocking.                                                    |
-| `session_init`     | string  | `null`  | Runs when opening a terminal in the worktree.                                                  |
-| `pre_cleanup`      | string  | `null`  | Runs before worktree deletion.                                                                 |
-| `post_cleanup`     | string  | `null`  | Runs after worktree deletion (in main repo directory).                                         |
-| `pre_switch`       | string  | `null`  | Runs before switching to an existing worktree.                                                 |
-| `post_switch`      | string  | `null`  | Runs after switching to an existing worktree.                                                  |
+<div class="autowt-hooks-wrapper"></div>
+
+| Field               | Type    | Default | Description                                                                                                   |
+| ------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `description`       | string  | `null`  | Help text shown in `awt --help` output.                                                                       |
+| `branch_name`       | string  | `null`  | Shell command whose stdout becomes the branch name. Output is automatically normalized and truncated.         |
+| `inherit_hooks`     | boolean | `true`  | When `true`, global/project hooks run before custom script hooks. When `false`, only custom script hooks run. |
+| `pre_create`        | string  | `null`  | Runs before worktree creation (in main repo directory).                                                       |
+| `post_create`       | string  | `null`  | Runs after worktree creation (in worktree directory).                                                         |
+| `post_create_async` | string  | `null`  | Runs after worktree creation, non-blocking.                                                                   |
+| `session_init`      | string  | `null`  | Runs when opening a terminal in the worktree.                                                                 |
+| `pre_cleanup`       | string  | `null`  | Runs before worktree deletion.                                                                                |
+| `post_cleanup`      | string  | `null`  | Runs after worktree deletion (in main repo directory).                                                        |
+| `pre_switch`        | string  | `null`  | Runs before switching to an existing worktree.                                                                |
+| `post_switch`       | string  | `null`  | Runs after switching to an existing worktree.                                                                 |
 
 ##### Argument interpolation
 
@@ -151,23 +153,24 @@ awt --custom-script="ghllm 123"
 
 When `branch_name` is set, the command is executed and its stdout becomes the branch name. The output is automatically normalized to be a valid git ref:
 
-- Converted to lowercase
-- Spaces and underscores become dashes
-- Invalid git ref characters are removed
-- Double dots, consecutive dashes/slashes are collapsed
+-   Converted to lowercase
+-   Spaces and underscores become dashes
+-   Invalid git ref characters are removed
+-   Double dots, consecutive dashes/slashes are collapsed
 
 Example transformations:
 
-| Command output             | Resulting branch name        |
-| -------------------------- | ---------------------------- |
-| `Fix the login bug`        | `fix-the-login-bug`          |
-| `Feature: Add OAuth`       | `feature-add-oauth`          |
-| `[BUG] Crash on startup`   | `bug-crash-on-startup`       |
-| `feature/Add user auth`    | `feature/add-user-auth`      |
+| Command output           | Resulting branch name   |
+| ------------------------ | ----------------------- |
+| `Fix the login bug`      | `fix-the-login-bug`     |
+| `Feature: Add OAuth`     | `feature-add-oauth`     |
+| `[BUG] Crash on startup` | `bug-crash-on-startup`  |
+| `feature/Add user auth`  | `feature/add-user-auth` |
 
 ##### Hook inheritance
 
 When `inherit_hooks = true` (the default), hooks run in this order:
+
 1. Global config hook (if defined)
 2. Project config hook (if defined)
 3. Custom script hook (if defined)

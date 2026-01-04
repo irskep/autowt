@@ -49,7 +49,7 @@ fi
 """
 ```
 
-## Reference tables and diagrams
+## Quick reference
 
 Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at specific points during worktree operations:
 
@@ -66,7 +66,9 @@ Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at spe
 | [`pre_switch`](#pre_switch)               | Before switching worktrees                                                   | Workdir: worktree<br>Terminal: original  |
 | [`post_switch`](#post_switch)             | After switching worktrees                                                    | Workdir: worktree<br>Terminal: original  |
 
-Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. The use case for this is to have the new worktree launch specific tasks immediately after setup is done, so you could, for example, run `--after-init=claude` to launch Claude Code once dependencies have been installed.
+Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. This is for cases when you want to immediately start up a one-off script after the worktree has been set up. If you find yourself repeating the same `--after-init` arg, consider writing a [custom script](./configuration.md#scriptscustom).
+
+## Control flow diagrams
 
 ### Creating and switching to a new worktree
 
