@@ -657,3 +657,130 @@ class TestCLIPriorityBehavior:
             result = runner.invoke(main, ["ll"])
             assert result.exit_code == 0
             mock_ls.assert_called_once()
+
+
+class TestCustomScriptHelpOutput:
+    """Tests for custom scripts appearing in --help output."""
+
+    def test_custom_scripts_appear_in_main_help(self):
+        """Test that custom scripts are listed in main --help output."""
+        runner = CliRunner()
+
+        custom_scripts = {
+            "ghissue": CustomScript(
+                description="Create worktree from GitHub issue",
+                branch_name="gh issue view $1 --json title -q .title",
+            ),
+            "bugfix": CustomScript(session_init='claude "Fix $1"'),
+        }
+
+        with (
+            patch("autowt.cli.initialize_config"),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = create_mock_config(
+                custom_scripts=custom_scripts
+            )
+
+            result = runner.invoke(main, ["--help"])
+            assert result.exit_code == 0
+            # Custom scripts should appear in the commands list
+            assert "ghissue" in result.output
+            assert "bugfix" in result.output
+
+    def test_custom_script_description_in_help(self):
+        """Test that custom script description is shown in help output."""
+        runner = CliRunner()
+
+        custom_scripts = {
+            "ghissue": CustomScript(
+                description="Create worktree from GitHub issue",
+                branch_name="gh issue view $1 --json title -q .title",
+            ),
+        }
+
+        with (
+            patch("autowt.cli.initialize_config"),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = create_mock_config(
+                custom_scripts=custom_scripts
+            )
+
+            result = runner.invoke(main, ["--help"])
+            assert result.exit_code == 0
+            assert "Create worktree from GitHub issue" in result.output
+
+    def test_custom_script_without_description_shows_default(self):
+        """Test that scripts without description show default help text."""
+        runner = CliRunner()
+
+        custom_scripts = {"myfix": CustomScript(session_init='claude "Fix $1"')}
+
+        with (
+            patch("autowt.cli.initialize_config"),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = create_mock_config(
+                custom_scripts=custom_scripts
+            )
+
+            result = runner.invoke(main, ["--help"])
+            assert result.exit_code == 0
+            assert "myfix" in result.output
+            assert "Run custom script 'myfix'" in result.output
+
+    def test_custom_script_individual_help(self):
+        """Test that custom script --help shows its description."""
+        runner = CliRunner()
+
+        custom_scripts = {
+            "ghissue": CustomScript(
+                description="Create worktree from GitHub issue",
+                branch_name="gh issue view $1 --json title -q .title",
+            ),
+        }
+
+        with (
+            patch("autowt.cli.initialize_config"),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = create_mock_config(
+                custom_scripts=custom_scripts
+            )
+
+            result = runner.invoke(main, ["ghissue", "--help"])
+            assert result.exit_code == 0
+            assert "Create worktree from GitHub issue" in result.output
+
+    def test_custom_scripts_in_separate_section(self):
+        """Test that custom scripts appear in separate 'Custom Scripts:' section."""
+        runner = CliRunner()
+
+        custom_scripts = {
+            "ghissue": CustomScript(
+                description="Create worktree from GitHub issue",
+                branch_name="gh issue view $1 --json title -q .title",
+            ),
+        }
+
+        with (
+            patch("autowt.cli.initialize_config"),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = create_mock_config(
+                custom_scripts=custom_scripts
+            )
+
+            result = runner.invoke(main, ["--help"])
+            assert result.exit_code == 0
+            # Built-in commands should be in "Commands:" section
+            assert "Commands:" in result.output
+            assert "cleanup" in result.output
+            # Custom scripts should be in "Custom Scripts:" section
+            assert "Custom Scripts:" in result.output
+            assert "ghissue" in result.output
+            # Verify ordering: Commands section comes before Custom Scripts section
+            commands_idx = result.output.index("Commands:")
+            custom_idx = result.output.index("Custom Scripts:")
+            assert commands_idx < custom_idx

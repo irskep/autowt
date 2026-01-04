@@ -103,6 +103,9 @@ For more control, use a nested table to define a complete workflow profile:
 
 ```toml
 [scripts.custom.ghllm]
+# Help text for --help output
+description = "Create worktree from GitHub issue"
+
 # Dynamic branch name from command output
 branch_name = "gh issue view $1 --json title --template '{{.title}}'"
 
@@ -118,6 +121,7 @@ session_init = 'claude "Work on GitHub issue $1"'
 
 | Field              | Type    | Default | Description                                                                                    |
 | ------------------ | ------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `description`      | string  | `null`  | Help text shown in `awt --help` output.                                                        |
 | `branch_name`      | string  | `null`  | Shell command whose stdout becomes the branch name. Output is automatically normalized.        |
 | `inherit_hooks`    | boolean | `true`  | When `true`, global/project hooks run before custom script hooks. When `false`, only custom script hooks run. |
 | `pre_create`       | string  | `null`  | Runs before worktree creation (in main repo directory).                                        |

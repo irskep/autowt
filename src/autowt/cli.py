@@ -149,6 +149,69 @@ class AutowtGroup(ClickAliasedGroup):
         # Fall through to branch name handling
         return self._create_branch_command(cmd_name)
 
+    def list_commands(self, ctx):
+        """List all commands including custom scripts."""
+        # Get built-in commands from parent
+        commands = super().list_commands(ctx)
+
+        # Add custom scripts from config
+        try:
+            initialize_config()
+            config = get_config()
+            if config.scripts.custom:
+                commands.extend(config.scripts.custom.keys())
+        except (FileNotFoundError, PermissionError, KeyError, AttributeError):
+            # Config not available, just return built-in commands
+            pass
+
+        return sorted(set(commands))
+
+    def _get_custom_script_names(self) -> set[str]:
+        """Get names of all custom scripts from config."""
+        try:
+            initialize_config()
+            config = get_config()
+            if config.scripts.custom:
+                return set(config.scripts.custom.keys())
+        except (FileNotFoundError, PermissionError, KeyError, AttributeError):
+            pass
+        return set()
+
+    def format_commands(self, ctx, formatter):
+        """Format commands with separate sections for built-in and custom scripts."""
+        custom_script_names = self._get_custom_script_names()
+
+        # Collect all commands
+        commands = []
+        for subcommand in self.list_commands(ctx):
+            cmd = self.get_command(ctx, subcommand)
+            if cmd is None:
+                continue
+            help_text = cmd.get_short_help_str(limit=formatter.width)
+            commands.append((subcommand, help_text))
+
+        # Split into built-in and custom
+        builtin_commands = [
+            (name, help_text)
+            for name, help_text in commands
+            if name not in custom_script_names
+        ]
+        custom_commands = [
+            (name, help_text)
+            for name, help_text in commands
+            if name in custom_script_names
+        ]
+
+        # Write built-in commands section
+        if builtin_commands:
+            with formatter.section("Commands"):
+                formatter.write_dl(builtin_commands)
+
+        # Write custom scripts section
+        if custom_commands:
+            with formatter.section("Custom Scripts"):
+                formatter.write_dl(custom_commands)
+
     def _create_custom_script_command(self, script_name: str, config):
         """Create a dynamic command for a custom script."""
 
@@ -263,7 +326,8 @@ class AutowtGroup(ClickAliasedGroup):
                     help="Directory path for the new worktree",
                 ),
             ],
-            help=f"Run custom script '{script_name}'",
+            help=config.scripts.custom[script_name].description
+            or f"Run custom script '{script_name}'",
         )
         return custom_cmd
 

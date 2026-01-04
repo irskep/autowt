@@ -15,7 +15,9 @@ bugfix = 'claude "Investigate the GitHub issue $1. Propose a possible root cause
 [scripts.custom.ghllm]
 branch_name = "gh issue view $1 --json title --template '{{.title}}'"
 session_init = 'claude "Work on GitHub issue $1"'
+description = "Throw a coding agent at an issue"
 
 [scripts.custom.ghcode]
 branch_name = "gh issue view $1 --json title --template '{{.title}}'"
 session_init = 'code .'
+description = "Open VSCode in the worktree for an issue"

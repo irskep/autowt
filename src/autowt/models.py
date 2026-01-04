@@ -63,6 +63,9 @@ class BranchStatus:
 class CustomScript:
     """Enhanced custom script with optional hook overrides and dynamic branch naming."""
 
+    # Help text shown in --help output
+    description: str | None = None
+
     # Dynamic branch name - shell command whose stdout becomes the branch name
     branch_name: str | None = None
 
@@ -148,6 +151,8 @@ class ProjectScriptsConfig:
             custom_dict = {}
             for name, script in self.custom.items():
                 script_data = {}
+                if script.description is not None:
+                    script_data["description"] = script.description
                 if script.branch_name is not None:
                     script_data["branch_name"] = script.branch_name
                 if not script.inherit_hooks:
