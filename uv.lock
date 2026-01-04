@@ -19,7 +19,7 @@ guake = [
 
 [[package]]
 name = "autowt"
-version = "0.5.3"
+version = "0.5.4.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "automate-terminal" },
