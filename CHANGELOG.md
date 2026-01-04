@@ -2,17 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.2 - Unreleased
-
-### Added
+## 0.5.2 - 2026-01-03
 
 ### Changed
 
 - Bump minimum version of automate-terminal to fix a shell escaping bug in iTerm2
-
-### Fixed
-
-### Removed
 
 ## 0.5.1 - 2026-01-03
 
