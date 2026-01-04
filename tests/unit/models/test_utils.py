@@ -172,3 +172,19 @@ class TestNormalizeDynamicBranchName:
             normalize_dynamic_branch_name("Bug: TypeError when clicking submit")
             == "bug-typeerror-when-clicking-submit"
         )
+
+    def test_max_length_truncation(self):
+        """Test that branch names are truncated to max 255 characters."""
+        long_input = "a" * 300
+        result = normalize_dynamic_branch_name(long_input)
+        assert len(result) == 255
+        assert result == "a" * 255
+
+    def test_max_length_truncation_strips_trailing_chars(self):
+        """Test that truncation strips trailing dashes, dots, slashes."""
+        # Create input that will have trailing dash after truncation
+        long_input = "a" * 254 + "-b"
+        result = normalize_dynamic_branch_name(long_input)
+        assert len(result) == 254
+        assert result == "a" * 254
+        assert not result.endswith("-")

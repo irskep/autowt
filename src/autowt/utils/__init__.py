@@ -234,7 +234,15 @@ def normalize_dynamic_branch_name(raw: str) -> str:
         if part:
             cleaned_parts.append(part)
 
-    return "/".join(cleaned_parts)
+    result = "/".join(cleaned_parts)
+
+    # Enforce maximum length (git allows up to 255 bytes per component,
+    # but we limit the entire branch name for sanity)
+    max_length = 255
+    if len(result) > max_length:
+        result = result[:max_length].rstrip("-./")
+
+    return result
 
 
 def apply_branch_prefix(
