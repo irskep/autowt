@@ -4,11 +4,11 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "automate-terminal"
-version = "0.1.8"
+version = "0.1.9"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/32/ab/33ac4995a7d7ed0df064737b0ccaf1f7dea06855290292fdb93a73465221/automate_terminal-0.1.8.tar.gz", hash = "sha256:dfdf04a8f9dc149600a7b29eabb2e2a983e1363e1f26b4f76e2b813aa17b047d", size = 53477, upload-time = "2025-11-19T02:26:23.251Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/96/7f/0a12829e000d12314441a17778f117a1eaabeaf8a5a2f12968bb3d8e79d5/automate_terminal-0.1.9.tar.gz", hash = "sha256:57d1c59ad4296bc797d1217dd4fadc22f8de0939860b0e22ad16cad96a9d78b5", size = 53915, upload-time = "2026-01-04T03:34:31.602Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/a4/68310dc90441389fbdf44f3c7d9980e040cbe34c54c71174685f787d7a05/automate_terminal-0.1.8-py3-none-any.whl", hash = "sha256:715115582912570790190d0ecdd7593f7363dd9b9a0e3cfd0154c199e559573d", size = 33561, upload-time = "2025-11-19T02:26:21Z" },
+    { url = "https://files.pythonhosted.org/packages/33/ab/d90b417d2a4f12fb09058d9d94322e33bd06607e468e141a7f44b5e82c6a/automate_terminal-0.1.9-py3-none-any.whl", hash = "sha256:1c6d0f7714e7ee100a4476b55d1838fd9996624e6c25367cae701d1a45f2166f", size = 33563, upload-time = "2026-01-04T03:34:30.433Z" },
 ]
 
 [package.optional-dependencies]
@@ -50,7 +50,7 @@ guake = [
 
 [package.metadata]
 requires-dist = [
-    { name = "automate-terminal", specifier = "==0.1.8" },
+    { name = "automate-terminal", specifier = ">=0.1.9" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "click-aliases", specifier = ">=1.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
@@ -72,7 +72,7 @@ docs = [
     { name = "pymdown-extensions", specifier = ">=10.3.1" },
     { name = "zensical", specifier = "==0.0.8" },
 ]
-guake = [{ name = "automate-terminal", extras = ["guake"], specifier = "==0.1.8" }]
+guake = [{ name = "automate-terminal", extras = ["guake"], specifier = "==0.1.9" }]
 
 [[package]]
 name = "backports-asyncio-runner"

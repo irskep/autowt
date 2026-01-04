@@ -8,6 +8,8 @@
 
 ### Changed
 
+- Bump minimum version of automate-terminal to fix a shell escaping bug in iTerm2
+
 ### Fixed
 
 ### Removed
