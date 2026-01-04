@@ -3,9 +3,9 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from autowt.commands.checkout import _run_hook_set
+from autowt.commands.checkout import _run_hook_set, checkout_branch
 from autowt.hooks import HookType
-from autowt.models import TerminalMode
+from autowt.models import SwitchCommand, TerminalMode
 from tests.helpers import assert_hook_called_with, assert_hooks_not_called
 
 
@@ -111,7 +111,7 @@ class TestCheckoutHooks:
 
             assert result is False
             # Verify hooks were attempted
-            assert len(mock_services.hooks.run_hooks_calls) == 1
+            assert len(mock_services.hooks.run_hook_calls) == 1
 
     def test_run_post_create_hooks_with_scripts(self, mock_services):
         """Test that post_create hooks are executed when scripts are present."""
@@ -200,7 +200,7 @@ class TestCheckoutHooks:
             )
 
             assert result is False
-            assert len(mock_services.hooks.run_hooks_calls) == 1
+            assert len(mock_services.hooks.run_hook_calls) == 1
 
     def test_post_create_hooks_working_directory(self, mock_services):
         """Test that post_create hooks run in the worktree directory."""
@@ -227,8 +227,10 @@ class TestCheckoutHooks:
             )
 
             # Verify the working directory passed to hooks is the worktree directory
-            call_args = mock_services.hooks.run_hooks_calls[0]
-            assert call_args[3] == self.worktree_dir
+            call_args = mock_services.hooks.run_hook_calls[0]
+            assert (
+                call_args[2] == self.worktree_dir
+            )  # worktree_dir is index 2 in run_hook
 
 
 class TestPostCreateAsyncHooks:
@@ -324,7 +326,7 @@ class TestPostCreateAsyncHooks:
             )
 
             # Verify hooks were called despite failure
-            assert len(mock_services.hooks.run_hooks_calls) == 1
+            assert len(mock_services.hooks.run_hook_calls) == 1
 
             # Verify warning message was printed
             captured = capsys.readouterr()
@@ -355,8 +357,10 @@ class TestPostCreateAsyncHooks:
             )
 
             # Verify the working directory passed to hooks is the worktree directory
-            call_args = mock_services.hooks.run_hooks_calls[0]
-            assert call_args[3] == self.worktree_dir
+            call_args = mock_services.hooks.run_hook_calls[0]
+            assert (
+                call_args[2] == self.worktree_dir
+            )  # worktree_dir is index 2 in run_hook
 
 
 class TestPostCreateAsyncTiming:
@@ -376,3 +380,28 @@ class TestPostCreateAsyncTiming:
         """Test that INPLACE mode is categorized to run async hooks before switch."""
         # INPLACE mode should run post_create_async before switch
         assert TerminalMode.INPLACE in (TerminalMode.ECHO, TerminalMode.INPLACE)
+
+
+class TestCheckoutNullBranch:
+    """Tests for checkout handling of None branch (dynamic resolution)."""
+
+    def test_null_branch_error_when_not_resolved(self, mock_services, capsys):
+        """Test that None branch errors when custom script doesn't resolve it."""
+        # Set up mock services
+        mock_services.git.repo_root = Path("/tmp/test-repo")
+        mock_services.state.configs["default"] = MagicMock()
+        mock_services.state.project_configs["/tmp/test-repo"] = MagicMock()
+        mock_services.state.project_configs["/tmp/test-repo"].session_init = None
+
+        # Create switch command with None branch but NO custom_script to resolve it
+        switch_cmd = SwitchCommand(
+            branch=None,
+            terminal_mode=TerminalMode.TAB,
+            custom_script=None,  # No custom script to resolve dynamic branch
+        )
+
+        with patch("autowt.commands.checkout.resolve_custom_script", return_value=None):
+            checkout_branch(switch_cmd, mock_services)
+
+        captured = capsys.readouterr()
+        assert "No branch name provided" in captured.out

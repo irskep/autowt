@@ -22,7 +22,7 @@ from autowt.config import (
     save_config,
     set_config,
 )
-from autowt.models import CleanupMode, TerminalMode
+from autowt.models import CleanupMode, CustomScript, TerminalMode
 
 
 class TestConfigDataClasses:
@@ -149,7 +149,12 @@ class TestConfigFromDict:
 
         # Scripts config
         assert config.scripts.session_init == "npm install"
-        assert config.scripts.custom == {"test": "npm test", "build": "npm run build"}
+        # Custom scripts are normalized to CustomScript objects
+        assert len(config.scripts.custom) == 2
+        assert isinstance(config.scripts.custom["test"], CustomScript)
+        assert config.scripts.custom["test"].session_init == "npm test"
+        assert isinstance(config.scripts.custom["build"], CustomScript)
+        assert config.scripts.custom["build"].session_init == "npm run build"
 
         # Confirmations config
         assert config.confirmations.cleanup_multiple is False

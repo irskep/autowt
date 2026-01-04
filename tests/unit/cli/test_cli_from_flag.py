@@ -1,11 +1,12 @@
 """Tests for CLI --from flag functionality."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
 from autowt.cli import main
 from tests.fixtures.service_builders import MockServices
+from tests.unit.cli.test_cli import create_mock_config
 
 
 class TestCLIFromFlag:
@@ -39,16 +40,9 @@ class TestCLIFromFlag:
             patch("autowt.cli.initialize_config"),
             patch("autowt.cli.get_config") as mock_get_config,
         ):
-            # Setup mocks
-            mock_services = MockServices()
-            mock_create_services.return_value = mock_services
-            mock_config = Mock()
-            mock_config.terminal.mode = "tab"
-            mock_config.scripts.session_init = None
-            mock_config.terminal.always_new = False
-            mock_get_config.return_value = mock_config
+            mock_create_services.return_value = MockServices()
+            mock_get_config.return_value = create_mock_config()
 
-            # Test: autowt my-sub-feature --from my-big-feature
             result = runner.invoke(main, ["my-sub-feature", "--from", "my-big-feature"])
 
             assert result.exit_code == 0

@@ -243,6 +243,21 @@ class MockHookRunner:
     def __init__(self):
         self.run_hooks_success = True
         self.run_hooks_calls = []
+        self.run_hook_calls = []
+
+    def run_hook(
+        self,
+        hook_script: str,
+        hook_type: str,
+        worktree_dir: Path,
+        main_repo_dir: Path,
+        branch_name: str,
+        timeout: int = 60,
+    ) -> bool:
+        self.run_hook_calls.append(
+            (hook_script, hook_type, worktree_dir, main_repo_dir, branch_name, timeout)
+        )
+        return self.run_hooks_success
 
     def run_hooks(
         self,

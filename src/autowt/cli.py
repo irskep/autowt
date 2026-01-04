@@ -2,13 +2,18 @@
 
 import logging
 import os
+import shlex
 from importlib.metadata import version
 from pathlib import Path
 
 import click
 from click_aliases import ClickAliasedGroup
 
-from autowt.cli_config import create_cli_config_overrides, initialize_config
+from autowt.cli_config import (
+    create_cli_config_overrides,
+    initialize_config,
+    resolve_custom_script,
+)
 from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
@@ -124,12 +129,147 @@ def _get_all_local_branches(repo_path: Path) -> list[str]:
 # Custom Group class that handles unknown commands as branch names and supports aliases
 class AutowtGroup(ClickAliasedGroup):
     def get_command(self, ctx, cmd_name):
-        # First, try to get the command normally
+        # First, try to get the command normally (ls, cleanup, config, switch)
         rv = super().get_command(ctx, cmd_name)
         if rv is not None:
             return rv
 
-        # If command not found, create a dynamic command that treats it as a branch name
+        # Check if cmd_name matches a custom script
+        # We need to initialize config early to check for custom scripts
+        try:
+            initialize_config()
+            config = get_config()
+            if cmd_name in config.scripts.custom:
+                return self._create_custom_script_command(cmd_name, config)
+        except (FileNotFoundError, PermissionError, KeyError, AttributeError):
+            # Config file not found/readable, or scripts.custom not configured
+            # Fall through to branch handling
+            pass
+
+        # Fall through to branch name handling
+        return self._create_branch_command(cmd_name)
+
+    def _create_custom_script_command(self, script_name: str, config):
+        """Create a dynamic command for a custom script."""
+
+        def custom_script_command(args, **kwargs):
+            # Set global options for custom script commands
+            options.auto_confirm = kwargs.get("auto_confirm", kwargs.get("yes", False))
+            options.debug = kwargs.get("debug", False)
+
+            setup_logging(kwargs.get("debug", False))
+
+            # Build script spec: "ghllm 123 456" from script_name + args
+            # args is a tuple from click.Argument with nargs=-1
+            script_spec = script_name
+            if args:
+                script_spec += " " + " ".join(shlex.quote(a) for a in args)
+
+            # Create CLI overrides for this command
+            cli_overrides = create_cli_config_overrides(
+                terminal=kwargs.get("terminal"),
+                after_init=kwargs.get("after_init"),
+                ignore_same_session=kwargs.get("ignore_same_session", False),
+            )
+
+            # Initialize configuration with CLI overrides
+            initialize_config(cli_overrides)
+
+            # Resolve the custom script with arguments interpolated
+            custom_script = resolve_custom_script(script_spec)
+            if not custom_script:
+                click.echo(f"Error: Custom script '{script_name}' not found", err=True)
+                return
+
+            # Determine branch name based on script format
+            # Enhanced format: branch_name field provides dynamic branch
+            # Simple format: first argument is the branch name
+            if custom_script.branch_name:
+                # Enhanced format: branch will be resolved dynamically in checkout_branch
+                branch = None
+            else:
+                # Simple format: first arg is the branch name
+                if not args:
+                    click.echo(
+                        f"Error: Custom script '{script_name}' requires a branch name argument",
+                        err=True,
+                    )
+                    return
+                branch = args[0]
+
+            # Get terminal mode from configuration
+            config = get_config()
+            terminal_mode = (
+                config.terminal.mode
+                if not kwargs.get("terminal")
+                else TerminalMode(kwargs["terminal"])
+            )
+
+            services = create_services()
+            check_for_version_updates(services)
+
+            # Create and execute SwitchCommand
+            switch_cmd = SwitchCommand(
+                branch=branch,
+                terminal_mode=terminal_mode,
+                init_script=config.scripts.session_init,
+                after_init=kwargs.get("after_init"),
+                ignore_same_session=config.terminal.always_new
+                or kwargs.get("ignore_same_session", False),
+                auto_confirm=kwargs.get("auto_confirm", kwargs.get("yes", False)),
+                debug=kwargs.get("debug", False),
+                custom_script=script_spec,
+                custom_script_name=script_name,
+                from_branch=kwargs.get("from_branch"),
+                dir=kwargs.get("dir"),
+                from_dynamic_command=True,
+            )
+            checkout_branch(switch_cmd, services)
+
+        # Create a new command with variadic arguments and standard options
+        custom_cmd = click.Command(
+            name=script_name,
+            callback=custom_script_command,
+            params=[
+                click.Argument(["args"], nargs=-1),
+                click.Option(
+                    ["--terminal"],
+                    type=click.Choice(
+                        ["tab", "window", "inplace", "echo", "vscode", "cursor"]
+                    ),
+                    help="How to open the worktree terminal",
+                ),
+                click.Option(
+                    ["-y", "--yes", "auto_confirm"],
+                    is_flag=True,
+                    help="Automatically confirm all prompts",
+                ),
+                click.Option(["--debug"], is_flag=True, help="Enable debug logging"),
+                click.Option(
+                    ["--after-init"],
+                    help="Command to run after session_init script completes",
+                ),
+                click.Option(
+                    ["--ignore-same-session"],
+                    is_flag=True,
+                    help="Always create new terminal, ignore existing sessions",
+                ),
+                click.Option(
+                    ["--from", "from_branch"],
+                    help="Source branch/commit to create worktree from",
+                ),
+                click.Option(
+                    ["--dir"],
+                    help="Directory path for the new worktree",
+                ),
+            ],
+            help=f"Run custom script '{script_name}'",
+        )
+        return custom_cmd
+
+    def _create_branch_command(self, cmd_name: str):
+        """Create a dynamic command that treats cmd_name as a branch name."""
+
         def branch_command(**kwargs):
             # Set global options for dynamic branch commands
             options.auto_confirm = kwargs.get("auto_confirm", kwargs.get("yes", False))
