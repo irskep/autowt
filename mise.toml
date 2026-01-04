@@ -15,16 +15,16 @@ install = "uv sync"
 test = "uv run pytest"
 lint = "uv run ruff check"
 format = "uv run ruff format"
-format-check = "uv run ruff format --check"
+"format:check" = "uv run ruff format --check"
 claude-hook-lint = "./scripts/claude-hook-lint.sh"
 sync-readme = "uv run python scripts/sync_readme.py"
-docs-install = "uv sync --group docs --group dev"
-docs-prep = "cp CHANGELOG.md docs/CHANGELOG.md"
+"docs:install" = "uv sync --group docs --group dev"
+"docs:prep" = "cp CHANGELOG.md docs/CHANGELOG.md"
 
-[tasks.docs-serve]
+[tasks."docs:serve"]
 run = "uv run zensical serve"
-depends = ["docs-install", "docs-prep"]
+depends = ["docs:install", "docs:prep"]
 
-[tasks.docs-build]
+[tasks."docs:build"]
 run = "uv run zensical build"
-depends = ["docs-prep"]
+depends = ["docs:prep"]

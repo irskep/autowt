@@ -11,6 +11,7 @@ post_switch = 'echo post_switch'
 
 [scripts.custom]
 bugfix = 'claude "Investigate the GitHub issue $1. Propose a possible root cause based on evidence, and a well-considered fix. Think hard."'
+demo = 'echo "ellew ellew"'
 
 [scripts.custom.ghllm]
 branch_name = "gh issue view $1 --json title --template '{{.title}}'"
