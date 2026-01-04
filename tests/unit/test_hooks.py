@@ -8,7 +8,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autowt.hooks import HookRunner, HookType, extract_hook_scripts
+from autowt.hooks import (
+    HookRunner,
+    HookType,
+    extract_hook_scripts,
+    merge_hooks_for_custom_script,
+)
+from autowt.models import CustomScript
 
 
 class TestHookRunner:
@@ -520,3 +526,97 @@ echo "HOOK_TYPE=$AUTOWT_HOOK_TYPE" >> {test_file}"""
             assert f"MAIN_REPO_DIR={main_repo_dir}" in content
             assert "BRANCH_NAME=feature/env-test" in content
             assert "HOOK_TYPE=pre_cleanup" in content
+
+
+class TestMergeHooksForCustomScript:
+    """Tests for merge_hooks_for_custom_script function."""
+
+    def test_no_custom_script_returns_global_plus_project(self):
+        """Test that without a custom script, global + project hooks are returned."""
+        global_scripts = ["echo global"]
+        project_scripts = ["echo project"]
+
+        result = merge_hooks_for_custom_script(
+            global_scripts, project_scripts, None, HookType.SESSION_INIT
+        )
+
+        assert result == ["echo global", "echo project"]
+
+    def test_custom_script_without_hook_returns_global_plus_project(self):
+        """Test custom script with no hook for this type returns global + project."""
+        global_scripts = ["echo global"]
+        project_scripts = ["echo project"]
+        custom_script = CustomScript(session_init="echo custom")  # No pre_create
+
+        result = merge_hooks_for_custom_script(
+            global_scripts, project_scripts, custom_script, HookType.PRE_CREATE
+        )
+
+        assert result == ["echo global", "echo project"]
+
+    def test_inherit_hooks_true_appends_custom(self):
+        """Test inherit_hooks=True appends custom hook after global and project."""
+        global_scripts = ["echo global"]
+        project_scripts = ["echo project"]
+        custom_script = CustomScript(
+            session_init="echo custom",
+            inherit_hooks=True,  # Default, but explicit for clarity
+        )
+
+        result = merge_hooks_for_custom_script(
+            global_scripts, project_scripts, custom_script, HookType.SESSION_INIT
+        )
+
+        assert result == ["echo global", "echo project", "echo custom"]
+
+    def test_inherit_hooks_false_replaces_all(self):
+        """Test inherit_hooks=False replaces global and project with just custom."""
+        global_scripts = ["echo global"]
+        project_scripts = ["echo project"]
+        custom_script = CustomScript(
+            session_init="echo custom only",
+            inherit_hooks=False,
+        )
+
+        result = merge_hooks_for_custom_script(
+            global_scripts, project_scripts, custom_script, HookType.SESSION_INIT
+        )
+
+        assert result == ["echo custom only"]
+
+    def test_empty_global_and_project_with_custom(self):
+        """Test custom hook works when global and project are empty."""
+        custom_script = CustomScript(pre_create="echo custom pre_create")
+
+        result = merge_hooks_for_custom_script(
+            [], [], custom_script, HookType.PRE_CREATE
+        )
+
+        assert result == ["echo custom pre_create"]
+
+    def test_all_hook_types(self):
+        """Test that all hook types can be extracted from CustomScript."""
+        custom_script = CustomScript(
+            pre_create="pre_create cmd",
+            post_create="post_create cmd",
+            post_create_async="post_create_async cmd",
+            session_init="session_init cmd",
+            pre_cleanup="pre_cleanup cmd",
+            post_cleanup="post_cleanup cmd",
+            pre_switch="pre_switch cmd",
+            post_switch="post_switch cmd",
+        )
+
+        for hook_type in [
+            HookType.PRE_CREATE,
+            HookType.POST_CREATE,
+            HookType.POST_CREATE_ASYNC,
+            HookType.SESSION_INIT,
+            HookType.PRE_CLEANUP,
+            HookType.POST_CLEANUP,
+            HookType.PRE_SWITCH,
+            HookType.POST_SWITCH,
+        ]:
+            result = merge_hooks_for_custom_script([], [], custom_script, hook_type)
+            assert len(result) == 1
+            assert hook_type in result[0]

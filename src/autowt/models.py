@@ -60,11 +60,36 @@ class BranchStatus:
 
 
 @dataclass
+class CustomScript:
+    """Enhanced custom script with optional hook overrides and dynamic branch naming."""
+
+    # Help text shown in --help output
+    description: str | None = None
+
+    # Dynamic branch name - shell command whose stdout becomes the branch name
+    branch_name: str | None = None
+
+    # When True, global/project hooks run first, then script-specific hooks
+    # When False, only script-specific hooks run
+    inherit_hooks: bool = True
+
+    # All 8 lifecycle hooks can be overridden
+    pre_create: str | None = None
+    post_create: str | None = None
+    post_create_async: str | None = None
+    session_init: str | None = None
+    pre_cleanup: str | None = None
+    post_cleanup: str | None = None
+    pre_switch: str | None = None
+    post_switch: str | None = None
+
+
+@dataclass
 class ProjectScriptsConfig:
     """Project-specific scripts configuration."""
 
     session_init: str | None = None
-    custom: dict[str, str] | None = None
+    custom: dict[str, "CustomScript"] | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ProjectScriptsConfig":
@@ -95,9 +120,25 @@ class ProjectScriptsConfig:
             )
             session_init_value = init_value
 
+        # Normalize custom scripts to CustomScript objects
+        raw_custom = data.get("custom")
+        normalized_custom: dict[str, CustomScript] | None = None
+        if raw_custom:
+            normalized_custom = {}
+            for name, value in raw_custom.items():
+                if isinstance(value, str):
+                    # Simple string format is shorthand for session_init only
+                    normalized_custom[name] = CustomScript(session_init=value)
+                elif isinstance(value, dict):
+                    # Nested table format
+                    normalized_custom[name] = CustomScript(**value)
+                elif isinstance(value, CustomScript):
+                    # Already a CustomScript (e.g., from tests)
+                    normalized_custom[name] = value
+
         return cls(
             session_init=session_init_value,
-            custom=data.get("custom"),
+            custom=normalized_custom,
         )
 
     def to_dict(self) -> dict:
@@ -106,7 +147,34 @@ class ProjectScriptsConfig:
         if self.session_init is not None:
             result["session_init"] = self.session_init
         if self.custom is not None:
-            result["custom"] = self.custom
+            # Serialize CustomScript objects to dicts
+            custom_dict = {}
+            for name, script in self.custom.items():
+                script_data = {}
+                if script.description is not None:
+                    script_data["description"] = script.description
+                if script.branch_name is not None:
+                    script_data["branch_name"] = script.branch_name
+                if not script.inherit_hooks:
+                    script_data["inherit_hooks"] = script.inherit_hooks
+                if script.pre_create is not None:
+                    script_data["pre_create"] = script.pre_create
+                if script.post_create is not None:
+                    script_data["post_create"] = script.post_create
+                if script.post_create_async is not None:
+                    script_data["post_create_async"] = script.post_create_async
+                if script.session_init is not None:
+                    script_data["session_init"] = script.session_init
+                if script.pre_cleanup is not None:
+                    script_data["pre_cleanup"] = script.pre_cleanup
+                if script.post_cleanup is not None:
+                    script_data["post_cleanup"] = script.post_cleanup
+                if script.pre_switch is not None:
+                    script_data["pre_switch"] = script.pre_switch
+                if script.post_switch is not None:
+                    script_data["post_switch"] = script.post_switch
+                custom_dict[name] = script_data
+            result["custom"] = custom_dict
         return result
 
 
@@ -182,14 +250,15 @@ class Services:
 class SwitchCommand:
     """Encapsulates all parameters for switching to/creating a worktree."""
 
-    branch: str
+    branch: str | None = None  # None when using dynamic branch from custom script
     terminal_mode: TerminalMode | None = None
     init_script: str | None = None
     after_init: str | None = None
     ignore_same_session: bool = False
     auto_confirm: bool = False
     debug: bool = False
-    custom_script: str | None = None
+    custom_script: str | None = None  # Script spec string like "ghllm 123"
+    custom_script_name: str | None = None  # Original script name for reference
     from_branch: str | None = None
     dir: str | None = None
     from_dynamic_command: bool = False

@@ -40,14 +40,15 @@ autowt cleanup
 
 A lot nicer, right?
 
+Now suppose your team uses an issue tracker like Linear which can suggest branch names based on issue IDs. You could configure autowt to have a custom command to automatically open worktrees for tickets instead of passing a branch name:
+
+```sh
+autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
+```
+
 ## What autowt can do for you
 
 **What autowt can do for you:**
-
-- **Ergonomics**: It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. And autowt integrates with your terminal program to automate opening new sessions. It supports everything [automate-terminal](https://github.com/irskep/automate-terminal), including iTerm2, tmux, Ghostty, and more.
-- **Deep, customizable automation**: You can define scripts in `.autowt.toml` to run at various points, like after creating a worktree but before switching to it, or before a worktree is cleaned up. Check out [Lifecycle Hooks](https://steveasleep.com/autowt/lifecyclehooks/) for more information.
-- **Smart cleanup**: You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches which are associated with closed pull requests on GitHub.
-- **Friendly TUIs**: autowt uses interactive terminal-based UIs where it makes sense. For example, `autowt config` gives you an easy way to edit global settings. `autowt switch` lets you review your worktrees and pick which one to navigate to.
 
 ## Getting started
 

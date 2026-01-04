@@ -9,6 +9,10 @@ import logging
 import os
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from autowt.models import CustomScript
 
 logger = logging.getLogger(__name__)
 
@@ -217,3 +221,43 @@ def extract_hook_scripts(
             project_scripts.append(script)
 
     return global_scripts, project_scripts
+
+
+def merge_hooks_for_custom_script(
+    global_scripts: list[str],
+    project_scripts: list[str],
+    custom_script: "CustomScript | None",
+    hook_type: str,
+) -> list[str]:
+    """Merge global/project hooks with custom script hooks based on inherit_hooks.
+
+    Args:
+        global_scripts: Hook scripts from global config
+        project_scripts: Hook scripts from project config
+        custom_script: The CustomScript being executed (may have hook overrides)
+        hook_type: Type of hook (e.g., "pre_create", "session_init")
+
+    Returns:
+        List of hook scripts to execute in order
+
+    Behavior:
+        - If custom_script is None or has no hook for this type: return global + project
+        - If inherit_hooks=True: return global + project + custom_script hook
+        - If inherit_hooks=False: return only custom_script hook
+    """
+    # Get the custom script's hook for this type (if any)
+    custom_hook = None
+    if custom_script is not None:
+        custom_hook = getattr(custom_script, hook_type, None)
+
+    # If no custom script or no hook override, just return global + project
+    if custom_script is None or custom_hook is None:
+        return global_scripts + project_scripts
+
+    # Custom script has a hook for this type
+    if custom_script.inherit_hooks:
+        # Append custom hook after global and project hooks
+        return global_scripts + project_scripts + [custom_hook]
+    else:
+        # Replace all hooks with just the custom hook
+        return [custom_hook]

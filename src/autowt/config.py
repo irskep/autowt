@@ -16,7 +16,7 @@ from typing import Any
 
 import toml
 
-from autowt.models import CleanupMode, TerminalMode
+from autowt.models import CleanupMode, CustomScript, TerminalMode
 from autowt.utils.platform import get_default_config_dir
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class ScriptsConfig:
     post_cleanup: str | None = None
     pre_switch: str | None = None
     post_switch: str | None = None
-    custom: dict[str, str] = field(default_factory=dict)
+    custom: dict[str, CustomScript] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -140,6 +140,20 @@ class Config:
             )
             session_init_value = init_value
 
+        # Normalize custom scripts to CustomScript objects
+        raw_custom = scripts_data.get("custom", {})
+        normalized_custom: dict[str, CustomScript] = {}
+        for name, value in raw_custom.items():
+            if isinstance(value, str):
+                # Simple string format is shorthand for session_init only
+                normalized_custom[name] = CustomScript(session_init=value)
+            elif isinstance(value, dict):
+                # Nested table format
+                normalized_custom[name] = CustomScript(**value)
+            elif isinstance(value, CustomScript):
+                # Already a CustomScript (e.g., from tests)
+                normalized_custom[name] = value
+
         scripts_config = ScriptsConfig(
             pre_create=scripts_data.get("pre_create"),
             post_create=scripts_data.get("post_create"),
@@ -149,7 +163,7 @@ class Config:
             post_cleanup=scripts_data.get("post_cleanup"),
             pre_switch=scripts_data.get("pre_switch"),
             post_switch=scripts_data.get("post_switch"),
-            custom=scripts_data.get("custom", {}),
+            custom=normalized_custom,
         )
 
         confirmations_config = ConfirmationsConfig(

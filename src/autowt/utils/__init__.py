@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -182,6 +183,58 @@ def sanitize_branch_name(branch: str) -> str:
         sanitized = "branch"
 
     return sanitized
+
+
+def normalize_dynamic_branch_name(raw: str) -> str:
+    """Normalize dynamic branch name command output for use as git ref.
+
+    This is distinct from sanitize_branch_name() which is for filesystem paths
+    (replaces / with -). This function preserves / for hierarchical branches
+    like feature/fix-login.
+
+    Git ref naming rules enforced:
+    - No ASCII control chars, space, ~, ^, :, ?, *, [, \\
+    - No .. anywhere
+    - No @{ sequence
+    - Cannot be single @
+    - No consecutive slashes; cannot begin/end with /
+    - Cannot end with . or .lock
+    - Branch names cannot start with -
+    - Slash-separated components cannot begin with .
+    """
+    result = raw.lower()
+
+    # Replace common separators with dashes
+    result = re.sub(r"[\s_]+", "-", result)
+
+    # Remove git-invalid characters: ~ ^ : ? * [ ] \ @ and control chars
+    result = re.sub(r"[~^:?*\[\]\\@\x00-\x1f\x7f]+", "", result)
+
+    # Remove .. sequences
+    result = re.sub(r"\.\.+", ".", result)
+
+    # Collapse consecutive dashes and slashes
+    result = re.sub(r"-+", "-", result)
+    result = re.sub(r"/+", "/", result)
+
+    # Strip leading/trailing dashes, dots, slashes
+    result = result.strip("-./")
+
+    # Clean up each path component
+    parts = result.split("/")
+    cleaned_parts = []
+    for part in parts:
+        # Components can't start with dot
+        part = part.lstrip(".")
+        # Components can't end with .lock
+        if part.endswith(".lock"):
+            part = part[:-5]
+        # Strip dashes from start (branch rule)
+        part = part.lstrip("-")
+        if part:
+            cleaned_parts.append(part)
+
+    return "/".join(cleaned_parts)
 
 
 def apply_branch_prefix(

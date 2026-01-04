@@ -6,10 +6,12 @@ It provides utilities to convert CLI options to config overrides and initialize 
 
 import logging
 import shlex
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
 from autowt.config import get_config, load_config
+from autowt.models import CustomScript
 
 logger = logging.getLogger(__name__)
 
@@ -82,23 +84,49 @@ def initialize_config(cli_overrides: dict[str, Any] | None = None) -> None:
         load_config(cli_overrides=cli_overrides)
 
 
-def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
-    """Resolve a custom script specification with argument interpolation.
+def interpolate_custom_script(script: CustomScript, args: list[str]) -> CustomScript:
+    """Apply $1, $2, etc. interpolation to all string fields of a CustomScript.
+
+    Args:
+        script: The CustomScript template with placeholders
+        args: List of arguments to substitute ($1 = args[0], $2 = args[1], etc.)
+
+    Returns:
+        New CustomScript with all string fields interpolated
+
+    Note:
+        Arguments are inserted directly without shell escaping to preserve shell features.
+    """
+    interpolated_fields: dict[str, Any] = {}
+    for field_info in fields(CustomScript):
+        value = getattr(script, field_info.name)
+        if isinstance(value, str):
+            resolved_value = value
+            for i, arg in enumerate(args, 1):
+                placeholder = f"${i}"
+                resolved_value = resolved_value.replace(placeholder, arg)
+            interpolated_fields[field_info.name] = resolved_value
+        else:
+            # Non-string fields (bool, None) are preserved as-is
+            interpolated_fields[field_info.name] = value
+
+    return CustomScript(**interpolated_fields)
+
+
+def resolve_custom_script(script_spec: str) -> CustomScript | None:
+    """Look up a custom script by name and interpolate any arguments.
 
     Args:
         script_spec: Space-separated script specification like "bugfix 123"
                     where first part is script name, rest are arguments
 
     Returns:
-        The resolved script command with arguments interpolated, or None if script not found
+        CustomScript with all string fields interpolated, or None if script not found
 
     Example:
         script_spec = "bugfix 123"
-        config has: bugfix = 'claude "Fix bug described in issue $1"'
-        returns: 'claude "Fix bug described in issue 123"'
-
-    Note:
-        Arguments are inserted directly without shell escaping to preserve shell features.
+        config has: bugfix = CustomScript(session_init='claude "Fix issue $1"')
+        returns: CustomScript(session_init='claude "Fix issue 123"')
     """
     if not script_spec:
         return None
@@ -124,10 +152,4 @@ def resolve_custom_script_with_interpolation(script_spec: str) -> str | None:
         logger.warning(f"Custom script '{script_name}' not found in configuration")
         return None
 
-    # Perform argument interpolation
-    resolved_script = script_template
-    for i, arg in enumerate(args, 1):
-        placeholder = f"${i}"
-        resolved_script = resolved_script.replace(placeholder, arg)
-
-    return resolved_script
+    return interpolate_custom_script(script_template, args)

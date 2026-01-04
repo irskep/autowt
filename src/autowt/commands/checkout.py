@@ -1,17 +1,19 @@
 """Checkout/create worktree command."""
 
 import logging
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 
-from autowt.cli_config import resolve_custom_script_with_interpolation
-from autowt.console import print_error, print_info, print_success
+from autowt.cli_config import resolve_custom_script
+from autowt.console import print_error, print_info, print_output, print_success
 from autowt.global_config import options
-from autowt.hooks import HookType, extract_hook_scripts
-from autowt.models import Services, SwitchCommand, TerminalMode
+from autowt.hooks import HookType, extract_hook_scripts, merge_hooks_for_custom_script
+from autowt.models import CustomScript, Services, SwitchCommand, TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.utils import (
     get_canonical_branch_name,
+    normalize_dynamic_branch_name,
     resolve_worktree_argument,
     sanitize_branch_name,
 )
@@ -20,15 +22,64 @@ logger = logging.getLogger(__name__)
 
 
 def _combine_after_init_and_custom_script(
-    after_init: str | None, custom_script: str | None
+    after_init: str | None, custom_script: CustomScript | None
 ) -> str | None:
-    """Combine after_init command with custom script."""
+    """Combine after_init command with custom script's session_init."""
     scripts = []
     if after_init:
         scripts.append(after_init)
-    if custom_script:
-        scripts.append(custom_script)
+    if custom_script and custom_script.session_init:
+        scripts.append(custom_script.session_init)
     return "; ".join(scripts) if scripts else None
+
+
+def _execute_branch_name_command(branch_name_cmd: str, repo_path: Path) -> str | None:
+    """Execute a branch_name command and normalize the output.
+
+    Args:
+        branch_name_cmd: Shell command to execute
+        repo_path: Working directory for command execution
+
+    Returns:
+        Normalized branch name, or None if command failed
+    """
+    try:
+        result = subprocess.run(
+            branch_name_cmd,
+            shell=True,
+            cwd=str(repo_path),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            logger.error(
+                f"branch_name command failed with exit code {result.returncode}: "
+                f"{result.stderr}"
+            )
+            return None
+
+        raw_output = result.stdout.strip()
+        if not raw_output:
+            logger.error("branch_name command produced empty output")
+            return None
+
+        normalized = normalize_dynamic_branch_name(raw_output)
+        if not normalized:
+            logger.error(
+                f"branch_name command output could not be normalized: {raw_output}"
+            )
+            return None
+
+        logger.debug(f"branch_name: '{raw_output}' -> '{normalized}'")
+        return normalized
+
+    except subprocess.TimeoutExpired:
+        logger.error("branch_name command timed out after 30 seconds")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to execute branch_name command: {e}")
+        return None
 
 
 def _generate_alternative_worktree_path(base_path: Path, git_worktrees: list) -> Path:
@@ -73,19 +124,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     """Switch to or create a worktree for the specified branch."""
     logger.debug(f"Checking out branch or path: {switch_cmd.branch}")
 
-    # Resolve branch or path to a branch name
-    try:
-        resolved_branch = resolve_worktree_argument(switch_cmd.branch, services)
-        logger.debug(f"Resolved to branch: {resolved_branch}")
-    except ValueError:
-        # Error already printed by resolve_worktree_argument
-        return
-
-    # Update the switch command with the resolved branch name
-    # Create a new SwitchCommand with the resolved branch
-    switch_cmd = replace(switch_cmd, branch=resolved_branch)
-
-    # Find git repository
+    # Find git repository first (needed for custom script resolution)
     try:
         repo_path = services.git.find_repo_root()
         if not repo_path:
@@ -99,10 +138,58 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     config = services.state.load_config(project_dir=repo_path)
     project_config = services.state.load_project_config(repo_path)
 
+    # Use project config session_init as default if no init_script provided
+    session_init_script = switch_cmd.init_script
+    if session_init_script is None:
+        session_init_script = project_config.session_init
+
+    # Resolve custom script FIRST (before branch prefix)
+    # This is important because custom scripts may define a dynamic branch_name
+    custom_script_resolved: CustomScript | None = None
+    if switch_cmd.custom_script:
+        # Note: switch_cmd.custom_script is the spec string like "ghllm 123"
+        # We need to resolve it to a CustomScript object
+        custom_script_resolved = resolve_custom_script(switch_cmd.custom_script)
+        if custom_script_resolved:
+            logger.debug(f"Resolved custom script: {custom_script_resolved}")
+
+            # If custom script has a branch_name command, execute it
+            if custom_script_resolved.branch_name:
+                print_output(
+                    f"Generating branch name: {custom_script_resolved.branch_name}"
+                )
+                dynamic_branch = _execute_branch_name_command(
+                    custom_script_resolved.branch_name, repo_path
+                )
+                if dynamic_branch:
+                    print_info(f"Branch: {dynamic_branch}")
+                    switch_cmd = replace(switch_cmd, branch=dynamic_branch)
+                else:
+                    print_error("Failed to resolve dynamic branch name from command")
+                    return
+
+    # Validate that we have a branch name at this point
+    if switch_cmd.branch is None:
+        # This happens when a custom script with branch_name field failed to resolve
+        print_error("Error: No branch name provided and dynamic resolution failed")
+        return
+
+    # Resolve branch or path to a branch name
+    try:
+        resolved_branch = resolve_worktree_argument(switch_cmd.branch, services)
+        logger.debug(f"Resolved to branch: {resolved_branch}")
+    except ValueError:
+        # Error already printed by resolve_worktree_argument
+        return
+
+    # Update the switch command with the resolved branch name
+    switch_cmd = replace(switch_cmd, branch=resolved_branch)
+
     # Get current worktrees before applying prefix (we need to check if branches exist)
     git_worktrees = services.git.list_worktrees(repo_path)
 
-    # Apply branch prefix if configured
+    # Apply branch prefix AFTER custom script resolution
+    # This ensures dynamic branch names also get the prefix applied
     canonical_branch = get_canonical_branch_name(
         switch_cmd.branch,
         config.worktree.branch_prefix,
@@ -113,20 +200,6 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     )
     if canonical_branch != switch_cmd.branch:
         switch_cmd = replace(switch_cmd, branch=canonical_branch)
-
-    # Use project config session_init as default if no init_script provided
-    session_init_script = switch_cmd.init_script
-    if session_init_script is None:
-        session_init_script = project_config.session_init
-
-    # Resolve custom script if provided
-    custom_script_resolved = None
-    if switch_cmd.custom_script:
-        custom_script_resolved = resolve_custom_script_with_interpolation(
-            switch_cmd.custom_script
-        )
-        if custom_script_resolved:
-            logger.debug(f"Resolved custom script: {custom_script_resolved}")
 
     # Use provided terminal mode or fall back to config
     terminal_mode = switch_cmd.terminal_mode
@@ -170,6 +243,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
                 repo_path,
                 config,
                 switch_cmd.branch,
+                custom_script=custom_script_resolved,
                 abort_on_failure=False,
             )
 
@@ -195,6 +269,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
                 repo_path,
                 config,
                 switch_cmd.branch,
+                custom_script=custom_script_resolved,
                 abort_on_failure=False,
             )
 
@@ -220,7 +295,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             repo_path,
             terminal_mode,
             session_init_script,
-            custom_script_resolved,
+            custom_script=custom_script_resolved,
         )
     finally:
         # Restore original suppression setting
@@ -233,7 +308,7 @@ def _create_new_worktree(
     repo_path: Path,
     terminal_mode,
     session_init_script: str | None = None,
-    custom_script_resolved: str | None = None,
+    custom_script: CustomScript | None = None,
 ) -> None:
     """Create a new worktree for the branch."""
     print_info("Fetching branches...")
@@ -309,6 +384,7 @@ def _create_new_worktree(
         repo_path,
         config,
         switch_cmd.branch,
+        custom_script=custom_script,
         abort_on_failure=True,
     ):
         print_error("pre_create hooks failed, aborting worktree creation")
@@ -331,6 +407,7 @@ def _create_new_worktree(
         repo_path,
         config,
         switch_cmd.branch,
+        custom_script=custom_script,
         abort_on_failure=True,
     ):
         print_error("post_create hooks failed, aborting worktree creation")
@@ -344,6 +421,7 @@ def _create_new_worktree(
         repo_path,
         config,
         switch_cmd.branch,
+        custom_script=custom_script,
         abort_on_failure=False,
     )
 
@@ -363,13 +441,14 @@ def _create_new_worktree(
             repo_path,
             config,
             switch_cmd.branch,
+            custom_script=custom_script,
             abort_on_failure=False,
         )
 
     # Switch to the new worktree
     # Combine after_init and custom script
     combined_after_init = _combine_after_init_and_custom_script(
-        switch_cmd.after_init, custom_script_resolved
+        switch_cmd.after_init, custom_script
     )
     success = services.terminal.switch_to_worktree(
         worktree_path,
@@ -392,6 +471,7 @@ def _create_new_worktree(
         repo_path,
         config,
         switch_cmd.branch,
+        custom_script=custom_script,
         abort_on_failure=False,
     )
 
@@ -405,6 +485,7 @@ def _create_new_worktree(
             repo_path,
             config,
             switch_cmd.branch,
+            custom_script=custom_script,
             abort_on_failure=False,
         )
 
@@ -499,6 +580,7 @@ def _run_hook_set(
     config,
     branch_name: str,
     *,
+    custom_script: CustomScript | None = None,
     abort_on_failure: bool = False,
     dry_run: bool = False,
 ) -> bool:
@@ -511,6 +593,7 @@ def _run_hook_set(
         repo_path: Path to the repository
         config: Project configuration (already loaded)
         branch_name: Name of the branch
+        custom_script: Optional CustomScript with hook overrides
         abort_on_failure: If True, return False on failure; if False, warn and continue
         dry_run: If True, just print what would run
 
@@ -524,28 +607,36 @@ def _run_hook_set(
     # Load global config
     global_config = services.config_loader.load_config(project_dir=None)
 
-    # Extract hook scripts
+    # Extract hook scripts from global and project configs
     global_scripts, project_scripts = extract_hook_scripts(
         global_config, config, hook_type
     )
 
+    # Merge with custom script hooks (handles inherit_hooks logic)
+    merged_scripts = merge_hooks_for_custom_script(
+        global_scripts, project_scripts, custom_script, hook_type
+    )
+
     # Early return if no hooks
-    if not global_scripts and not project_scripts:
+    if not merged_scripts:
         return True
 
     # Run hooks
     print_info(f"Running {hook_type} hooks for {branch_name}")
-    success = services.hooks.run_hooks(
-        global_scripts,
-        project_scripts,
-        hook_type,
-        worktree_path,
-        repo_path,
-        branch_name,
-    )
 
-    # Handle failure
-    if not success and not abort_on_failure:
-        print_info(f"Warning: {hook_type} hooks failed, but continuing anyway")
+    # Run each script individually (merged list is already in order)
+    for script in merged_scripts:
+        success = services.hooks.run_hook(
+            script,
+            hook_type,
+            worktree_path,
+            repo_path,
+            branch_name,
+        )
+        if not success:
+            if abort_on_failure:
+                return False
+            else:
+                print_info(f"Warning: {hook_type} hook failed, but continuing anyway")
 
-    return success if abort_on_failure else True
+    return True
