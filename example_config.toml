@@ -86,11 +86,17 @@ session_init = "echo 'Always run after creating a new worktree; copy env vars & 
 
 [scripts.custom]
 # Custom scripts for specialized worktree initialization
-# Runs AFTER the standard init script for specific workflows
-# CLI: autowt feature-branch --custom-script="bugfix"
-# Note: For one-time custom scripts, use --after-init="command" instead
-bugfix = 'claude "Fix the bug described in GitHub issue $1"' # arguments are passed to the script
-release = 'claude "/release"' # asks claude to run .claude/commands/release.md
+# First argument becomes the branch name by default, with branch prefix added
+# Run with 'autowt <command> <arg>'
+release = 'claude "Cut a release according to the project conventions"'
+
+[scripts.custom.bugfix]
+# Using the longer form of scripts.custom entries, you can customize the
+# branch name and add a description for `autowt --help`.
+# Branch names are sanitized automatically, you don't need to do it yourself.
+branch_name = "gh issue view $1 --json title --template '{{.title}}'"
+session_init = 'claude "Fix the bug described in GitHub issue $1"'
+description = "Work on a GitHub issue"
 
 # ============================================================================
 # User Interface
