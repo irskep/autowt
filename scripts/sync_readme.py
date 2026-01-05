@@ -52,6 +52,47 @@ def transform_docs_content(content: str) -> str:
 
     content = re.sub(grid_pattern, replace_grid_cards, content, flags=re.DOTALL)
 
+    # Convert MkDocs admonitions to GitHub alerts
+    # Format: !!! type "Optional Title"\n    indented content
+    # Becomes: > [!TYPE]\n> content
+    def replace_admonition(match):
+        admon_type = match.group(1).upper()
+        # Map MkDocs types to GitHub alert types
+        type_map = {
+            "NOTE": "NOTE",
+            "INFO": "NOTE",
+            "TIP": "TIP",
+            "HINT": "TIP",
+            "WARNING": "WARNING",
+            "CAUTION": "CAUTION",
+            "DANGER": "WARNING",
+            "IMPORTANT": "IMPORTANT",
+        }
+        github_type = type_map.get(admon_type, "NOTE")
+        content_block = match.group(2)
+
+        # Process indented content lines
+        lines = content_block.split("\n")
+        result_lines = [f"> [!{github_type}]"]
+        for line in lines:
+            # Remove the 4-space indent and add quote prefix
+            if line.startswith("    "):
+                result_lines.append(f"> {line[4:]}")
+            elif line.strip() == "":
+                result_lines.append(">")
+            # Stop if we hit non-indented content (end of admonition)
+            elif line and not line.startswith("    "):
+                break
+
+        # Strip trailing empty quote lines and add blank line to separate from next content
+        while result_lines and result_lines[-1] == ">":
+            result_lines.pop()
+        return "\n".join(result_lines) + "\n"
+
+    # Match !!! type optionally followed by "title", then indented block
+    admonition_pattern = r'!!!\s+(\w+)(?:\s+"[^"]*")?\n((?:    .*\n?|\n)*)'
+    content = re.sub(admonition_pattern, replace_admonition, content)
+
     # Fix relative links for docs (e.g., ./lifecyclehooks.md -> full URL)
     content = re.sub(
         r"\]\(\./([^)]+)\.md\)", r"](https://steveasleep.com/autowt/\1/)", content

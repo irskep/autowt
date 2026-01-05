@@ -42,7 +42,7 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
 !!! note
 
-    This example mentions Linear, but autowt has no opinions about which tools you call in your scripts.
+    This example mentions Linear, but autowt has no opinions about which tools you call in your scripts. There is no special GitHub or Linear integration. That functionality comes from command line programs installed and configured by you.
 
 ## What autowt can do for you
 
