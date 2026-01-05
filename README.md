@@ -2,6 +2,8 @@
 
 [**Full documentation**](https://steveasleep.com/autowt/)
 
+This README is generated from the index page of the docs. There are many more pages of docs at the link.
+
 <!-- BEGIN SYNCED CONTENT -->
 <!-- This content is synced from docs/index.md - do not edit directly -->
 <!-- Run 'mise run sync-readme' to update -->
@@ -52,10 +54,10 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
 ## What autowt can do for you
 
-- **Worktree ergonomics**: It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. And autowt integrates with your terminal program to automate opening new sessions. It supports everything [automate-terminal](https://github.com/irskep/automate-terminal), including iTerm2, tmux, Ghostty, and more.
-- **Deep, customizable automation**: You can define scripts in `.autowt.toml` to run at various points, like after creating a worktree but before switching to it, or before a worktree is cleaned up. Check out [Lifecycle Hooks](https://steveasleep.com/autowt/lifecyclehooks/) for more information.
-- **Smart cleanup**: You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches which are associated with closed pull requests on GitHub.
-- **Friendly TUIs**: autowt uses interactive terminal-based UIs where it makes sense. For example, `autowt config` gives you an easy way to edit global settings. `autowt switch` lets you review your worktrees and pick which one to navigate to.
+-   **Worktree ergonomics**: It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. And autowt integrates with your terminal program to automate opening new sessions. It supports everything [automate-terminal](https://github.com/irskep/automate-terminal), including iTerm2, tmux, Ghostty, and more.
+-   **Deep, customizable automation**: You can define scripts in `.autowt.toml` to run at various points, like after creating a worktree but before switching to it, or before a worktree is cleaned up. Check out [Lifecycle Hooks](https://steveasleep.com/autowt/lifecyclehooks/) for more information.
+-   **Smart cleanup**: You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches which are associated with closed pull requests on GitHub.
+-   **Friendly TUIs**: autowt uses interactive terminal-based UIs where it makes sense. For example, `autowt config` gives you an easy way to edit global settings. `autowt switch` lets you review your worktrees and pick which one to navigate to.
 
 ## Getting started
 
@@ -75,8 +77,9 @@ autowt my-new-feature
 
 Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window.
 
-
 <!-- END SYNCED CONTENT -->
+
+[**Continue to full documentation**](https://steveasleep.com/autowt/)
 
 ## Contributing
 
