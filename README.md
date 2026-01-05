@@ -46,6 +46,10 @@ Now suppose your team uses an issue tracker like Linear which can suggest branch
 autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 ```
 
+!!! note
+
+    This example mentions Linear, but autowt has no opinions about which tools you call in your scripts.
+
 ## What autowt can do for you
 
 - **Worktree ergonomics**: It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. And autowt integrates with your terminal program to automate opening new sessions. It supports everything [automate-terminal](https://github.com/irskep/automate-terminal), including iTerm2, tmux, Ghostty, and more.
