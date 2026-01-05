@@ -32,16 +32,17 @@ def transform_docs_content(content: str) -> str:
         grid_content = match.group(0)
 
         # Parse out the card titles and content
-        simplified = "**What autowt can do for you:**\n\n"
+        simplified = ""
 
-        # Extract each card's title and description (handle varying indentation)
-        # Match pattern: optional whitespace, dash, whitespace, __Title__, whitespace, ---, then content
-        # Use a more permissive pattern for the content that stops at the next card or </div>
-        card_pattern = r"\s*-\s+__([^_]+)__\s+---\s+(.*?)(?=\n\s*-\s+__|\s*</div>)"
+        # Match pattern: dash, whitespace, **Title**, then *** separator, then content
+        # Title may contain emoji codes like :lucide-hand:
+        card_pattern = r"-\s+\*\*([^*]+)\*\*\s+\*{3}\s+(.*?)(?=-\s+\*\*|</div>)"
         cards = re.findall(card_pattern, grid_content, re.DOTALL)
 
         for title, description in cards:
             title = title.strip()
+            # Remove emoji codes like :lucide-hand:
+            title = re.sub(r":\w+(?:-\w+)*:\s*", "", title)
             description = description.strip()
             # Clean up the description - remove extra whitespace
             description = re.sub(r"\s+", " ", description)
