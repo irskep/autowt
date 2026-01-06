@@ -39,14 +39,6 @@ If you have [uv](https://docs.astral.sh/uv/) installed, you can invoke autowt wi
 uvx autowt
 ```
 
-### Optional Guake support
-
-If you use the [Guake](http://guake-project.org/) terminal, you can install autowt with Guake support:
-
-```bash
-pip install autowt[guake]
-```
-
 ## Your first worktree
 
 Let's dive in and see `autowt` in action.

@@ -55,7 +55,6 @@ See [this discussion](https://github.com/irskep/autowt/discussions/75) for more 
 ### Changed
 
 -   Terminal automation is now owned by the [automate-terminal](https://github.com/irskep/automate-terminal) project, which has the same maintainer as autowt. Keeping this code separate simplifies the process of testing new terminal automations, keeps autowt's code more maintainable, and adds more value to the community.
-    -   Because some terminals require extra dependencies, autowt uses dependency groups. Guake terminal support is newly available via the `guake` dependency group (`pip install autowt[guake]`).
 -   Visual overhaul of interactive TUIs for `switch`, `cleanup`, and `config`.
 -   `autowt config` only shows and edits global config (not project config), and now includes default cleanup mode. Previously, it would display fully resolved values in the context of a project, but write to the global config file, which was confusing.
 
