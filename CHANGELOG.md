@@ -2,15 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.4 - Unreleased
-
-### Added
+## 0.5.4 - 2026-01-05
 
 ### Changed
 
-### Fixed
-
-### Removed
+- Bump minimum version of automate-terminal to 0.1.10; removed guake-specific install instructions (no longer needed)
 
 ## 0.5.3 - 2026-01-04
 
