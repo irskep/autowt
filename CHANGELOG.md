@@ -8,7 +8,11 @@
 
 ### Changed
 
+- `autowt ls` uses two lines per entry when the terminal is too narrow to fit path and branch on one line
+
 ### Fixed
+
+- Integration tests were broken since 0.4.0 due to an overly broad mock
 
 ### Removed
 
