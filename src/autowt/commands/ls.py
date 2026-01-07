@@ -84,8 +84,12 @@ def _combine_segments(segments: WorktreeSegments, terminal_width: int) -> str:
         padding = terminal_width - content_length
         return f"{segments.left}{segments.middle}{segments.main_indicator}{' ' * padding}{segments.right}"
     else:
-        # Tight fit - use minimal spacing
-        return f"{segments.left}{segments.middle}{segments.main_indicator}  {segments.right}"
+        # Terminal too narrow - use two lines with branch indented
+        # Strip trailing arrow/padding since they're only needed for single-line alignment
+        branch = segments.right.rstrip().removesuffix("←").rstrip()
+        line1 = f"{segments.left}{segments.middle}{segments.main_indicator}"
+        line2 = f"    {branch}"  # 4 spaces = 2 more than the 2-space current indicator
+        return f"{line1}\n{line2}"
 
 
 def list_worktrees(services: Services, debug: bool = False) -> None:

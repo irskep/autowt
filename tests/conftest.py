@@ -39,8 +39,17 @@ def sample_branch_statuses(sample_worktrees):
 
 
 @pytest.fixture(autouse=True)
-def mock_terminal_operations():
-    """Automatically mock potentially harmful terminal operations in all tests."""
+def mock_terminal_operations(request):
+    """Automatically mock potentially harmful terminal operations in unit tests.
+
+    Integration tests (in tests/integration/) are excluded since they need real
+    git operations.
+    """
+    # Skip mocking for integration tests
+    if "integration" in str(request.fspath):
+        yield {}
+        return
+
     with (
         patch(
             "autowt.utils.run_command", return_value=Mock(returncode=0)
