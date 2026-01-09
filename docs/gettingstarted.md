@@ -8,26 +8,15 @@ Before you begin, make sure you have the following installed:
 
 -   **Python 3.10+**: You can check your version with `python3 --version`.
 -   **Git 2.5+**: `autowt` relies on modern git worktree functionality. Check your version with `git --version`. Git 2.5 was released in 2015, so this shouldn’t be a problem.
--   **A supported terminal (recommended)**: For the best experience, use a terminal with good tab and window management, like iTerm2 on macOS. See the [Terminal Support](terminalsupport.md) page for more details.
+-   **A supported terminal (recommended)**: For the best experience, use a terminal with good tab and window management, like tmux, or iTerm2 on macOS. See the [Terminal Support](terminalsupport.md) page for more details.
 
 ## Installation
 
-### uv
+### uv (preferred)
 
 ```sh
 # note the 'tool' subcommand!
 uv tool install autowt
-```
-
-### Pip
-
-First, `pip install autowt`. To verify the installation, run `autowt` in a git repository to see its status:
-
-```txt
-  Worktrees:
-→ ~/dev/my-project (main worktree)             main ←
-
-Use 'autowt <branch>' to switch to a worktree or create a new one.
 ```
 
 ### Mise
@@ -38,9 +27,13 @@ You can install autowt in its own virtualenv with Mise and pipx:
 mise use -g pipx:autowt
 ```
 
-### uvx
+### Pip
 
-If you have [uv](https://docs.astral.sh/uv/) installed, you can invoke autowt without a separate install step via `uvx`:
+```sh
+pip install autowt
+```
+
+### uvx
 
 ```bash
 uvx autowt
