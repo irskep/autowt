@@ -12,6 +12,13 @@ Before you begin, make sure you have the following installed:
 
 ## Installation
 
+### uv
+
+```sh
+# note the 'tool' subcommand!
+uv tool install autowt
+```
+
 ### Pip
 
 First, `pip install autowt`. To verify the installation, run `autowt` in a git repository to see its status:
