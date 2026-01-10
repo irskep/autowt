@@ -13,7 +13,7 @@ PORT=$((BASE_PORT + OFFSET))
 echo "PORT=$PORT" >> .env
 """
 
-post_create_async = './setup.sh'
+# post_create_async = './setup.sh'
 pre_cleanup = 'echo pre_cleanup'
 post_cleanup = 'echo post_cleanup'
 pre_switch = 'echo pre_switch'
