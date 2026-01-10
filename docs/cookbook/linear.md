@@ -16,4 +16,4 @@ branch_name = "linearis issues read $1 | jq -r '.branchName // empty'"
 2. Extracts `.branchName` with `jq`
 3. Hands that exact string to autowt, so the worktree is created on Linear's suggested branch
 
-Because Linear watches for that slug, any PR pushed from the branch automatically links back to the ticket.
+Because Linear watches for that branch name, any PR pushed from the branch automatically links back to the ticket.
