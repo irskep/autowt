@@ -19,16 +19,8 @@ nav:
           - Branch Names from Linear: cookbook/linear.md
           - Auto-Starting Coding Agents: cookbook/agents.md
           - Copying Untracked Files Like .env: cookbook/untracked.md
+          - Assigning a Unique Port: cookbook/uniqueports.md
           - Docker Environments: cookbook/docker.md
-          - Bi-directional Sync: cookbook/bidirectionalsync.md
-          - Async Setup: cookbook/asyncsetup.md
-          - Cleanup Hooks: cookbook/cleanup.md
-          - Session Display: cookbook/sessiondisplay.md
-          - Shared Services: cookbook/sharedservices.md
-          - Health Checks: cookbook/healthchecks.md
-          - Template Rendering: cookbook/templates.md
-          - SSL Certificates: cookbook/sslcerts.md
-          - Worktree Detection: cookbook/worktreedetection.md
     - Changelog: CHANGELOG.md
 
 plugins:
