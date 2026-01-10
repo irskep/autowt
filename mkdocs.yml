@@ -20,7 +20,7 @@ nav:
           - Auto-Starting Coding Agents: cookbook/agents.md
           - Copying Untracked Files Like .env: cookbook/untracked.md
           - Assigning a Unique Port: cookbook/uniqueports.md
-          - Docker Environments: cookbook/docker.md
+          - Starting and Stopping Docker Containers: cookbook/docker.md
     - Changelog: CHANGELOG.md
 
 plugins:
