@@ -1,4 +1,4 @@
-# Integrating autowt with GitHub Issues
+# Branch Names from GitHub Issues
 
 Use the GitHub CLI (`gh`) to turn an issue number into a branch name. `autowt`'s `branch_name` field runs the command, captures stdout, and normalizes it into a valid Git ref (lowercase, dashes, no spaces).
 

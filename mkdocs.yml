@@ -15,10 +15,10 @@ nav:
           - Terminal Support: terminalsupport.md
           - Troubleshooting: troubleshooting.md
     - Cookbook:
-          - GitHub Issues: cookbook/github.md
-          - Linear: cookbook/linear.md
-          - Coding Agents: cookbook/agents.md
-          - .env Files: cookbook/env.md
+          - Branch Names from GitHub Issues: cookbook/github.md
+          - Branch Names from Linear: cookbook/linear.md
+          - Auto-Starting Coding Agents: cookbook/agents.md
+          - Copying .env Files: cookbook/env.md
     - Changelog: CHANGELOG.md
 
 plugins:

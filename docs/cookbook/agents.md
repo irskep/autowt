@@ -1,4 +1,4 @@
-# Coding Agents
+# Auto-Starting Coding Agents
 
 Suppose you want to make it as easy as possible to have an agent like Claude Code start working on a prompt in its own worktree. You could do this:
 

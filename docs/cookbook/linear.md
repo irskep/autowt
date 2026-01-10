@@ -1,4 +1,4 @@
-# Integrating autowt with Linear
+# Branch Names from Linear
 
 Linear already suggests the branch slug it wants to see when you open a pull request. The [`linearis`](https://github.com/czottmann/linearis) CLI exposes that suggestion as the `branchName` field on every `issues read` response, so you can hand it directly to `autowt` and get automatic ticket association when the PR opens.
 

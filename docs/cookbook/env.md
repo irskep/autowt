@@ -1,4 +1,4 @@
-# Copying `.env` files into new git worktrees
+# Copying `.env` Files
 
 You can configure autowt to copy important untracked files from your main worktree into all new worktrees using either the `post_create` or the `post_create_async` hook.
 
