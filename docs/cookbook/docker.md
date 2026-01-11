@@ -2,7 +2,7 @@
 
 This example will show how to start and stop a container for each worktree. Postgres is used to demonstrate, but it could be anything.
 
-## Start container in post_create
+## Start container in `post_create`
 
 Use the branch name to create a unique container name and port. The port calculation is covered in more depth in [Assigning a Unique Port](./uniqueports.md).
 
@@ -23,7 +23,7 @@ docker run -d \
 echo "DATABASE_URL=postgres://postgres:postgres@localhost:$PORT/postgres" >> .env
 ```
 
-## Stop container in pre_cleanup
+## Stop container in `pre_cleanup`
 
 ```bash
 CONTAINER_NAME="pg-$AUTOWT_BRANCH_NAME"
