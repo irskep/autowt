@@ -2,43 +2,6 @@
 
 This guide will walk you through installing `autowt`, setting it up for a project, and using its core features to streamline your development workflow.
 
-## Prerequisites
-
-Before you begin, make sure you have the following installed:
-
--   **Python 3.10+**: You can check your version with `python3 --version`.
--   **Git 2.5+**: `autowt` relies on modern git worktree functionality. Check your version with `git --version`. Git 2.5 was released in 2015, so this shouldn’t be a problem.
--   **A supported terminal (recommended)**: For the best experience, use a terminal with good tab and window management, like tmux, or iTerm2 on macOS. See the [Terminal Support](terminalsupport.md) page for more details.
-
-## Installation
-
-### uv (preferred)
-
-```sh
-# note the 'tool' subcommand!
-uv tool install autowt
-```
-
-### Mise
-
-You can install autowt in its own virtualenv with Mise and pipx:
-
-```bash
-mise use -g pipx:autowt
-```
-
-### Pip
-
-```sh
-pip install autowt
-```
-
-### uvx
-
-```bash
-uvx autowt
-```
-
 ## Your first worktree
 
 Let's dive in and see `autowt` in action.
@@ -54,7 +17,7 @@ cd ~/dev/my-project
 Now, let's create a worktree for a new feature.
 
 ```bash
-autowt new-feature
+autowt go new-feature
 ```
 
 Here’s what `autowt` does behind the scenes:
@@ -79,7 +42,7 @@ The output will look something like this, with an arrow `→` indicating your cu
 ```txt
   Worktrees:
 → ~/dev/my-project-worktrees/new-feature @      new-feature ←
-  ~/dev/my-project (main worktree)               main
+  ~/dev/my-project (main worktree)                     main
 ```
 
 !!! info
@@ -151,8 +114,3 @@ autowt cleanup
 On first run, `autowt` will ask you to select your preferred cleanup mode (interactive, merged, remoteless, or github if the GitHub CLI is available). Your choice will be saved for future use. After that, `autowt` will remove the worktree and, if the branch is merged, will also offer to delete the local git branch.
 
 If `autowt cleanup` doesn't want to automatically clean up your branch, you can run `autowt cleanup <branch-name>` explicitly.
-
----
-
-_[git worktree]: A native Git feature that allows you to have multiple working trees attached to the same repository, enabling you to check out multiple branches at once.
-_[main worktree]: The original repository directory, as opposed to the worktree directories managed by `autowt`.

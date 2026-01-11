@@ -7,7 +7,9 @@ edit_uri: edit/main/docs/
 
 nav:
     - Home: index.md
+    - Installing: install.md
     - Getting Started: gettingstarted.md
+    - Changelog: CHANGELOG.md
     - Reference:
           - CLI Reference: clireference.md
           - Configuration: configuration.md
@@ -15,11 +17,12 @@ nav:
           - Terminal Support: terminalsupport.md
           - Troubleshooting: troubleshooting.md
     - Cookbook:
-          - GitHub Issues: cookbook/github.md
-          - Linear: cookbook/linear.md
-          - Coding Agents: cookbook/agents.md
-          - .env Files: cookbook/env.md
-    - Changelog: CHANGELOG.md
+          - Branch Names from GitHub Issues: cookbook/github.md
+          - Branch Names from Linear: cookbook/linear.md
+          - Auto-Starting Coding Agents: cookbook/agents.md
+          - Copying Untracked Files Like .env: cookbook/untracked.md
+          - Assigning Unique Ports: cookbook/uniqueports.md
+          - Starting and Stopping Docker Containers: cookbook/docker.md
 
 plugins:
     - search
