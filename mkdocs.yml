@@ -7,7 +7,9 @@ edit_uri: edit/main/docs/
 
 nav:
     - Home: index.md
+    - Installing: install.md
     - Getting Started: gettingstarted.md
+    - Changelog: CHANGELOG.md
     - Reference:
           - CLI Reference: clireference.md
           - Configuration: configuration.md
@@ -19,9 +21,8 @@ nav:
           - Branch Names from Linear: cookbook/linear.md
           - Auto-Starting Coding Agents: cookbook/agents.md
           - Copying Untracked Files Like .env: cookbook/untracked.md
-          - Assigning a Unique Port: cookbook/uniqueports.md
+          - Assigning Unique Ports: cookbook/uniqueports.md
           - Starting and Stopping Docker Containers: cookbook/docker.md
-    - Changelog: CHANGELOG.md
 
 plugins:
     - search

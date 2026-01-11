@@ -1,4 +1,4 @@
-# Assigning a Unique Port
+# Assigning Unique Ports
 
 Each worktree gets a unique port written to `.env`, avoiding conflicts when running multiple dev servers.
 

@@ -25,7 +25,11 @@ body[data-md-color-scheme="default"] {
 }
 
 .md-nav--primary > .md-nav__list {
-    gap: 1rem;
+    gap: 0;
+}
+
+.md-nav__item.md-nav__item--section.md-nav__item--nested {
+    margin-top: 1rem;
 }
 
 .md-nav--primary .md-nav__item .md-nav__link.md-nav__link--active {
@@ -41,6 +45,11 @@ body[data-md-color-scheme="default"] {
 .md-nav--primary .md-nav__item .md-nav__link:hover {
     background: none !important;
     /* text-decoration: underline; */
+}
+
+.md-nav__item > a {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
 }
 
 nav a:hover {
