@@ -252,7 +252,7 @@ class TestBranchResolver:
         """Test that check_remote_branch_availability returns False when branch exists locally."""
         with patch.object(
             self.git_service.branch_resolver,
-            "_branch_exists_locally",
+            "branch_exists_locally",
             return_value=True,
         ):
             result = self.git_service.branch_resolver.check_remote_branch_availability(
@@ -265,7 +265,7 @@ class TestBranchResolver:
         with (
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_locally",
+                "branch_exists_locally",
                 return_value=False,
             ),
             patch.object(
@@ -275,7 +275,7 @@ class TestBranchResolver:
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_remotely",
+                "branch_exists_remotely",
                 return_value=True,
             ),
             patch.object(
@@ -295,7 +295,7 @@ class TestBranchResolver:
         with (
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_locally",
+                "branch_exists_locally",
                 return_value=False,
             ),
             patch.object(
@@ -305,7 +305,7 @@ class TestBranchResolver:
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_remotely",
+                "branch_exists_remotely",
                 side_effect=[
                     False,
                     True,
@@ -331,12 +331,12 @@ class TestBranchResolver:
         with (
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_locally",
+                "branch_exists_locally",
                 return_value=False,
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_remotely",
+                "branch_exists_remotely",
                 return_value=False,  # Not found remotely initially or after fetch
             ),
             patch.object(
@@ -355,12 +355,12 @@ class TestBranchResolver:
         with (
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_locally",
+                "branch_exists_locally",
                 return_value=False,
             ),
             patch.object(
                 self.git_service.branch_resolver,
-                "_branch_exists_remotely",
+                "branch_exists_remotely",
                 return_value=False,  # Not found remotely before or after fetch
             ),
             patch.object(

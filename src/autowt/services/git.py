@@ -83,7 +83,7 @@ class BranchResolver:
         Returns:
             Tuple of (exists_remotely, remote_name)
         """
-        if self._branch_exists_locally(repo_path, branch):
+        if self.branch_exists_locally(repo_path, branch):
             return False, None
 
         # Determine which remote to use (tracking remote or fallback)
@@ -92,12 +92,12 @@ class BranchResolver:
             return False, None
 
         # First check if branch already exists remotely (from previous fetches)
-        if self._branch_exists_remotely(repo_path, branch, remote):
+        if self.branch_exists_remotely(repo_path, branch, remote):
             return True, remote
 
         # If not found, try to fetch the specific branch and check again
         if self._try_fetch_specific_branch(repo_path, branch, remote):
-            if self._branch_exists_remotely(repo_path, branch, remote):
+            if self.branch_exists_remotely(repo_path, branch, remote):
                 return True, remote
 
         return False, None
@@ -135,7 +135,7 @@ class BranchResolver:
         self, repo_path: Path, branch: str, from_branch: str
     ) -> Callable[[Path], list[str]]:
         """Return command builder when user specified source branch."""
-        if self._branch_exists_locally(repo_path, branch):
+        if self.branch_exists_locally(repo_path, branch):
             return lambda path: self.commands.worktree_add_existing(path, branch)
         return lambda path: self.commands.worktree_add_new_branch(
             path, branch, from_branch
@@ -145,12 +145,12 @@ class BranchResolver:
         self, repo_path: Path, branch: str
     ) -> Callable[[Path], list[str]]:
         """Return command builder using branch resolution hierarchy."""
-        if self._branch_exists_locally(repo_path, branch):
+        if self.branch_exists_locally(repo_path, branch):
             return lambda path: self.commands.worktree_add_existing(path, branch)
 
         # Determine remote to use for this branch
         remote = self.git_service._get_remote_for_branch(repo_path, branch)
-        if remote and self._branch_exists_remotely(repo_path, branch, remote):
+        if remote and self.branch_exists_remotely(repo_path, branch, remote):
             return lambda path: self.commands.worktree_add_new_branch(
                 path, branch, f"{remote}/{branch}"
             )
@@ -160,7 +160,7 @@ class BranchResolver:
             path, branch, start_point
         )
 
-    def _branch_exists_locally(self, repo_path: Path, branch: str) -> bool:
+    def branch_exists_locally(self, repo_path: Path, branch: str) -> bool:
         """Check if branch exists locally."""
         result = run_command_quiet_on_failure(
             self.commands.branch_exists_locally(branch),
@@ -170,7 +170,7 @@ class BranchResolver:
         )
         return result.returncode == 0
 
-    def _branch_exists_remotely(
+    def branch_exists_remotely(
         self, repo_path: Path, branch: str, remote: str = "origin"
     ) -> bool:
         """Check if branch exists on remote.
@@ -199,10 +199,10 @@ class BranchResolver:
 
         # Try to use remote version of default branch if available
         remote = self.git_service._get_remote_for_branch(repo_path, default_branch)
-        if remote and self._branch_exists_remotely(repo_path, default_branch, remote):
+        if remote and self.branch_exists_remotely(repo_path, default_branch, remote):
             return f"{remote}/{default_branch}"
 
-        if self._branch_exists_locally(repo_path, default_branch):
+        if self.branch_exists_locally(repo_path, default_branch):
             return default_branch
 
         return "HEAD"

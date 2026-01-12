@@ -220,3 +220,67 @@ class TestGetCanonicalBranchName:
             mock_services,
         )
         assert result == "my-branch"
+
+    def test_branch_exists_fn_skips_prefix_when_branch_exists(self):
+        """Test that prefix is skipped when branch_exists_fn returns True."""
+        worktrees = []
+        mock_services = Mock()
+        mock_services.github.get_github_username.return_value = None
+
+        # Branch exists (locally or remotely) but has no worktree
+        branch_exists_fn = Mock(return_value=True)
+
+        result = get_canonical_branch_name(
+            "other/my-branch",
+            "feature/",
+            worktrees,
+            Path("/repo"),
+            mock_services,
+            apply_to_new_branches=True,
+            branch_exists_fn=branch_exists_fn,
+        )
+        assert result == "other/my-branch"
+        branch_exists_fn.assert_called_once_with("other/my-branch")
+
+    def test_branch_exists_fn_applies_prefix_when_branch_not_exists(self):
+        """Test that prefix is applied when branch_exists_fn returns False."""
+        worktrees = []
+        mock_services = Mock()
+        mock_services.github.get_github_username.return_value = None
+
+        # Branch does not exist
+        branch_exists_fn = Mock(return_value=False)
+
+        result = get_canonical_branch_name(
+            "my-branch",
+            "feature/",
+            worktrees,
+            Path("/repo"),
+            mock_services,
+            apply_to_new_branches=True,
+            branch_exists_fn=branch_exists_fn,
+        )
+        assert result == "feature/my-branch"
+        branch_exists_fn.assert_called_once_with("my-branch")
+
+    def test_worktree_check_takes_precedence_over_branch_exists_fn(self):
+        """Test that worktree check happens before branch_exists_fn."""
+        worktrees = [
+            WorktreeInfo(branch="my-branch", path=Path("/worktree")),
+        ]
+        mock_services = Mock()
+        mock_services.github.get_github_username.return_value = None
+
+        # branch_exists_fn should not be called if worktree exists
+        branch_exists_fn = Mock(return_value=False)
+
+        result = get_canonical_branch_name(
+            "my-branch",
+            "feature/",
+            worktrees,
+            Path("/repo"),
+            mock_services,
+            branch_exists_fn=branch_exists_fn,
+        )
+        assert result == "my-branch"
+        branch_exists_fn.assert_not_called()

@@ -188,6 +188,12 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     # Get current worktrees before applying prefix (we need to check if branches exist)
     git_worktrees = services.git.list_worktrees(repo_path)
 
+    def branch_exists(b: str) -> bool:
+        """Check if branch exists locally or on remote."""
+        return services.git.branch_resolver.branch_exists_locally(
+            repo_path, b
+        ) or services.git.branch_resolver.branch_exists_remotely(repo_path, b)
+
     # Apply branch prefix AFTER custom script resolution
     # This ensures dynamic branch names also get the prefix applied
     canonical_branch = get_canonical_branch_name(
@@ -197,6 +203,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
         repo_path,
         services,
         apply_to_new_branches=True,
+        branch_exists_fn=branch_exists,
     )
     if canonical_branch != switch_cmd.branch:
         switch_cmd = replace(switch_cmd, branch=canonical_branch)
