@@ -2,9 +2,7 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.5 - Unreleased
-
-### Added
+## 0.5.5 - 2026-01-12
 
 ### Changed
 
@@ -14,8 +12,6 @@
 
 - Branch prefix is no longer applied when the exact branch name already exists locally or on remote
 - Integration tests were broken since 0.4.0 due to an overly broad mock
-
-### Removed
 
 ## 0.5.4 - 2026-01-05
 
