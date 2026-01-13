@@ -6,6 +6,7 @@ import re
 import shlex
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -315,12 +316,16 @@ def get_canonical_branch_name(
     repo_path: Path,
     services: "Services",
     apply_to_new_branches: bool = True,
+    branch_exists_fn: Callable[[str], bool] | None = None,
 ) -> str:
     """Get the canonical branch name, applying configured prefix if appropriate.
 
     Args:
         apply_to_new_branches: If True, apply prefix even for new branches.
                                If False, only use prefix if that branch already exists.
+        branch_exists_fn: Optional callback to check if a branch exists (locally or remotely).
+                          If provided and returns True for the exact branch name,
+                          the prefix will not be applied.
 
     Returns the prefixed branch name if:
     - The exact branch doesn't exist, AND
@@ -329,8 +334,13 @@ def get_canonical_branch_name(
     if not branch_prefix:
         return branch
 
+    # Check worktrees first (fast path)
     exact_match_exists = any(wt.branch == branch for wt in worktrees)
     if exact_match_exists:
+        return branch
+
+    # Check if branch exists locally or remotely
+    if branch_exists_fn and branch_exists_fn(branch):
         return branch
 
     template_context = build_branch_template_context(repo_path, services)
