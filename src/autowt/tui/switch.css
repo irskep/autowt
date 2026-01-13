@@ -117,3 +117,7 @@ ListView > .option-list--option-highlighted .branch-info {
     color: $text;
     text-style: bold;
 }
+
+Button:focus {
+    text-style: bold reverse;
+}

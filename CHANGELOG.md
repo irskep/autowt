@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- TUI buttons now show visible focus state when navigating with keyboard (fixes #102)
+
 ### Removed
 
 ## 0.5.6 - 2026-01-12
