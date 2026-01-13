@@ -2,17 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.7 - Unreleased
-
-### Added
-
-### Changed
+## 0.5.7 - 2026-01-12
 
 ### Fixed
 
 - TUI buttons now show visible focus state when navigating with keyboard (fixes #102)
-
-### Removed
 
 ## 0.5.6 - 2026-01-12
 

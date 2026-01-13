@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "autowt"
-version = "0.5.7.dev0"
+version = "0.5.7"
 source = { editable = "." }
 dependencies = [
     { name = "automate-terminal" },
