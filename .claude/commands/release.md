@@ -8,3 +8,4 @@
     - Bump the patch version in pyproject.toml to the next version with '.dev0' suffix
     - run 'uv sync'
     - update CHANGELOG.md with the new unreleased section
+8. Use `gh run list` to find the "Publish to PyPI" workflow run waiting for approval, and provide the user with the link: `https://github.com/irskep/autowt/actions/runs/<run_id>`
