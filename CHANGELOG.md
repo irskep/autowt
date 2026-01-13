@@ -8,6 +8,8 @@
 
 ### Changed
 
+- Help output now shows command aliases (e.g., `autowt switch --help` shows "Aliases: sw, checkout, co, goto, go") and the top-level help indicates availability as both `autowt` and `awt`
+
 ### Fixed
 
 ### Removed
