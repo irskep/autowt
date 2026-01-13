@@ -73,3 +73,8 @@ Button#save {
 Button#cancel {
     text-style: bold;
 }
+
+Button#save:focus,
+Button#cancel:focus {
+    text-style: bold reverse;
+}

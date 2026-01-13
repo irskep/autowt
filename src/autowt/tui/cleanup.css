@@ -124,3 +124,8 @@ Button#confirm {
 Button#cancel {
     text-style: bold;
 }
+
+Button#confirm:focus,
+Button#cancel:focus {
+    text-style: bold reverse;
+}
