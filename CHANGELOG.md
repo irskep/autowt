@@ -2,17 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.6 - Unreleased
-
-### Added
+## 0.5.6 - 2026-01-12
 
 ### Changed
 
 - Help output now shows command aliases (e.g., `autowt switch --help` shows "Aliases: sw, checkout, co, goto, go") and the top-level help indicates availability as both `autowt` and `awt`
-
-### Fixed
-
-### Removed
 
 ## 0.5.5 - 2026-01-12
 
