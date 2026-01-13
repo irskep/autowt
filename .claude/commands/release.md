@@ -3,7 +3,7 @@
 3. Update CHANGELOG.md with the release notes and date for the current version. Remove empty sections.
 4. Commit the version and changelog changes.
 5. Make a vx.y.z tag for the release (using the version from pyproject.toml) and push it to origin.
-6. Use pbcopy to copy the relevant release notes from CHANGELOG.md to the clipboard.
+6. Create the GitHub release using `gh release create vX.Y.Z` with the `--notes` flag. The notes should contain only the content under the version header (the ### sections and their bullet points), not the version header itself, since the release title already shows the version.
 7. Do a final commit-and-push-to-main with these changes:
     - Bump the patch version in pyproject.toml to the next version with '.dev0' suffix
     - run 'uv sync'
