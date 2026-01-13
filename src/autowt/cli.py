@@ -450,7 +450,7 @@ class AutowtGroup(ClickAliasedGroup):
 )
 @click.pass_context
 def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
-    """Git worktree manager.
+    """Git worktree manager. Available as: autowt, awt
 
     Use subcommands like 'ls', 'cleanup', 'config', or 'switch'.
     Or simply run 'autowt <branch>' to switch to a branch.
@@ -476,7 +476,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 def ls(debug: bool) -> None:
-    """List all worktrees and their status."""
+    """List all worktrees and their status. Aliases: list, ll"""
     setup_logging(debug)
     services = create_services()
     check_for_version_updates(services)
@@ -512,7 +512,7 @@ def cleanup(
     force: bool,
     debug: bool,
 ) -> None:
-    """Clean up merged or remoteless worktrees.
+    """Clean up merged or remoteless worktrees. Aliases: cl, clean, prune, rm, remove, del, delete
 
     Can optionally specify worktrees (by branch name or path) to remove.
     If no worktrees are specified, uses mode-based selection.
@@ -577,7 +577,7 @@ def cleanup(
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option("--show", is_flag=True, help="Show current configuration values")
 def config(debug: bool, show: bool) -> None:
-    """Configure autowt settings using interactive TUI."""
+    """Configure autowt settings using interactive TUI. Aliases: configure, settings, cfg, conf"""
     setup_logging(debug)
     services = create_services()
 
@@ -634,7 +634,7 @@ def switch(
     custom_script: str | None,
     dir: str | None,
 ) -> None:
-    """Switch to or create a worktree for the specified branch or path.
+    """Switch to or create a worktree for the specified branch or path. Aliases: sw, checkout, co, goto, go
 
     BRANCH_OR_PATH can be either a branch name (e.g., 'my-feature') or
     a path to an existing worktree (e.g., '../myproject-worktrees/feature').
