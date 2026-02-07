@@ -412,12 +412,17 @@ class ConfigLoader:
         logger.debug(f"Saving cleanup mode preference: {mode.value}")
 
         # Load existing config or start with empty
-        existing_data = {}
+        existing_data: dict[str, Any] = {}
         if self.global_config_file.exists():
             try:
                 existing_data = toml.load(self.global_config_file)
             except Exception as e:
-                logger.warning(f"Could not load existing config, will create new: {e}")
+                # CRITICAL: Do not overwrite user's config if we can't parse it!
+                raise RuntimeError(
+                    f"Cannot save cleanup mode: failed to parse existing config file "
+                    f"at {self.global_config_file}. Please fix the TOML syntax or "
+                    f"remove the file. Error: {e}"
+                ) from e
 
         # Update just the cleanup mode
         if "cleanup" not in existing_data:
@@ -437,6 +442,17 @@ class ConfigLoader:
         """Save configuration to global config file."""
         self.setup()  # Ensure directory exists
         logger.debug("Saving global configuration")
+
+        # If file exists, try to load it first to catch parse errors before overwriting
+        if self.global_config_file.exists():
+            try:
+                toml.load(self.global_config_file)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Cannot save config: failed to parse existing config file "
+                    f"at {self.global_config_file}. Please fix the TOML syntax or "
+                    f"remove the file. Error: {e}"
+                ) from e
 
         try:
             with open(self.global_config_file, "w") as f:

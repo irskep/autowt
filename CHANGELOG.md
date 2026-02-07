@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Global config file is no longer silently overwritten when it contains invalid TOML syntax; an error is shown instead (fixes #105)
+
 ### Removed
 
 ## 0.5.7 - 2026-01-12

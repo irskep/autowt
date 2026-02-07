@@ -704,3 +704,108 @@ class TestConfigIntegration:
             # Should be able to save defaults
             loader.save_config(config)
             assert (app_dir / "config.toml").exists()
+
+
+class TestSaveWithInvalidConfig:
+    """Tests for save functions when existing config has invalid TOML."""
+
+    def test_save_cleanup_mode_with_invalid_existing_config(self):
+        """Test that save_cleanup_mode refuses to overwrite unparseable config."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+
+            # Create invalid TOML file
+            with open(app_dir / "config.toml", "w") as f:
+                f.write("[invalid\nbroken = toml")
+
+            loader = ConfigLoader(app_dir=app_dir)
+
+            # Should raise RuntimeError instead of silently overwriting
+            with pytest.raises(RuntimeError) as exc_info:
+                loader.save_cleanup_mode(CleanupMode.MERGED)
+
+            assert "Cannot save cleanup mode" in str(exc_info.value)
+            assert "failed to parse existing config file" in str(exc_info.value)
+
+            # Verify file was NOT overwritten
+            with open(app_dir / "config.toml") as f:
+                content = f.read()
+            assert "[invalid" in content  # Original content preserved
+
+    def test_save_config_with_invalid_existing_config(self):
+        """Test that save_config refuses to overwrite unparseable config."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+
+            # Create invalid TOML file
+            with open(app_dir / "config.toml", "w") as f:
+                f.write("[invalid\nbroken = toml")
+
+            loader = ConfigLoader(app_dir=app_dir)
+            config = Config()
+
+            # Should raise RuntimeError instead of silently overwriting
+            with pytest.raises(RuntimeError) as exc_info:
+                loader.save_config(config)
+
+            assert "Cannot save config" in str(exc_info.value)
+            assert "failed to parse existing config file" in str(exc_info.value)
+
+            # Verify file was NOT overwritten
+            with open(app_dir / "config.toml") as f:
+                content = f.read()
+            assert "[invalid" in content  # Original content preserved
+
+    def test_save_cleanup_mode_with_valid_existing_config(self):
+        """Test that save_cleanup_mode preserves valid existing settings."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+
+            # Create valid TOML file with existing settings
+            existing_config = {
+                "terminal": {"mode": "window", "always_new": True},
+                "scripts": {"session_init": "npm install"},
+            }
+            with open(app_dir / "config.toml", "w") as f:
+                toml.dump(existing_config, f)
+
+            loader = ConfigLoader(app_dir=app_dir)
+            loader.save_cleanup_mode(CleanupMode.MERGED)
+
+            # Verify all settings were preserved
+            with open(app_dir / "config.toml") as f:
+                saved_data = toml.load(f)
+
+            assert saved_data["terminal"]["mode"] == "window"
+            assert saved_data["terminal"]["always_new"] is True
+            assert saved_data["scripts"]["session_init"] == "npm install"
+            assert saved_data["cleanup"]["default_mode"] == "merged"
+
+    def test_save_cleanup_mode_creates_new_file(self):
+        """Test that save_cleanup_mode works when no config file exists."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+
+            loader = ConfigLoader(app_dir=app_dir)
+            loader.save_cleanup_mode(CleanupMode.ALL)
+
+            # Verify file was created with correct content
+            assert (app_dir / "config.toml").exists()
+            with open(app_dir / "config.toml") as f:
+                saved_data = toml.load(f)
+            assert saved_data["cleanup"]["default_mode"] == "all"
+
+    def test_save_config_creates_new_file(self):
+        """Test that save_config works when no config file exists."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+
+            loader = ConfigLoader(app_dir=app_dir)
+            config = Config.from_dict({"terminal": {"mode": "window"}})
+            loader.save_config(config)
+
+            # Verify file was created with correct content
+            assert (app_dir / "config.toml").exists()
+            with open(app_dir / "config.toml") as f:
+                saved_data = toml.load(f)
+            assert saved_data["terminal"]["mode"] == "window"
