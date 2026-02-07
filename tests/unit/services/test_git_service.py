@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from autowt.models import WorktreeInfo
-from autowt.services.git import GitService
+from autowt.services.git import GitCommands, GitService
 
 
 class TestGitServiceRemoteDetection:
@@ -427,3 +427,156 @@ class TestBranchResolver:
             )
 
             assert result is False
+
+
+class TestGitCommands:
+    """Tests for GitCommands static methods."""
+
+    def test_worktree_add_new_branch_includes_tracking(self):
+        """Test that worktree_add_new_branch creates tracking branch."""
+        result = GitCommands.worktree_add_new_branch(
+            Path("/path/to/worktree"), "feature", "origin/main"
+        )
+
+        # Should NOT have --no-track (used for same-name remote branch tracking)
+        assert result == [
+            "git",
+            "worktree",
+            "add",
+            "/path/to/worktree",
+            "-b",
+            "feature",
+            "origin/main",
+        ]
+        assert "--no-track" not in result
+
+    def test_worktree_add_new_branch_no_track_excludes_tracking(self):
+        """Test that worktree_add_new_branch_no_track prevents upstream tracking."""
+        result = GitCommands.worktree_add_new_branch_no_track(
+            Path("/path/to/worktree"), "feature", "origin/main"
+        )
+
+        # Should have --no-track to prevent tracking origin/main
+        assert result == [
+            "git",
+            "worktree",
+            "add",
+            "--no-track",
+            "/path/to/worktree",
+            "-b",
+            "feature",
+            "origin/main",
+        ]
+        assert "--no-track" in result
+
+
+class TestBranchResolverNoTrack:
+    """Tests for BranchResolver ensuring new branches don't track wrong upstream."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.git_service = GitService()
+        self.repo_path = Path("/mock/repo")
+
+    def test_new_branch_from_specific_branch_uses_no_track(self):
+        """Test that creating new branch from --from uses --no-track."""
+        with patch.object(
+            self.git_service.branch_resolver,
+            "branch_exists_locally",
+            return_value=False,
+        ):
+            command_builder = (
+                self.git_service.branch_resolver._build_command_from_specific_branch(
+                    self.repo_path, "new-feature", "main"
+                )
+            )
+            command = command_builder(Path("/path/to/worktree"))
+
+            # Should use --no-track to prevent tracking main
+            assert "--no-track" in command
+
+    def test_existing_branch_does_not_use_no_track(self):
+        """Test that using existing local branch doesn't add --no-track."""
+        with patch.object(
+            self.git_service.branch_resolver,
+            "branch_exists_locally",
+            return_value=True,
+        ):
+            command_builder = (
+                self.git_service.branch_resolver._build_command_from_specific_branch(
+                    self.repo_path, "existing-branch", "main"
+                )
+            )
+            command = command_builder(Path("/path/to/worktree"))
+
+            # Should be a simple checkout, no --no-track
+            assert "--no-track" not in command
+            assert "existing-branch" in command
+
+    def test_new_branch_from_default_branch_uses_no_track(self):
+        """Test that new branch from default start point uses --no-track."""
+        with (
+            patch.object(
+                self.git_service.branch_resolver,
+                "branch_exists_locally",
+                return_value=False,
+            ),
+            patch.object(
+                self.git_service,
+                "_get_remote_for_branch",
+                return_value="origin",
+            ),
+            patch.object(
+                self.git_service.branch_resolver,
+                "branch_exists_remotely",
+                return_value=False,  # Branch doesn't exist on remote
+            ),
+            patch.object(
+                self.git_service.branch_resolver,
+                "_find_best_start_point",
+                return_value="origin/main",
+            ),
+        ):
+            command_builder = (
+                self.git_service.branch_resolver._build_command_from_branch_hierarchy(
+                    self.repo_path, "new-feature"
+                )
+            )
+            command = command_builder(Path("/path/to/worktree"))
+
+            # Should use --no-track since we're creating from origin/main
+            # but the branch name is different
+            assert "--no-track" in command
+            assert "new-feature" in command
+            assert "origin/main" in command
+
+    def test_branch_from_same_named_remote_uses_tracking(self):
+        """Test that branch created from same-named remote DOES track."""
+        with (
+            patch.object(
+                self.git_service.branch_resolver,
+                "branch_exists_locally",
+                return_value=False,
+            ),
+            patch.object(
+                self.git_service,
+                "_get_remote_for_branch",
+                return_value="origin",
+            ),
+            patch.object(
+                self.git_service.branch_resolver,
+                "branch_exists_remotely",
+                return_value=True,  # Branch EXISTS on remote with same name
+            ),
+        ):
+            command_builder = (
+                self.git_service.branch_resolver._build_command_from_branch_hierarchy(
+                    self.repo_path, "existing-remote-branch"
+                )
+            )
+            command = command_builder(Path("/path/to/worktree"))
+
+            # Should NOT use --no-track - we want to track origin/existing-remote-branch
+            assert "--no-track" not in command
+            assert "existing-remote-branch" in command
+            assert "origin/existing-remote-branch" in command
