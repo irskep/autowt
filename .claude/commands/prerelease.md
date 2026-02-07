@@ -16,5 +16,9 @@
    git push origin main
    git push origin v<new-version>
    ```
+9. Create the GitHub prerelease using the changelog content for the notes. Extract ALL content under the "Unreleased" section (the ### sections and their bullet points, excluding empty sections) and use it verbatim:
+   ```bash
+   gh release create v<new-version> --prerelease --title "v<new-version>" --notes "<changelog content>"
+   ```
 
 Example: `0.5.0.dev0` → `0.5.0.dev1` → `0.5.0.dev2`
