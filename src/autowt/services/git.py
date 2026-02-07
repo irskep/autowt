@@ -27,6 +27,22 @@ class GitCommands:
         return ["git", "worktree", "add", str(worktree_path), "-b", branch, start_point]
 
     @staticmethod
+    def worktree_add_new_branch_no_track(
+        worktree_path: Path, branch: str, start_point: str
+    ) -> list[str]:
+        """Build command to add worktree with new branch, without tracking."""
+        return [
+            "git",
+            "worktree",
+            "add",
+            "--no-track",
+            str(worktree_path),
+            "-b",
+            branch,
+            start_point,
+        ]
+
+    @staticmethod
     def worktree_remove(worktree_path: Path, force: bool = False) -> list[str]:
         """Build command to remove worktree."""
         cmd = ["git", "worktree", "remove"]
@@ -137,7 +153,7 @@ class BranchResolver:
         """Return command builder when user specified source branch."""
         if self.branch_exists_locally(repo_path, branch):
             return lambda path: self.commands.worktree_add_existing(path, branch)
-        return lambda path: self.commands.worktree_add_new_branch(
+        return lambda path: self.commands.worktree_add_new_branch_no_track(
             path, branch, from_branch
         )
 
@@ -156,7 +172,7 @@ class BranchResolver:
             )
 
         start_point = self._find_best_start_point(repo_path)
-        return lambda path: self.commands.worktree_add_new_branch(
+        return lambda path: self.commands.worktree_add_new_branch_no_track(
             path, branch, start_point
         )
 
