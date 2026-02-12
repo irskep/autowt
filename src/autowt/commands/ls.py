@@ -129,15 +129,8 @@ def list_worktrees(services: Services, debug: bool = False) -> None:
         print_plain("")
 
     # Determine which worktree we're currently in
-    current_worktree_path = None
-    for worktree in worktrees:
-        try:
-            if current_path.is_relative_to(worktree.path):
-                current_worktree_path = worktree.path
-                break
-        except ValueError:
-            # is_relative_to raises ValueError if not relative
-            continue
+    current_worktree = services.git.get_current_worktree(current_path, worktrees)
+    current_worktree_path = current_worktree.path if current_worktree else None
 
     if not worktrees:
         print_plain("  No worktrees found.")

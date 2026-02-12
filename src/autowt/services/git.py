@@ -364,6 +364,29 @@ class GitService:
             logger.error(f"Failed to list worktrees: {e}")
             return []
 
+    def get_current_worktree(
+        self, current_path: Path, worktrees: list[WorktreeInfo]
+    ) -> WorktreeInfo | None:
+        """Return the most specific worktree containing the current path."""
+        resolved_current = current_path.resolve()
+        matches = [
+            worktree
+            for worktree in worktrees
+            if self._is_within_worktree(resolved_current, worktree.path)
+        ]
+        if not matches:
+            return None
+
+        return max(matches, key=lambda worktree: len(worktree.path.resolve().parts))
+
+    @staticmethod
+    def _is_within_worktree(current_path: Path, worktree_path: Path) -> bool:
+        """Check whether current_path is equal to or inside worktree_path."""
+        resolved_worktree = worktree_path.resolve()
+        return current_path == resolved_worktree or current_path.is_relative_to(
+            resolved_worktree
+        )
+
     def _execute_worktree_list_command(self, repo_path: Path):
         """Execute git worktree list command."""
         return run_command(
