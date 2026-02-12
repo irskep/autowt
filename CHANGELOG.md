@@ -2,18 +2,12 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.8 - Unreleased
-
-### Added
-
-### Changed
+## 0.5.8 - 2026-02-12
 
 ### Fixed
 
 - Global config file is no longer silently overwritten when it contains invalid TOML syntax; an error is shown instead (fixes #105)
 - New branches created with `autowt switch` no longer incorrectly track the default branch (e.g., `origin/main`), which previously caused `git push` to push to main instead of creating a new remote branch (fixes #106)
-
-### Removed
 
 ## 0.5.7 - 2026-01-12
 
