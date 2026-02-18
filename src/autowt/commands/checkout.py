@@ -227,14 +227,10 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
     if existing_worktree:
         # Check if we're already in this worktree
-        current_path = Path.cwd()
-        try:
-            if current_path.is_relative_to(existing_worktree.path):
-                print_info(f"Already in {switch_cmd.branch} worktree")
-                return
-        except ValueError:
-            # is_relative_to raises ValueError if not relative
-            pass
+        current_worktree = services.git.get_current_worktree(Path.cwd(), git_worktrees)
+        if current_worktree and current_worktree.path == existing_worktree.path:
+            print_info(f"Already in {switch_cmd.branch} worktree")
+            return
 
         # Switch to existing worktree - no init script needed (worktree already set up)
         # Combine after_init and custom script for existing worktrees too

@@ -98,6 +98,19 @@ class MockGitService:
     def list_worktrees(self, repo_path: Path) -> list[WorktreeInfo]:
         return self.worktrees.copy()
 
+    def get_current_worktree(
+        self, current_path: Path, worktrees: list[WorktreeInfo]
+    ) -> WorktreeInfo | None:
+        matches = [
+            worktree
+            for worktree in worktrees
+            if current_path == worktree.path
+            or current_path.is_relative_to(worktree.path)
+        ]
+        if not matches:
+            return None
+        return max(matches, key=lambda worktree: len(worktree.path.parts))
+
     def fetch_branches(self, repo_path: Path) -> bool:
         self.fetch_called = True
         return self.fetch_success

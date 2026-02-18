@@ -1,5 +1,6 @@
 """End-to-end tests for the ls command functionality."""
 
+import os
 import shutil
 from unittest.mock import patch
 
@@ -105,3 +106,30 @@ class TestLsCommandE2E:
 
         # Debug flag shouldn't break the core functionality
         assert "main" in result.output
+
+    def test_ls_marks_nested_worktree_as_current(self, temp_git_repo, cli_runner):
+        """Current indicator should prefer nested worktree over main repo path."""
+        nested_worktree = temp_git_repo / ".claude" / "worktrees" / "feature-nested"
+        nested_worktree.parent.mkdir(parents=True, exist_ok=True)
+
+        run_command(
+            [
+                "git",
+                "worktree",
+                "add",
+                str(nested_worktree),
+                "-b",
+                "feature/nested-test",
+            ],
+            cwd=temp_git_repo,
+        )
+
+        with (
+            patch("os.getcwd", return_value=str(nested_worktree)),
+            patch("shutil.get_terminal_size", return_value=os.terminal_size((220, 24))),
+        ):
+            result = cli_runner.invoke(main, ["ls"])
+
+        assert result.exit_code == 0
+        assert "feature/nested-test ←" in result.output
+        assert "main ←" not in result.output

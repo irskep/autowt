@@ -1,5 +1,6 @@
 """Tests for command handlers with mocked services."""
 
+import os
 from unittest.mock import patch
 
 from autowt.commands import checkout, cleanup, ls
@@ -9,6 +10,7 @@ from autowt.models import (
     CleanupMode,
     SwitchCommand,
     TerminalMode,
+    WorktreeInfo,
 )
 from tests.fixtures.service_builders import (
     MockServices,
@@ -63,6 +65,30 @@ class TestListCommand:
         captured = capsys.readouterr()
         assert "Error: Not in a git repository" in captured.out
 
+    def test_ls_marks_nested_worktree_as_current(self, temp_repo_path, capsys):
+        """Nested worktrees should win over parent repo path for current marker."""
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        nested_worktree_path = (
+            temp_repo_path / ".claude" / "worktrees" / "feature-nested"
+        )
+        services.git.worktrees = [
+            WorktreeInfo(
+                branch="main", path=temp_repo_path, is_current=False, is_primary=True
+            ),
+            WorktreeInfo(branch="feature-nested", path=nested_worktree_path),
+        ]
+
+        with (
+            patch("pathlib.Path.cwd", return_value=nested_worktree_path / "src"),
+            patch("shutil.get_terminal_size", return_value=os.terminal_size((220, 24))),
+        ):
+            ls.list_worktrees(services)
+
+        captured = capsys.readouterr()
+        assert "feature-nested ←" in captured.out
+        assert "main ←" not in captured.out
+
 
 class TestCheckoutCommand:
     """Tests for checkout command."""
@@ -114,6 +140,26 @@ class TestCheckoutCommand:
         # Check that appropriate message was printed
         captured = capsys.readouterr()
         assert "Already in feature1 worktree" in captured.out
+
+    def test_checkout_main_from_nested_worktree_is_not_false_positive(
+        self, temp_repo_path
+    ):
+        """Switching to main should not be blocked when inside a nested worktree."""
+        services = MockServices()
+        services.git.repo_root = temp_repo_path
+        nested_worktree_path = temp_repo_path / ".claude" / "worktrees" / "feature1"
+        services.git.worktrees = [
+            WorktreeInfo(branch="main", path=temp_repo_path, is_primary=True),
+            WorktreeInfo(branch="feature1", path=nested_worktree_path),
+        ]
+
+        switch_cmd = SwitchCommand(branch="main", terminal_mode=TerminalMode.TAB)
+
+        with patch("pathlib.Path.cwd", return_value=nested_worktree_path / "subdir"):
+            checkout.checkout_branch(switch_cmd, services)
+
+        assert len(services.terminal.switch_calls) == 1
+        assert services.terminal.switch_calls[0][0] == temp_repo_path
 
     def test_checkout_new_worktree(self, temp_repo_path):
         """Test creating new worktree."""

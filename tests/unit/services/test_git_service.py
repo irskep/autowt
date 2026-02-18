@@ -429,6 +429,46 @@ class TestBranchResolver:
             assert result is False
 
 
+class TestCurrentWorktreeResolution:
+    """Tests for resolving the current worktree from cwd and candidates."""
+
+    def setup_method(self):
+        self.git_service = GitService()
+
+    def test_prefers_most_specific_nested_worktree(self):
+        repo_path = Path("/mock/repo")
+        nested_path = repo_path / ".claude" / "worktrees" / "feature"
+        worktrees = [
+            WorktreeInfo(branch="main", path=repo_path, is_primary=True),
+            WorktreeInfo(branch="feature", path=nested_path),
+        ]
+
+        result = self.git_service.get_current_worktree(nested_path / "src", worktrees)
+
+        assert result is not None
+        assert result.path == nested_path
+
+    def test_returns_none_when_cwd_not_in_any_worktree(self):
+        worktrees = [
+            WorktreeInfo(branch="main", path=Path("/mock/repo"), is_primary=True)
+        ]
+
+        result = self.git_service.get_current_worktree(
+            Path("/other/location"), worktrees
+        )
+
+        assert result is None
+
+    def test_matches_exact_worktree_path(self):
+        repo_path = Path("/mock/repo")
+        worktrees = [WorktreeInfo(branch="main", path=repo_path, is_primary=True)]
+
+        result = self.git_service.get_current_worktree(repo_path, worktrees)
+
+        assert result is not None
+        assert result.path == repo_path
+
+
 class TestGitCommands:
     """Tests for GitCommands static methods."""
 
