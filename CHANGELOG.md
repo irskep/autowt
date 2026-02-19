@@ -2,15 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.9 - Unreleased
-
-### Added
-
-### Changed
+## 0.5.9 - 2026-02-18
 
 ### Fixed
 
-### Removed
+- Nested worktrees inside the main repo are now correctly detected (fixes #109)
 
 ## 0.5.8 - 2026-02-12
 
