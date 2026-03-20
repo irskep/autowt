@@ -7,6 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 import click
+from click.shell_completion import CompletionItem
 from click_aliases import ClickAliasedGroup
 
 from autowt.cli_config import (
@@ -17,6 +18,7 @@ from autowt.cli_config import (
 from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
+from autowt.commands.install_completion import install_completion as _install_completion
 from autowt.commands.ls import list_worktrees
 from autowt.config import get_config
 from autowt.global_config import options
@@ -28,6 +30,7 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.prompts import prompt_cleanup_mode_selection
+from autowt.services.completion import complete_worktree_branches
 from autowt.tui.switch import run_switch_tui
 from autowt.utils import (
     is_interactive_terminal,
@@ -165,6 +168,18 @@ class AutowtGroup(ClickAliasedGroup):
             pass
 
         return sorted(set(commands))
+
+    def shell_complete(self, ctx, incomplete):
+        """Extend Click's default subcommand completion with worktree branch names."""
+        completions = super().shell_complete(ctx, incomplete)
+
+        # Add existing worktree branches as completions.
+        # complete_worktree_branches returns (branch, help_text) pairs.
+        existing_names = {c.value for c in completions}
+        for branch, help_text in complete_worktree_branches(incomplete):
+            if branch not in existing_names:
+                completions.append(CompletionItem(branch, help=help_text))
+        return completions
 
     def _get_custom_script_names(self) -> set[str]:
         """Get names of all custom scripts from config."""
@@ -591,7 +606,15 @@ def config(debug: bool, show: bool) -> None:
     aliases=["sw", "checkout", "co", "goto", "go"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.argument("branch", required=False, metavar="BRANCH_OR_PATH")
+@click.argument(
+    "branch",
+    required=False,
+    metavar="BRANCH_OR_PATH",
+    shell_complete=lambda ctx, param, incomplete: [
+        CompletionItem(branch, help=help_text)
+        for branch, help_text in complete_worktree_branches(incomplete)
+    ],
+)
 @click.option(
     "--terminal",
     type=click.Choice(["tab", "window", "inplace", "echo", "vscode", "cursor"]),
@@ -693,6 +716,27 @@ def switch(
         dir=dir,
     )
     checkout_branch(switch_cmd, services)
+
+
+@main.command(
+    name="install-completion",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option(
+    "--shell",
+    type=click.Choice(["bash", "zsh", "fish"]),
+    default=None,
+    help="Shell to install completion for (auto-detected if omitted)",
+)
+def install_completion_cmd(shell: str | None) -> None:
+    """Install tab completion for autowt in your shell.
+
+    Auto-detects your shell from the SHELL environment variable.
+    Supports bash, zsh, and fish.
+
+    Prints the line you need to add to your shell config file.
+    """
+    _install_completion(shell)
 
 
 if __name__ == "__main__":
