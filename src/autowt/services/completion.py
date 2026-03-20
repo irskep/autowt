@@ -3,14 +3,11 @@
 Kept import-light intentionally: this module runs on every tab press inside a
 shell-spawned subprocess, so minimising Python import overhead matters.
 
-Only GitOutputParser is imported from the application — it has no heavy
-transitive dependencies (just WorktreeInfo from models).
+No application modules are imported — only stdlib — so the import cost is minimal.
 """
 
 import subprocess
 from pathlib import Path
-
-from autowt.services.git import GitOutputParser
 
 
 def _find_repo_root() -> Path | None:
@@ -29,12 +26,33 @@ def _find_repo_root() -> Path | None:
     return None
 
 
-def _get_worktree_branches(repo_path: Path) -> list[str]:
-    """Return branch names of all existing worktrees.
+def _parse_worktree_branches(porcelain_output: str) -> list[str]:
+    """Extract branch names from 'git worktree list --porcelain' output.
 
-    Delegates porcelain parsing to GitOutputParser so the logic lives in one place.
-    Excludes detached-HEAD worktrees (they have no branch name).
+    Only returns branches (skips detached-HEAD worktrees).
+    This is an intentionally lightweight re-implementation that avoids importing
+    GitOutputParser (and its heavy transitive deps) on every tab press.
     """
+    branches: list[str] = []
+    current_branch: str | None = None
+
+    for line in porcelain_output.strip().split("\n"):
+        if not line:
+            if current_branch is not None:
+                branches.append(current_branch)
+            current_branch = None
+        elif line.startswith("branch refs/heads/"):
+            current_branch = line[18:]  # strip 'branch refs/heads/'
+
+    # Flush last entry (no trailing blank line)
+    if current_branch is not None:
+        branches.append(current_branch)
+
+    return branches
+
+
+def _get_worktree_branches(repo_path: Path) -> list[str]:
+    """Return branch names of all existing worktrees."""
     try:
         result = subprocess.run(
             ["git", "worktree", "list", "--porcelain"],
@@ -48,8 +66,7 @@ def _get_worktree_branches(repo_path: Path) -> list[str]:
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return []
 
-    worktrees = GitOutputParser.parse_worktree_list(result.stdout)
-    return [wt.branch for wt in worktrees]
+    return _parse_worktree_branches(result.stdout)
 
 
 def complete_worktree_branches(incomplete: str) -> list[tuple[str, str]]:
