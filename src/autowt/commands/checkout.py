@@ -615,6 +615,13 @@ def _run_hook_set(
         global_config, config, hook_type
     )
 
+    # Deduplicate: when `config` is the merged (global+project) config and the
+    # project didn't override a hook, the global script appears in both lists.
+    # Remove project scripts that are identical to a global script.
+    if global_scripts and project_scripts:
+        global_set = set(global_scripts)
+        project_scripts = [s for s in project_scripts if s not in global_set]
+
     # Merge with custom script hooks (handles inherit_hooks logic)
     merged_scripts = merge_hooks_for_custom_script(
         global_scripts, project_scripts, custom_script, hook_type
