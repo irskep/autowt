@@ -3,7 +3,15 @@
 import os
 from unittest.mock import patch
 
+import pytest
+
 from autowt.commands import checkout, cleanup, ls
+from autowt.commands.install_completion import (
+    _BASH_SNIPPET,
+    _FISH_SNIPPET,
+    _ZSH_SNIPPET,
+    install_completion,
+)
 from autowt.models import (
     BranchStatus,
     CleanupCommand,
@@ -584,3 +592,60 @@ class TestCleanupCommand:
         # Verify it just exited with message
         captured = capsys.readouterr()
         assert "No worktrees selected for cleanup" in captured.out
+
+
+class TestInstallCompletionCommand:
+    """Tests for install_completion command function."""
+
+    def test_bash_prints_eval_snippet(self, capsys):
+        """Test that bash instructions include the correct eval line."""
+        install_completion("bash")
+        captured = capsys.readouterr()
+        assert _BASH_SNIPPET in captured.out
+        assert ".bashrc" in captured.out
+
+    def test_zsh_prints_eval_snippet(self, capsys):
+        """Test that zsh instructions include the correct eval line."""
+        install_completion("zsh")
+        captured = capsys.readouterr()
+        assert _ZSH_SNIPPET in captured.out
+        assert ".zshrc" in captured.out
+
+    def test_fish_prints_source_snippet(self, capsys):
+        """Test that fish instructions include the correct source line."""
+        install_completion("fish")
+        captured = capsys.readouterr()
+        assert _FISH_SNIPPET in captured.out
+        assert "autowt.fish" in captured.out
+
+    def test_unsupported_shell_exits(self):
+        """Test that an unsupported shell name causes a non-zero exit."""
+        with pytest.raises(SystemExit):
+            install_completion("tcsh")
+
+    def test_auto_detects_bash_from_env(self, capsys):
+        """Test that shell=None auto-detects bash from SHELL env var."""
+        with patch.dict(os.environ, {"SHELL": "/bin/bash"}):
+            install_completion(None)
+        captured = capsys.readouterr()
+        assert _BASH_SNIPPET in captured.out
+
+    def test_auto_detects_zsh_from_env(self, capsys):
+        """Test that shell=None auto-detects zsh from SHELL env var."""
+        with patch.dict(os.environ, {"SHELL": "/bin/zsh"}):
+            install_completion(None)
+        captured = capsys.readouterr()
+        assert _ZSH_SNIPPET in captured.out
+
+    def test_auto_detects_fish_from_env(self, capsys):
+        """Test that shell=None auto-detects fish from SHELL env var."""
+        with patch.dict(os.environ, {"SHELL": "/usr/bin/fish"}):
+            install_completion(None)
+        captured = capsys.readouterr()
+        assert _FISH_SNIPPET in captured.out
+
+    def test_undetectable_shell_exits(self):
+        """Test that shell=None with an unknown SHELL env exits non-zero."""
+        with patch.dict(os.environ, {"SHELL": "/bin/sh"}):
+            with pytest.raises(SystemExit):
+                install_completion(None)
