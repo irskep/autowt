@@ -502,7 +502,15 @@ def ls(debug: bool) -> None:
     aliases=["cl", "clean", "prune", "rm", "remove", "del", "delete"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.argument("worktrees", nargs=-1, metavar="[WORKTREES...]")
+@click.argument(
+    "worktrees",
+    nargs=-1,
+    metavar="[WORKTREES...]",
+    shell_complete=lambda ctx, param, incomplete: [
+        CompletionItem(branch, help=help_text)
+        for branch, help_text in complete_worktree_branches(incomplete)
+    ],
+)
 @click.option(
     "--mode",
     type=click.Choice(["all", "remoteless", "merged", "interactive", "github"]),
