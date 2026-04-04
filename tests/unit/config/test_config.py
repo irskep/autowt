@@ -14,6 +14,7 @@ from autowt.config import (
     Config,
     ConfigLoader,
     ConfirmationsConfig,
+    HookConfig,
     ScriptsConfig,
     TerminalConfig,
     WorktreeConfig,
@@ -366,6 +367,67 @@ class TestConfigLoader:
             config = loader.load_config(project_dir=project_dir)
 
             assert config.scripts.session_init == "python setup.py"
+
+    def test_load_project_config_only_excludes_global_config(self):
+        """Test loading project-only config without inheriting global values."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+            project_dir = Path(temp_dir) / "project"
+            project_dir.mkdir()
+
+            global_config = {"scripts": {"post_create": "echo global"}}
+            with open(app_dir / "config.toml", "w") as f:
+                toml.dump(global_config, f)
+
+            project_config = {"scripts": {"session_init": "npm install"}}
+            with open(project_dir / "autowt.toml", "w") as f:
+                toml.dump(project_config, f)
+
+            loader = ConfigLoader(app_dir=app_dir)
+            config = loader.load_project_config_only(project_dir)
+
+            assert config.scripts.session_init == "npm install"
+            assert config.scripts.post_create is None
+
+    def test_load_project_hook_config_excludes_global_hooks(self):
+        """Test loading only project hook definitions without global inheritance."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+            project_dir = Path(temp_dir) / "project"
+            project_dir.mkdir()
+
+            global_config = {"scripts": {"post_create": "echo global"}}
+            with open(app_dir / "config.toml", "w") as f:
+                toml.dump(global_config, f)
+
+            project_config = {"scripts": {"session_init": "npm install"}}
+            with open(project_dir / "autowt.toml", "w") as f:
+                toml.dump(project_config, f)
+
+            loader = ConfigLoader(app_dir=app_dir)
+            config = loader.load_project_hook_config(project_dir)
+
+            assert config == HookConfig(session_init="npm install")
+
+    def test_load_global_hook_config_reads_only_global_hooks(self):
+        """Test loading only global hook definitions."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = Path(temp_dir)
+            project_dir = Path(temp_dir) / "project"
+            project_dir.mkdir()
+
+            global_config = {"scripts": {"post_create": "echo global"}}
+            with open(app_dir / "config.toml", "w") as f:
+                toml.dump(global_config, f)
+
+            project_config = {"scripts": {"session_init": "npm install"}}
+            with open(project_dir / "autowt.toml", "w") as f:
+                toml.dump(project_config, f)
+
+            loader = ConfigLoader(app_dir=app_dir)
+            config = loader.load_global_hook_config()
+
+            assert config == HookConfig(post_create="echo global")
 
     def test_environment_variables(self):
         """Test loading configuration from environment variables."""

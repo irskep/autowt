@@ -6,7 +6,7 @@ from typing import Any
 
 import toml
 
-from autowt.config import Config, ConfigLoader
+from autowt.config import Config, ConfigLoader, HookConfig
 from autowt.models import ProjectConfig
 from autowt.utils.platform import get_default_state_dir
 
@@ -68,6 +68,23 @@ class StateService:
 
         logger.debug("No project config file found, using defaults")
         return ProjectConfig()
+
+    def load_project_config_only(self, project_dir: Path) -> Config:
+        """Load only the project's config file, without global inheritance."""
+        logger.debug(f"Loading project-only Config via ConfigLoader for {project_dir}")
+        return self.config_loader.load_project_config_only(project_dir)
+
+    def load_global_hook_config(self) -> HookConfig:
+        """Load only global hook definitions."""
+        logger.debug("Loading global hook configuration via ConfigLoader")
+        return self.config_loader.load_global_hook_config()
+
+    def load_project_hook_config(self, project_dir: Path) -> HookConfig:
+        """Load only project hook definitions, without inherited global values."""
+        logger.debug(
+            f"Loading project hook configuration via ConfigLoader for {project_dir}"
+        )
+        return self.config_loader.load_project_hook_config(project_dir)
 
     def save_config(self, config: Config) -> None:
         """Save application configuration using new config system."""

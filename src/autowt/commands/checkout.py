@@ -6,6 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from autowt.cli_config import resolve_custom_script
+from autowt.config import HookConfig
 from autowt.console import print_error, print_info, print_output, print_success
 from autowt.global_config import options
 from autowt.hooks import HookType, extract_hook_scripts, merge_hooks_for_custom_script
@@ -136,12 +137,12 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
     # Load configuration
     config = services.state.load_config(project_dir=repo_path)
-    project_config = services.state.load_project_config(repo_path)
+    project_hook_config = services.state.load_project_hook_config(repo_path)
 
     # Use project config session_init as default if no init_script provided
     session_init_script = switch_cmd.init_script
     if session_init_script is None:
-        session_init_script = project_config.session_init
+        session_init_script = project_hook_config.session_init
 
     # Resolve custom script FIRST (before branch prefix)
     # This is important because custom scripts may define a dynamic branch_name
@@ -244,7 +245,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
                 HookType.PRE_SWITCH,
                 existing_worktree.path,
                 repo_path,
-                config,
+                project_hook_config,
                 switch_cmd.branch,
                 custom_script=custom_script_resolved,
                 abort_on_failure=False,
@@ -270,7 +271,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
                 HookType.POST_SWITCH,
                 existing_worktree.path,
                 repo_path,
-                config,
+                project_hook_config,
                 switch_cmd.branch,
                 custom_script=custom_script_resolved,
                 abort_on_failure=False,
@@ -297,6 +298,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
             switch_cmd,
             repo_path,
             terminal_mode,
+            project_hook_config,
             session_init_script,
             custom_script=custom_script_resolved,
         )
@@ -310,6 +312,7 @@ def _create_new_worktree(
     switch_cmd: SwitchCommand,
     repo_path: Path,
     terminal_mode,
+    project_hook_config: HookConfig,
     session_init_script: str | None = None,
     custom_script: CustomScript | None = None,
 ) -> None:
@@ -376,16 +379,13 @@ def _create_new_worktree(
 
     print_info(f"Creating worktree for {switch_cmd.branch}...")
 
-    # Load configuration for hooks
-    config = services.state.load_config(project_dir=repo_path)
-
     # Run pre_create hooks before creating the worktree
     if not _run_hook_set(
         services,
         HookType.PRE_CREATE,
         worktree_path,
         repo_path,
-        config,
+        project_hook_config,
         switch_cmd.branch,
         custom_script=custom_script,
         abort_on_failure=True,
@@ -408,7 +408,7 @@ def _create_new_worktree(
         HookType.POST_CREATE,
         worktree_path,
         repo_path,
-        config,
+        project_hook_config,
         switch_cmd.branch,
         custom_script=custom_script,
         abort_on_failure=True,
@@ -422,7 +422,7 @@ def _create_new_worktree(
         HookType.PRE_SWITCH,
         worktree_path,
         repo_path,
-        config,
+        project_hook_config,
         switch_cmd.branch,
         custom_script=custom_script,
         abort_on_failure=False,
@@ -442,7 +442,7 @@ def _create_new_worktree(
             HookType.POST_CREATE_ASYNC,
             worktree_path,
             repo_path,
-            config,
+            project_hook_config,
             switch_cmd.branch,
             custom_script=custom_script,
             abort_on_failure=False,
@@ -472,7 +472,7 @@ def _create_new_worktree(
         HookType.POST_SWITCH,
         worktree_path,
         repo_path,
-        config,
+        project_hook_config,
         switch_cmd.branch,
         custom_script=custom_script,
         abort_on_failure=False,
@@ -486,7 +486,7 @@ def _create_new_worktree(
             HookType.POST_CREATE_ASYNC,
             worktree_path,
             repo_path,
-            config,
+            project_hook_config,
             switch_cmd.branch,
             custom_script=custom_script,
             abort_on_failure=False,
@@ -580,7 +580,7 @@ def _run_hook_set(
     hook_type: str,
     worktree_path: Path,
     repo_path: Path,
-    config,
+    project_hook_config: HookConfig,
     branch_name: str,
     *,
     custom_script: CustomScript | None = None,
@@ -594,7 +594,7 @@ def _run_hook_set(
         hook_type: Type of hook (from HookType constants)
         worktree_path: Path to the worktree
         repo_path: Path to the repository
-        config: Project configuration (already loaded)
+        project_hook_config: Project-only configuration (without inherited global hooks)
         branch_name: Name of the branch
         custom_script: Optional CustomScript with hook overrides
         abort_on_failure: If True, return False on failure; if False, warn and continue
@@ -608,11 +608,11 @@ def _run_hook_set(
         return True
 
     # Load global config
-    global_config = services.config_loader.load_config(project_dir=None)
+    global_config = services.state.load_global_hook_config()
 
     # Extract hook scripts from global and project configs
     global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, hook_type
+        global_config, project_hook_config, hook_type
     )
 
     # Merge with custom script hooks (handles inherit_hooks logic)

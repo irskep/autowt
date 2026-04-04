@@ -63,6 +63,42 @@ class ScriptsConfig:
 
 
 @dataclass(frozen=True)
+class HookConfig:
+    """Hook-only configuration view.
+
+    This intentionally excludes non-hook settings so hook resolution call sites
+    cannot accidentally depend on merged runtime config.
+    """
+
+    pre_create: str | None = None
+    post_create: str | None = None
+    post_create_async: str | None = None
+    session_init: str | None = None
+    pre_cleanup: str | None = None
+    post_cleanup: str | None = None
+    pre_switch: str | None = None
+    post_switch: str | None = None
+
+    @classmethod
+    def from_config(cls, config: "Config | None") -> "HookConfig":
+        """Project a full Config onto the hook-only view."""
+        if config is None:
+            return cls()
+
+        scripts = config.scripts
+        return cls(
+            pre_create=scripts.pre_create,
+            post_create=scripts.post_create,
+            post_create_async=scripts.post_create_async,
+            session_init=scripts.session_init,
+            pre_cleanup=scripts.pre_cleanup,
+            post_cleanup=scripts.post_cleanup,
+            pre_switch=scripts.pre_switch,
+            post_switch=scripts.post_switch,
+        )
+
+
+@dataclass(frozen=True)
 class ConfirmationsConfig:
     """User confirmation settings."""
 
@@ -263,6 +299,23 @@ class ConfigLoader:
 
         # Convert to Config object
         return Config.from_dict(config_data)
+
+    def load_project_config_only(self, project_dir: Path) -> Config:
+        """Load only project configuration without global, env, or CLI overrides."""
+        logger.debug(f"Loading project configuration only for {project_dir}")
+        return Config.from_dict(self._load_project_config(project_dir))
+
+    def load_global_hook_config(self) -> HookConfig:
+        """Load only global hook definitions."""
+        logger.debug("Loading global hook configuration")
+        return HookConfig.from_config(Config.from_dict(self._load_global_config()))
+
+    def load_project_hook_config(self, project_dir: Path) -> HookConfig:
+        """Load only project hook definitions, without inherited global values."""
+        logger.debug(f"Loading project hook configuration for {project_dir}")
+        return HookConfig.from_config(
+            Config.from_dict(self._load_project_config(project_dir))
+        )
 
     def _load_global_config(self) -> dict[str, Any]:
         """Load global configuration file."""

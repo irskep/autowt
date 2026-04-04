@@ -11,6 +11,8 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from autowt.config import HookConfig
+
 if TYPE_CHECKING:
     from autowt.models import CustomScript
 
@@ -183,7 +185,7 @@ class HookRunner:
 
 
 def extract_hook_scripts(
-    global_config, project_config, hook_type: str
+    global_config: HookConfig, project_config: HookConfig, hook_type: str
 ) -> tuple[list[str], list[str]]:
     """Extract hook scripts from global and project configurations.
 
@@ -208,17 +210,13 @@ def extract_hook_scripts(
             "This will be removed in a future version."
         )
 
-    # Extract from global config
-    if global_config and hasattr(global_config, "scripts") and global_config.scripts:
-        script = getattr(global_config.scripts, effective_hook_type, None)
-        if script:
-            global_scripts.append(script)
+    global_script = getattr(global_config, effective_hook_type, None)
+    if global_script:
+        global_scripts.append(global_script)
 
-    # Extract from project config
-    if project_config and hasattr(project_config, "scripts") and project_config.scripts:
-        script = getattr(project_config.scripts, effective_hook_type, None)
-        if script:
-            project_scripts.append(script)
+    project_script = getattr(project_config, effective_hook_type, None)
+    if project_script:
+        project_scripts.append(project_script)
 
     return global_scripts, project_scripts
 
