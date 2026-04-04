@@ -13,7 +13,7 @@ nav:
     - Reference:
           - CLI Reference: clireference.md
           - Configuration: configuration.md
-          - Lifecycle Hooks: lifecyclehooks.md
+          - Hooks and Scripts: lifecyclehooks.md
           - Terminal Support: terminalsupport.md
           - Troubleshooting: troubleshooting.md
     - Cookbook:
