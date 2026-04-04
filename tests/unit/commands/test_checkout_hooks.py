@@ -3,7 +3,12 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from autowt.commands.checkout import _run_hook_set, checkout_branch
+from autowt.commands.checkout import (
+    _create_new_worktree,
+    _run_hook_set,
+    checkout_branch,
+)
+from autowt.config import Config, HookConfig, ScriptsConfig
 from autowt.hooks import HookType
 from autowt.models import SwitchCommand, TerminalMode
 from tests.helpers import assert_hook_called_with, assert_hooks_not_called
@@ -23,7 +28,7 @@ class TestCheckoutHooks:
         # Set up mock configuration
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = True
 
         # Mock extract_hook_scripts to return test scripts
@@ -66,7 +71,7 @@ class TestCheckoutHooks:
         """Test that function returns True when no pre_create scripts are present."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
 
         # Mock extract_hook_scripts to return empty scripts
         with patch(
@@ -89,7 +94,7 @@ class TestCheckoutHooks:
         """Test that function returns False when hooks fail."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = False  # Simulate failure
 
         global_scripts = ["exit 1"]
@@ -117,7 +122,7 @@ class TestCheckoutHooks:
         """Test that post_create hooks are executed when scripts are present."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = True
 
         global_scripts = ["echo 'global post_create'"]
@@ -157,7 +162,7 @@ class TestCheckoutHooks:
         """Test that function returns True when no post_create scripts are present."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
 
         with patch(
             "autowt.commands.checkout.extract_hook_scripts", return_value=([], [])
@@ -179,7 +184,7 @@ class TestCheckoutHooks:
         """Test that function returns False when hooks fail."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = False
 
         global_scripts = ["exit 1"]
@@ -206,7 +211,7 @@ class TestCheckoutHooks:
         """Test that post_create hooks run in the worktree directory."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = True
 
         global_scripts = ["pwd > working_dir.txt"]
@@ -246,7 +251,7 @@ class TestPostCreateAsyncHooks:
         """Test that post_create_async hooks are executed when scripts are present."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = True
 
         global_scripts = ["npm install"]
@@ -281,7 +286,7 @@ class TestPostCreateAsyncHooks:
         """Test that function does nothing when no post_create_async scripts are present."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
 
         with patch(
             "autowt.commands.checkout.extract_hook_scripts", return_value=([], [])
@@ -304,7 +309,7 @@ class TestPostCreateAsyncHooks:
         """Test that function shows warning but continues when hooks fail."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = False  # Simulate failure
 
         global_scripts = ["exit 1"]
@@ -336,7 +341,7 @@ class TestPostCreateAsyncHooks:
         """Test that post_create_async hooks run in the worktree directory."""
         mock_global_config = MagicMock()
         mock_project_config = MagicMock()
-        mock_services.config_loader.configs["default"] = mock_global_config
+        mock_services.state.global_hook_config = mock_global_config
         mock_services.hooks.run_hooks_success = True
 
         global_scripts = ["pwd"]
@@ -380,6 +385,47 @@ class TestPostCreateAsyncTiming:
         """Test that INPLACE mode is categorized to run async hooks before switch."""
         # INPLACE mode should run post_create_async before switch
         assert TerminalMode.INPLACE in (TerminalMode.ECHO, TerminalMode.INPLACE)
+
+
+class TestHookConfigSelection:
+    """Regression tests for separating merged and project-only hook config."""
+
+    def test_create_new_worktree_does_not_duplicate_inherited_global_hooks(
+        self, mock_services, temp_repo_path
+    ):
+        repo_dir = temp_repo_path
+        worktree_dir = temp_repo_path.parent / "test-repo-worktrees" / "feature-test"
+        branch_name = "feature/test"
+        global_hook = "echo 'global post_create'"
+
+        mock_services.git.repo_root = repo_dir
+        mock_services.state.global_hook_config = HookConfig(post_create=global_hook)
+        mock_services.state.configs["default"] = Config(
+            scripts=ScriptsConfig(post_create=global_hook)
+        )
+        mock_services.state.project_hook_configs[str(repo_dir)] = HookConfig()
+        mock_services.hooks.run_hooks_success = True
+
+        switch_cmd = SwitchCommand(
+            branch=branch_name,
+            terminal_mode=TerminalMode.ECHO,
+            auto_confirm=True,
+        )
+
+        with patch(
+            "autowt.commands.checkout._generate_worktree_path",
+            return_value=worktree_dir,
+        ):
+            _create_new_worktree(
+                mock_services,
+                switch_cmd,
+                repo_dir,
+                TerminalMode.ECHO,
+                HookConfig(),
+            )
+
+        scripts_run = [call[0] for call in mock_services.hooks.run_hook_calls]
+        assert scripts_run.count(global_hook) == 1
 
 
 class TestCheckoutNullBranch:

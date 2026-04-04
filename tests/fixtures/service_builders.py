@@ -4,7 +4,7 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Any
 
-from autowt.config import Config
+from autowt.config import Config, HookConfig
 from autowt.models import (
     BranchStatus,
     ProjectConfig,
@@ -18,11 +18,14 @@ class MockStateService:
 
     def __init__(self):
         self.configs: dict[str, Config] = {}
+        self.project_hook_configs: dict[str, HookConfig] = {}
+        self.global_hook_config = HookConfig()
         self.project_configs: dict[str, ProjectConfig] = {}
         self.app_state: dict[str, Any] = {}
 
     def load_config(self, project_dir: Path | None = None) -> Config:
-        return self.configs.get("default", Config())
+        key = str(project_dir) if project_dir else "default"
+        return self.configs.get(key, self.configs.get("default", Config()))
 
     def save_config(self, config: Config) -> None:
         self.configs["default"] = config
@@ -30,6 +33,17 @@ class MockStateService:
     def load_project_config(self, repo_path: Path) -> ProjectConfig:
         key = str(repo_path)
         return self.project_configs.get(key, ProjectConfig())
+
+    def load_project_config_only(self, repo_path: Path) -> Config:
+        key = str(repo_path)
+        return self.configs.get(key, Config())
+
+    def load_global_hook_config(self) -> HookConfig:
+        return self.global_hook_config
+
+    def load_project_hook_config(self, repo_path: Path) -> HookConfig:
+        key = str(repo_path)
+        return self.project_hook_configs.get(key, HookConfig())
 
     def save_project_config(self, repo_path: Path, config: ProjectConfig) -> None:
         self.project_configs[str(repo_path)] = config
@@ -228,6 +242,8 @@ class MockConfigLoader:
     def __init__(self):
         self.global_config_file = Path("/tmp/config.toml")
         self.configs: dict[str, Config] = {}
+        self.project_hook_configs: dict[str, HookConfig] = {}
+        self.global_hook_config = HookConfig()
         self.user_configured_cleanup_mode = False
 
     def load_config(
@@ -237,6 +253,16 @@ class MockConfigLoader:
     ) -> Config:
         key = str(project_dir) if project_dir else "default"
         return self.configs.get(key, Config())
+
+    def load_project_config_only(self, project_dir: Path) -> Config:
+        return self.configs.get(str(project_dir), Config())
+
+    def load_global_hook_config(self) -> HookConfig:
+        return self.global_hook_config
+
+    def load_project_hook_config(self, project_dir: Path) -> HookConfig:
+        key = str(project_dir)
+        return self.project_hook_configs.get(key, HookConfig())
 
     def save_config(self, config: Config) -> None:
         self.configs["default"] = config

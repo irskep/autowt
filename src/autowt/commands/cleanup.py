@@ -10,6 +10,7 @@ try:
 except ImportError:
     HAS_CLEANUP_TUI = False
 
+from autowt.config import HookConfig
 from autowt.console import print_error, print_info, print_success
 from autowt.hooks import HookType, extract_hook_scripts
 from autowt.models import BranchStatus, CleanupCommand, CleanupMode, Services
@@ -51,8 +52,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         print_error("Not in a git repository")
         return
 
-    # Load config (still needed for other settings)
+    # Load merged config for cleanup behavior and project-only config for hooks
     config = services.state.load_config(project_dir=repo_path)
+    project_hook_config = services.state.load_project_hook_config(repo_path)
 
     # For GitHub mode, check gh availability early
     if cleanup_cmd.mode == CleanupMode.GITHUB:
@@ -124,7 +126,11 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
 
         # Run pre_cleanup hooks for each worktree
         _run_pre_cleanup_hooks(
-            services, branch_statuses, repo_path, config, cleanup_cmd.dry_run
+            services,
+            branch_statuses,
+            repo_path,
+            project_hook_config,
+            cleanup_cmd.dry_run,
         )
 
         # Remove worktrees and update state
@@ -139,7 +145,11 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
 
         # Run post_cleanup hooks for each worktree
         _run_post_cleanup_hooks(
-            services, branch_statuses, repo_path, config, cleanup_cmd.dry_run
+            services,
+            branch_statuses,
+            repo_path,
+            project_hook_config,
+            cleanup_cmd.dry_run,
         )
 
         return
@@ -223,7 +233,9 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
         return
 
     # Run pre_cleanup hooks for each worktree
-    _run_pre_cleanup_hooks(services, to_cleanup, repo_path, config, cleanup_cmd.dry_run)
+    _run_pre_cleanup_hooks(
+        services, to_cleanup, repo_path, project_hook_config, cleanup_cmd.dry_run
+    )
 
     # Remove worktrees and update state
     _remove_worktrees_and_update_state(
@@ -237,7 +249,7 @@ def cleanup_worktrees(cleanup_cmd: CleanupCommand, services: Services) -> None:
 
     # Run post_cleanup hooks for each worktree
     _run_post_cleanup_hooks(
-        services, to_cleanup, repo_path, config, cleanup_cmd.dry_run
+        services, to_cleanup, repo_path, project_hook_config, cleanup_cmd.dry_run
     )
 
 
@@ -467,7 +479,7 @@ def _run_pre_cleanup_hooks(
     services: Services,
     to_cleanup: list[BranchStatus],
     repo_path: Path,
-    config,
+    project_hook_config: HookConfig,
     dry_run: bool = False,
 ) -> None:
     """Run pre_cleanup hooks for worktrees being cleaned up."""
@@ -475,9 +487,9 @@ def _run_pre_cleanup_hooks(
         print_info("[DRY RUN] Would run pre_cleanup hooks")
         return
 
-    global_config = services.config_loader.load_config(project_dir=None)
+    global_config = services.state.load_global_hook_config()
     global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, HookType.PRE_CLEANUP
+        global_config, project_hook_config, HookType.PRE_CLEANUP
     )
 
     if not global_scripts and not project_scripts:
@@ -499,7 +511,7 @@ def _run_post_cleanup_hooks(
     services: Services,
     to_cleanup: list[BranchStatus],
     repo_path: Path,
-    config,
+    project_hook_config: HookConfig,
     dry_run: bool = False,
 ) -> None:
     """Run post_cleanup hooks for worktrees that were cleaned up."""
@@ -507,9 +519,9 @@ def _run_post_cleanup_hooks(
         print_info("[DRY RUN] Would run post_cleanup hooks")
         return
 
-    global_config = services.config_loader.load_config(project_dir=None)
+    global_config = services.state.load_global_hook_config()
     global_scripts, project_scripts = extract_hook_scripts(
-        global_config, config, HookType.POST_CLEANUP
+        global_config, project_hook_config, HookType.POST_CLEANUP
     )
 
     if not global_scripts and not project_scripts:

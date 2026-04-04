@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Global lifecycle hooks no longer run twice when a project inherits them without overriding them (fixes #111)
+
 ### Removed
 
 ## 0.5.9 - 2026-02-18

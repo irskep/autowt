@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from autowt.config import HookConfig
 from autowt.hooks import (
     HookRunner,
     HookType,
@@ -370,27 +371,17 @@ class TestExtractHookScripts:
 
     def test_extract_from_configs(self):
         """Test extracting hook scripts from global and project configs."""
-        # Mock global config - need to set specific values to avoid MagicMock default behavior
-        global_config = MagicMock()
-        global_config.scripts = MagicMock()
-        global_config.scripts.pre_create = "global pre_create script"
-        global_config.scripts.post_create = None
-        global_config.scripts.session_init = "global session_init script"
-        global_config.scripts.pre_cleanup = "global pre_cleanup script"
-        global_config.scripts.post_cleanup = None
-        global_config.scripts.pre_switch = None
-        global_config.scripts.post_switch = None
+        global_config = HookConfig(
+            pre_create="global pre_create script",
+            session_init="global session_init script",
+            pre_cleanup="global pre_cleanup script",
+        )
 
-        # Mock project config - need to set specific values to avoid MagicMock default behavior
-        project_config = MagicMock()
-        project_config.scripts = MagicMock()
-        project_config.scripts.pre_create = None
-        project_config.scripts.post_create = "project post_create script"
-        project_config.scripts.session_init = "project session_init script"
-        project_config.scripts.pre_cleanup = None
-        project_config.scripts.post_cleanup = None
-        project_config.scripts.pre_switch = None
-        project_config.scripts.post_switch = "project post_switch script"
+        project_config = HookConfig(
+            post_create="project post_create script",
+            session_init="project session_init script",
+            post_switch="project post_switch script",
+        )
 
         # Test pre_create hook extraction
         global_scripts, project_scripts = extract_hook_scripts(
@@ -430,18 +421,15 @@ class TestExtractHookScripts:
     def test_extract_with_none_configs(self):
         """Test extracting when configs are None."""
         global_scripts, project_scripts = extract_hook_scripts(
-            None, None, HookType.SESSION_INIT
+            HookConfig(), HookConfig(), HookType.SESSION_INIT
         )
         assert global_scripts == []
         assert project_scripts == []
 
-    def test_extract_with_missing_scripts_attr(self):
-        """Test extracting when config objects don't have scripts attribute."""
-        global_config = MagicMock()
-        global_config.scripts = None
-
-        # Create project_config without scripts attribute
-        project_config = MagicMock(spec=[])  # Empty spec means no attributes
+    def test_extract_with_empty_hook_configs(self):
+        """Test extracting when no hooks are defined."""
+        global_config = HookConfig()
+        project_config = HookConfig()
 
         global_scripts, project_scripts = extract_hook_scripts(
             global_config, project_config, HookType.SESSION_INIT
