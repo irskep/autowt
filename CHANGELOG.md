@@ -2,17 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.10 - Unreleased
-
-### Added
-
-### Changed
+## 0.5.10 - 2026-04-07
 
 ### Fixed
 
 - Global lifecycle hooks no longer run twice when a project inherits them without overriding them (fixes #111)
-
-### Removed
 
 ## 0.5.9 - 2026-02-18
 
