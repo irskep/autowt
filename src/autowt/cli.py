@@ -528,7 +528,7 @@ def cleanup(
     force: bool,
     debug: bool,
 ) -> None:
-    """Clean up merged or remoteless worktrees. Aliases: cl, clean, prune, rm, remove, del, delete
+    """Remove specific worktrees, or clean up merged/remoteless ones. Aliases: cl, clean, prune, rm, remove, del, delete
 
     Can optionally specify worktrees (by branch name or path) to remove.
     If no worktrees are specified, uses mode-based selection.

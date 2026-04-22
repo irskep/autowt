@@ -211,6 +211,12 @@ class TestCLIRouting:
         assert result.exit_code == 0
         assert "Switch to or create a worktree" in result.output
 
+        # Cleanup help
+        result = runner.invoke(main, ["cleanup", "--help"])
+        assert result.exit_code == 0
+        assert "Remove specific worktrees" in result.output
+        assert "Can optionally specify worktrees" in result.output
+
     def test_main_help_shows_builtin_command_aliases(self):
         """Test that main --help includes built-in command aliases."""
         runner = CliRunner()
@@ -226,6 +232,7 @@ class TestCLIRouting:
             assert (
                 "cleanup (cl, clean, prune, rm, remove, del, delete)" in result.output
             )
+            assert "Remove specific worktrees" in result.output
             assert "config (configure, settings, cfg, conf)" in result.output
             assert "ls (list, ll)" in result.output
             assert "switch (sw, checkout, co, goto, go)" in result.output
