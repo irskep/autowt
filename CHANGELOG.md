@@ -2,15 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.11 - Unreleased
-
-### Added
-
-### Changed
+## 0.5.11 - 2026-04-22
 
 ### Fixed
 
-### Removed
+- Updated help text to include command aliases
 
 ## 0.5.10 - 2026-04-07
 
