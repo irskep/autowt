@@ -211,6 +211,25 @@ class TestCLIRouting:
         assert result.exit_code == 0
         assert "Switch to or create a worktree" in result.output
 
+    def test_main_help_shows_builtin_command_aliases(self):
+        """Test that main --help includes built-in command aliases."""
+        runner = CliRunner()
+
+        with (
+            patch("autowt.cli.initialize_config"),
+            patch("autowt.cli.get_config") as mock_get_config,
+        ):
+            mock_get_config.return_value = create_mock_config()
+
+            result = runner.invoke(main, ["--help"])
+            assert result.exit_code == 0
+            assert (
+                "cleanup (cl, clean, prune, rm, remove, del, delete)" in result.output
+            )
+            assert "config (configure, settings, cfg, conf)" in result.output
+            assert "ls (list, ll)" in result.output
+            assert "switch (sw, checkout, co, goto, go)" in result.output
+
     def test_debug_flag_works(self):
         """Test that debug flag is handled correctly."""
         runner = CliRunner()
