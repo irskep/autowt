@@ -128,6 +128,32 @@ def _get_all_local_branches(repo_path: Path) -> list[str]:
 
 # Custom Group class that handles unknown commands as branch names and supports aliases
 class AutowtGroup(ClickAliasedGroup):
+    def _format_command_name(self, subcommand: str) -> str:
+        """Format a command name for help output, including aliases."""
+        aliases = self._commands.get(subcommand)
+        if aliases:
+            return f"{subcommand} ({', '.join(aliases)})"
+        return subcommand
+
+    def _collect_command_rows(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+        subcommands: list[str],
+    ) -> list[tuple[str, str]]:
+        """Collect help rows for a set of subcommands."""
+        commands: list[tuple[str, click.Command]] = []
+        for subcommand in subcommands:
+            cmd = self.get_command(ctx, subcommand)
+            if cmd is None or getattr(cmd, "hidden", False):
+                continue
+            commands.append((self._format_command_name(subcommand), cmd))
+
+        return [
+            (name, cmd.get_short_help_str(limit=formatter.width))
+            for name, cmd in commands
+        ]
+
     def get_command(self, ctx, cmd_name):
         # First, try to get the command normally (ls, cleanup, config, switch)
         rv = super().get_command(ctx, cmd_name)
@@ -182,35 +208,25 @@ class AutowtGroup(ClickAliasedGroup):
         custom_script_names = self._get_custom_script_names()
 
         # Collect all commands
-        commands = []
-        for subcommand in self.list_commands(ctx):
-            cmd = self.get_command(ctx, subcommand)
-            if cmd is None:
-                continue
-            help_text = cmd.get_short_help_str(limit=formatter.width)
-            commands.append((subcommand, help_text))
+        commands = self.list_commands(ctx)
 
         # Split into built-in and custom
         builtin_commands = [
-            (name, help_text)
-            for name, help_text in commands
-            if name not in custom_script_names
+            name for name in commands if name not in custom_script_names
         ]
-        custom_commands = [
-            (name, help_text)
-            for name, help_text in commands
-            if name in custom_script_names
-        ]
+        custom_commands = [name for name in commands if name in custom_script_names]
 
         # Write built-in commands section
-        if builtin_commands:
+        builtin_rows = self._collect_command_rows(ctx, formatter, builtin_commands)
+        if builtin_rows:
             with formatter.section("Commands"):
-                formatter.write_dl(builtin_commands)
+                formatter.write_dl(builtin_rows)
 
         # Write custom scripts section
-        if custom_commands:
+        custom_rows = self._collect_command_rows(ctx, formatter, custom_commands)
+        if custom_rows:
             with formatter.section("Custom Scripts"):
-                formatter.write_dl(custom_commands)
+                formatter.write_dl(custom_rows)
 
     def _create_custom_script_command(self, script_name: str, config):
         """Create a dynamic command for a custom script."""
@@ -512,7 +528,7 @@ def cleanup(
     force: bool,
     debug: bool,
 ) -> None:
-    """Clean up merged or remoteless worktrees. Aliases: cl, clean, prune, rm, remove, del, delete
+    """Remove specific worktrees, or clean up merged/remoteless ones. Aliases: cl, clean, prune, rm, remove, del, delete
 
     Can optionally specify worktrees (by branch name or path) to remove.
     If no worktrees are specified, uses mode-based selection.
