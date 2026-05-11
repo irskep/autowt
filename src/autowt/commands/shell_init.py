@@ -40,8 +40,8 @@ function awt --wraps=autowt
     autowt $argv
 end
 
-_AUTOWT_COMPLETE=fish_source autowt | source
-_AWT_COMPLETE=fish_source awt | source
+_AUTOWT_COMPLETE=fish_source command autowt | source
+_AWT_COMPLETE=fish_source command awt | source
 """
 
 SUPPORTED_SHELLS = ("bash", "zsh", "fish")
@@ -74,8 +74,8 @@ def get_shell_init_script(shell: str, *, dry_run: bool = False) -> str:
         else:
             eval_line = 'echo "[autowt: eval] $eval_cmd" >&2\n        eval "$eval_cmd"'
         completions = (
-            f'eval "$(_AUTOWT_COMPLETE={shell}_source autowt)"\n'
-            f'eval "$(_AWT_COMPLETE={shell}_source awt)"'
+            f'eval "$(_AUTOWT_COMPLETE={shell}_source command autowt)"\n'
+            f'eval "$(_AWT_COMPLETE={shell}_source command awt)"'
         )
         return _BASH_ZSH_TEMPLATE.format(eval_line=eval_line, completions=completions)
     elif shell == "fish":
