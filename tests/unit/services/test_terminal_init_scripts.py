@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from autowt.global_config import options
 from autowt.models import TerminalMode
 from autowt.services.terminal import TerminalService
 from tests.fixtures.service_builders import MockStateService
@@ -223,6 +224,57 @@ class TestTerminalServiceInitScripts:
         # Should switch to session, not create new tab
         mock_switch.assert_called_once_with(working_directory=str(test_path))
         mock_new_tab.assert_not_called()
+
+
+class TestShellIntegrationFile:
+    """Tests for file-based shell integration in echo mode."""
+
+    def test_echo_commands_writes_to_file(
+        self, terminal_service, test_path, tmp_path, capsys
+    ):
+        """When shell_integration_file is set, cd command is written to file, not stdout."""
+        tmpfile = tmp_path / "shell_integration"
+        original = options.shell_integration_file
+        try:
+            options.shell_integration_file = str(tmpfile)
+            success = terminal_service._echo_commands(test_path, "setup.sh")
+
+            captured = capsys.readouterr()
+            assert success
+            assert captured.out == ""
+            assert tmpfile.read_text() == "cd /test/worktree; setup.sh"
+        finally:
+            options.shell_integration_file = original
+
+    def test_echo_commands_prints_to_stdout_without_file(
+        self, terminal_service, test_path, capsys
+    ):
+        """Without shell_integration_file, cd command goes to stdout as before."""
+        original = options.shell_integration_file
+        try:
+            options.shell_integration_file = None
+            success = terminal_service._echo_commands(test_path, "setup.sh")
+
+            captured = capsys.readouterr()
+            assert success
+            assert captured.out.strip() == "cd /test/worktree; setup.sh"
+        finally:
+            options.shell_integration_file = original
+
+    def test_echo_commands_file_with_no_init_script(
+        self, terminal_service, test_path, tmp_path
+    ):
+        """File receives just the cd command when no init script is provided."""
+        tmpfile = tmp_path / "shell_integration"
+        original = options.shell_integration_file
+        try:
+            options.shell_integration_file = str(tmpfile)
+            success = terminal_service._echo_commands(test_path)
+
+            assert success
+            assert tmpfile.read_text() == "cd /test/worktree"
+        finally:
+            options.shell_integration_file = original
 
 
 class TestInitScriptEdgeCases:
