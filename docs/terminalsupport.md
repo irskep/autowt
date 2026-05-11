@@ -22,11 +22,11 @@ Instead of opening new tabs or windows, you can have `autowt` change directories
 Add the appropriate line to your shell config:
 
 ```bash
-# ~/.bashrc or ~/.zshrc
-eval "$(autowt shell-init bash)"
+# ~/.bashrc or ~/.zshrc (shell is auto-detected from $SHELL)
+eval "$(autowt shell-init)"
 
 # ~/.config/fish/config.fish
-autowt shell-init fish | source
+autowt shell-init | source
 ```
 
 Once configured, running `autowt my-branch` will `cd` into the worktree in your current shell. Any `session_init` scripts (like `source .env` or `conda activate`) also run in your shell, so environment changes take effect immediately.
@@ -36,6 +36,6 @@ Commands that don't switch worktrees (`ls`, `cleanup`, `config`, etc.) continue 
 To preview what the shell function would do without actually changing directories:
 
 ```bash
-eval "$(autowt shell-init bash --dry-run)"
+eval "$(autowt shell-init --dry-run)"
 autowt my-branch  # prints the cd command instead of running it
 ```

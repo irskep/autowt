@@ -457,12 +457,6 @@ class AutowtGroup(ClickAliasedGroup):
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option(
-    "--_shell-integration",
-    "shell_integration",
-    is_flag=True,
-    hidden=True,
-)
-@click.option(
     "--version",
     is_flag=True,
     expose_value=False,
@@ -474,9 +468,7 @@ class AutowtGroup(ClickAliasedGroup):
     help="Show version and exit",
 )
 @click.pass_context
-def main(
-    ctx: click.Context, auto_confirm: bool, debug: bool, shell_integration: bool
-) -> None:
+def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     """Git worktree manager. Available as: autowt, awt
 
     Use subcommands like 'ls', 'cleanup', 'config', or 'switch'.
@@ -485,7 +477,7 @@ def main(
     # Set global options
     options.auto_confirm = auto_confirm
     options.debug = debug
-    options.shell_integration = shell_integration
+    options.shell_integration = os.getenv("AUTOWT_SHELL_INTEGRATION") == "1"
 
     setup_logging(debug)
 

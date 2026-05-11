@@ -79,7 +79,7 @@ If you prefer to stay in your existing terminal tab the whole time, you can set 
 
 ```bash
 # Add to your shell config once:
-eval "$(autowt shell-init bash)"  # or zsh/fish
+eval "$(autowt shell-init)"  # auto-detects your shell
 
 # Then just use autowt normally — it cd's in your current shell
 autowt hotfix/urgent-bug

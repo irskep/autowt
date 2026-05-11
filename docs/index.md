@@ -88,7 +88,7 @@ Optionally, set up shell integration so worktree switches `cd` in your current s
 
 ```bash
 # bash/zsh
-eval "$(autowt shell-init bash)"
+eval "$(autowt shell-init)"
 ```
 
 Then, make a new worktree for a new or existing branch in your current repo:

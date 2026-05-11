@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(uv run:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git push:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(COLUMNS=40 uv run python:*)"
+    ],
+    "deny": []
+  }
+}

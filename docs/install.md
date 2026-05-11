@@ -42,14 +42,11 @@ uvx autowt
 By default, autowt opens new terminal tabs when you switch worktrees. If you'd prefer worktree switches to `cd` in your current shell, add shell integration to your shell config:
 
 ```bash
-# bash (~/.bashrc)
-eval "$(autowt shell-init bash)"
-
-# zsh (~/.zshrc)
-eval "$(autowt shell-init zsh)"
+# bash (~/.bashrc) or zsh (~/.zshrc) — shell is auto-detected
+eval "$(autowt shell-init)"
 
 # fish (~/.config/fish/config.fish)
-autowt shell-init fish | source
+autowt shell-init | source
 ```
 
 This also means `session_init` scripts like `source .env` or `conda activate` take effect in your shell directly. See [Terminal Support](terminalsupport.md#shell-integration-alternative-to-terminal-automation) for details.

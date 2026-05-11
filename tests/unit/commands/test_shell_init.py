@@ -12,7 +12,7 @@ class TestGetShellInitScript:
     def test_bash_contains_eval(self):
         script = get_shell_init_script("bash")
         assert "eval " in script
-        assert "--_shell-integration" in script
+        assert "AUTOWT_SHELL_INTEGRATION=1" in script
 
     def test_bash_dry_run_prints_instead_of_eval(self):
         script = get_shell_init_script("bash", dry_run=True)

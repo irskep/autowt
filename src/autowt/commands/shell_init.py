@@ -8,7 +8,7 @@ from autowt.services.terminal import SHELL_INTEGRATION_SENTINEL
 _BASH_ZSH_TEMPLATE = """\
 autowt() {{
     local line eval_cmd=""
-    command autowt --_shell-integration "$@" | while IFS= read -r line; do
+    AUTOWT_SHELL_INTEGRATION=1 command autowt "$@" | while IFS= read -r line; do
         if [[ "$line" == {sentinel}* ]]; then
             eval_cmd="${{line#{sentinel}}}"
         else
@@ -31,7 +31,8 @@ _FISH_TEMPLATE = """\
 
 function autowt
     set -l eval_cmd ""
-    command autowt --_shell-integration $argv | while read -l line
+    set -lx AUTOWT_SHELL_INTEGRATION 1
+    command autowt $argv | while read -l line
         if string match -q '{sentinel}*' -- $line
             set eval_cmd (string replace '{sentinel}' '' -- $line)
         else
