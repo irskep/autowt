@@ -7,6 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 import click
+from click.shell_completion import CompletionItem
 from click_aliases import ClickAliasedGroup
 
 from autowt.cli_config import (
@@ -126,6 +127,23 @@ def _get_all_local_branches(repo_path: Path) -> list[str]:
         return [branch for branch in branches if branch and not branch.startswith("*")]
 
     return []
+
+
+def _complete_branch(ctx, param, incomplete):
+    """Complete with branches that have existing worktrees."""
+    try:
+        services = create_services()
+        repo_path = services.git.find_repo_root()
+        if not repo_path:
+            return []
+
+        return [
+            CompletionItem(wt.branch)
+            for wt in services.git.list_worktrees(repo_path)
+            if incomplete.lower() in wt.branch.lower()
+        ]
+    except Exception:
+        return []
 
 
 # Custom Group class that handles unknown commands as branch names and supports aliases
@@ -646,7 +664,9 @@ def shell_init(shell: str | None, dry_run: bool) -> None:
     aliases=["sw", "checkout", "co", "goto", "go"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.argument("branch", required=False, metavar="BRANCH_OR_PATH")
+@click.argument(
+    "branch", required=False, metavar="BRANCH_OR_PATH", shell_complete=_complete_branch
+)
 @click.option(
     "--terminal",
     type=click.Choice(["tab", "window", "inplace", "echo", "vscode", "cursor"]),
