@@ -129,29 +129,18 @@ def _get_all_local_branches(repo_path: Path) -> list[str]:
 
 
 def _complete_branch(ctx, param, incomplete):
-    """Provide branch completions for the switch command."""
+    """Complete with branches that have existing worktrees."""
     try:
         services = create_services()
         repo_path = services.git.find_repo_root()
         if not repo_path:
             return []
 
-        worktrees = services.git.list_worktrees(repo_path)
-        items = []
-
-        # Worktree branches first (most common switch target)
-        for wt in worktrees:
-            if wt.branch.startswith(incomplete) and not wt.is_primary:
-                items.append(CompletionItem(wt.branch, help="worktree"))
-
-        # Then other local branches
-        worktree_branches = {wt.branch for wt in worktrees}
-        all_branches = _get_all_local_branches(repo_path)
-        for branch in all_branches:
-            if branch.startswith(incomplete) and branch not in worktree_branches:
-                items.append(CompletionItem(branch, help="branch"))
-
-        return items
+        return [
+            CompletionItem(wt.branch)
+            for wt in services.git.list_worktrees(repo_path)
+            if wt.branch.startswith(incomplete) and not wt.is_primary
+        ]
     except Exception:
         return []
 
