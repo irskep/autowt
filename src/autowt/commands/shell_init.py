@@ -22,6 +22,9 @@ alias awt=autowt
 """
 
 _FISH_TEMPLATE = """\
+# Usage: autowt shell-init fish | source
+# Note: eval (...) does not work in fish for multiline functions.
+
 function autowt
     set -l eval_cmd ""
     command autowt --_shell-integration $argv | while read -l line
