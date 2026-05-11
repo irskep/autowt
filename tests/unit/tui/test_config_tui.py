@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autowt.tui.config import ConfigApp
 from autowt.config import (
     CleanupConfig,
     Config,
@@ -16,6 +15,7 @@ from autowt.config import (
 )
 from autowt.models import Services, TerminalMode
 from autowt.services.state import StateService
+from autowt.tui.config import ConfigApp
 
 
 class TestConfigTUIBusinessLogic:
