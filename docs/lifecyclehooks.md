@@ -119,6 +119,21 @@ sequenceDiagram
     autowt-->>User: Cleanup complete
 ```
 
+## Running hooks standalone
+
+If you use another worktree tool but want to reuse autowt's hook configuration, you can run individual hooks with `autowt hook <hook_name>`:
+
+```bash
+# After your tool creates a worktree, cd into it and run:
+autowt hook post_create
+autowt hook session_init
+
+# Before your tool deletes a worktree:
+autowt hook pre_cleanup
+```
+
+The command auto-detects the repository root, worktree directory, and branch name from the current working directory. It runs the same global + project hook cascade as the built-in commands. See the [CLI reference](clireference.md#autowt-hook-hook_name) for details.
+
 ## Configuration
 
 Project-level and global hooks run independently and do not override each other.
