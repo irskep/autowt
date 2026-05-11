@@ -18,7 +18,7 @@ from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
 from autowt.commands.ls import list_worktrees
-from autowt.commands.shell_init import get_shell_init_script
+from autowt.commands.shell_init import detect_shell, get_shell_init_script
 from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
@@ -616,24 +616,34 @@ def config(debug: bool, show: bool) -> None:
 
 
 @main.command("shell-init", context_settings={"help_option_names": ["-h", "--help"]})
-@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]), required=False)
 @click.option(
     "--dry-run",
     is_flag=True,
     help="Generate a variant that prints commands instead of eval'ing them",
 )
-def shell_init(shell: str, dry_run: bool) -> None:
+def shell_init(shell: str | None, dry_run: bool) -> None:
     """Generate shell integration code.
+
+    Detects your shell automatically from $SHELL, or accepts an
+    explicit argument.
 
     Prints a shell function that wraps the autowt binary so that
     worktree switches cd in your current shell.
 
     \b
     Setup:
-      bash: eval "$(autowt shell-init bash)"  # add to ~/.bashrc
-      zsh:  eval "$(autowt shell-init zsh)"   # add to ~/.zshrc
-      fish: autowt shell-init fish | source   # add to ~/.config/fish/config.fish
+      bash: eval "$(autowt shell-init)"       # add to ~/.bashrc
+      zsh:  eval "$(autowt shell-init)"       # add to ~/.zshrc
+      fish: autowt shell-init | source        # add to ~/.config/fish/config.fish
     """
+    if shell is None:
+        shell = detect_shell()
+        if shell is None:
+            raise click.UsageError(
+                "Could not detect shell from $SHELL. "
+                "Please specify one: autowt shell-init bash|zsh|fish"
+            )
     print(get_shell_init_script(shell, dry_run=dry_run))
 
 

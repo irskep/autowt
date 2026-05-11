@@ -1,5 +1,8 @@
 """Shell integration script generation."""
 
+import os
+from pathlib import Path
+
 from autowt.services.terminal import SHELL_INTEGRATION_SENTINEL
 
 _BASH_ZSH_TEMPLATE = """\
@@ -45,6 +48,19 @@ function awt --wraps=autowt
     autowt $argv
 end
 """
+
+
+SUPPORTED_SHELLS = ("bash", "zsh", "fish")
+
+
+def detect_shell() -> str | None:
+    """Detect the current shell from the SHELL environment variable."""
+    shell_env = os.environ.get("SHELL", "")
+    if shell_env:
+        name = Path(shell_env).name
+        if name in SUPPORTED_SHELLS:
+            return name
+    return None
 
 
 def get_shell_init_script(shell: str, *, dry_run: bool = False) -> str:
