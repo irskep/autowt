@@ -17,6 +17,7 @@ autowt() {{
     done
     local exit_code=${{PIPESTATUS[0]}}
     if [ -n "$eval_cmd" ]; then
+        echo "[autowt: eval] $eval_cmd" >&2
         {eval_line}
     fi
     return $exit_code
@@ -39,6 +40,7 @@ function autowt
     end
     set -l exit_code $pipestatus[1]
     if test -n "$eval_cmd"
+        echo "[autowt: eval] $eval_cmd" >&2
         {eval_line}
     end
     return $exit_code
