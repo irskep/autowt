@@ -65,3 +65,4 @@ docs/CHANGELOG.md
 # Other
 scratch/
 /.claude/autowt
+.claude/settings.local.json
