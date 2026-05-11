@@ -29,7 +29,7 @@ eval "$(autowt shell-init)"
 autowt shell-init | source
 ```
 
-Once configured, running `autowt my-branch` will `cd` into the worktree in your current shell. Any `session_init` scripts (like `source .env` or `conda activate`) also run in your shell, so environment changes take effect immediately.
+Once configured, running `autowt my-branch` will `cd` into the worktree in your current shell instead of opening a new tab or window. No terminal automation (AppleScript, tmux, etc.) is required, so this works in any terminal.
 
 Commands that don't switch worktrees (`ls`, `cleanup`, `config`, etc.) continue to work normally.
 

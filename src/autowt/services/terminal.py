@@ -22,8 +22,6 @@ from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.services.state import StateService
 
-SHELL_INTEGRATION_SENTINEL = "__autowt_cd__"
-
 logger = logging.getLogger(__name__)
 
 
@@ -148,8 +146,8 @@ class TerminalService:
                 if normalized_after:
                     commands.append(normalized_after)
             line = "; ".join(commands)
-            if global_options.shell_integration:
-                print(f"{SHELL_INTEGRATION_SENTINEL}{line}")
+            if global_options.shell_integration_file:
+                Path(global_options.shell_integration_file).write_text(line)
             else:
                 print(line)
             return True

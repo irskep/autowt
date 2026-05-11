@@ -10,9 +10,7 @@ class GlobalOptions:
     auto_confirm: bool = False  # -y flag: automatically confirm all prompts
     debug: bool = False  # --debug flag
     suppress_rich_output: bool = False  # Suppress all rich output for echo mode
-    shell_integration: bool = (
-        False  # Set by shell wrapper function via --_shell-integration
-    )
+    shell_integration_file: str | None = None  # Temp file path from shell wrapper
 
 
 # Global instance that gets set by CLI

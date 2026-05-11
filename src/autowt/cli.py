@@ -279,7 +279,7 @@ class AutowtGroup(ClickAliasedGroup):
 
             # Get terminal mode from configuration
             config = get_config()
-            if options.shell_integration:
+            if options.shell_integration_file:
                 terminal_mode = TerminalMode.ECHO
             elif kwargs.get("terminal"):
                 terminal_mode = TerminalMode(kwargs["terminal"])
@@ -371,7 +371,7 @@ class AutowtGroup(ClickAliasedGroup):
 
             # Get terminal mode from configuration
             config = get_config()
-            if options.shell_integration:
+            if options.shell_integration_file:
                 terminal_mode = TerminalMode.ECHO
             elif kwargs.get("terminal"):
                 terminal_mode = TerminalMode(kwargs["terminal"])
@@ -477,7 +477,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # Set global options
     options.auto_confirm = auto_confirm
     options.debug = debug
-    options.shell_integration = os.getenv("AUTOWT_SHELL_INTEGRATION") == "1"
+    options.shell_integration_file = os.getenv("AUTOWT_SHELL_INTEGRATION_FILE")
 
     setup_logging(debug)
 
@@ -729,7 +729,7 @@ def switch(
 
     # Get configuration values
     config = get_config()
-    if options.shell_integration:
+    if options.shell_integration_file:
         terminal_mode = TerminalMode.ECHO
     elif terminal:
         terminal_mode = TerminalMode(terminal)

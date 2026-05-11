@@ -3,21 +3,14 @@
 import os
 from pathlib import Path
 
-from autowt.services.terminal import SHELL_INTEGRATION_SENTINEL
-
 _BASH_ZSH_TEMPLATE = """\
 autowt() {{
-    local line eval_cmd=""
-    AUTOWT_SHELL_INTEGRATION=1 command autowt "$@" | while IFS= read -r line; do
-        if [[ "$line" == {sentinel}* ]]; then
-            eval_cmd="${{line#{sentinel}}}"
-        else
-            printf '%s\\n' "$line"
-        fi
-    done
-    local exit_code=${{PIPESTATUS[0]}}
-    if [ -n "$eval_cmd" ]; then
-        echo "[autowt: eval] $eval_cmd" >&2
+    local tmpfile=$(mktemp)
+    trap 'rm -f "$tmpfile"' RETURN
+    AUTOWT_SHELL_INTEGRATION_FILE="$tmpfile" command autowt "$@"
+    local exit_code=$?
+    if [ -s "$tmpfile" ]; then
+        local eval_cmd=$(cat "$tmpfile")
         {eval_line}
     fi
     return $exit_code
@@ -30,20 +23,15 @@ _FISH_TEMPLATE = """\
 # Note: eval (...) does not work in fish for multiline functions.
 
 function autowt
-    set -l eval_cmd ""
-    set -lx AUTOWT_SHELL_INTEGRATION 1
-    command autowt $argv | while read -l line
-        if string match -q '{sentinel}*' -- $line
-            set eval_cmd (string replace '{sentinel}' '' -- $line)
-        else
-            printf '%s\\n' $line
-        end
-    end
-    set -l exit_code $pipestatus[1]
-    if test -n "$eval_cmd"
-        echo "[autowt: eval] $eval_cmd" >&2
+    set -l tmpfile (mktemp)
+    set -lx AUTOWT_SHELL_INTEGRATION_FILE $tmpfile
+    command autowt $argv
+    set -l exit_code $status
+    if test -s $tmpfile
+        set -l eval_cmd (cat $tmpfile)
         {eval_line}
     end
+    rm -f $tmpfile
     return $exit_code
 end
 
@@ -51,7 +39,6 @@ function awt --wraps=autowt
     autowt $argv
 end
 """
-
 
 SUPPORTED_SHELLS = ("bash", "zsh", "fish")
 
@@ -79,22 +66,16 @@ def get_shell_init_script(shell: str, *, dry_run: bool = False) -> str:
     """
     if shell in ("bash", "zsh"):
         if dry_run:
-            eval_line = 'echo "[autowt dry-run] would eval: $eval_cmd"'
+            eval_line = 'echo "[autowt dry-run] would eval: $eval_cmd" >&2'
         else:
-            eval_line = 'eval "$eval_cmd"'
-        return _BASH_ZSH_TEMPLATE.format(
-            sentinel=SHELL_INTEGRATION_SENTINEL,
-            eval_line=eval_line,
-        )
+            eval_line = 'echo "[autowt: eval] $eval_cmd" >&2\n        eval "$eval_cmd"'
+        return _BASH_ZSH_TEMPLATE.format(eval_line=eval_line)
     elif shell == "fish":
         if dry_run:
-            eval_line = 'echo "[autowt dry-run] would eval: $eval_cmd"'
+            eval_line = 'echo "[autowt dry-run] would eval: $eval_cmd" >&2'
         else:
-            eval_line = "eval $eval_cmd"
-        return _FISH_TEMPLATE.format(
-            sentinel=SHELL_INTEGRATION_SENTINEL,
-            eval_line=eval_line,
-        )
+            eval_line = 'echo "[autowt: eval] $eval_cmd" >&2\n        eval $eval_cmd'
+        return _FISH_TEMPLATE.format(eval_line=eval_line)
     else:
         msg = f"Unsupported shell: {shell}"
         raise ValueError(msg)

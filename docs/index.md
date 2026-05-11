@@ -52,7 +52,7 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
     ***
 
-    It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. autowt can open new terminal tabs via [automate-terminal](https://github.com/irskep/automate-terminal) (iTerm2, tmux, Ghostty, and more), or with [shell integration](terminalsupport.md#shell-integration-alternative-to-terminal-automation), it can `cd` directly in your current shell.
+    It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. autowt can open new terminal tabs via [automate-terminal](https://github.com/irskep/automate-terminal) (iTerm2, tmux, Ghostty, and more), or with [shell integration](terminalsupport.md#shell-integration-alternative-to-terminal-automation) it can `cd` directly in your current shell.
 
 -   **:lucide-factory: Deep, customizable automation**
 

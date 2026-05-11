@@ -226,55 +226,55 @@ class TestTerminalServiceInitScripts:
         mock_new_tab.assert_not_called()
 
 
-class TestShellIntegrationSentinel:
-    """Tests for sentinel prefix in echo mode with shell integration."""
+class TestShellIntegrationFile:
+    """Tests for file-based shell integration in echo mode."""
 
-    def test_echo_commands_with_shell_integration(
-        self, terminal_service, test_path, capsys
+    def test_echo_commands_writes_to_file(
+        self, terminal_service, test_path, tmp_path, capsys
     ):
-        """Echo output is prefixed with sentinel when shell_integration is True."""
-        original = options.shell_integration
+        """When shell_integration_file is set, cd command is written to file, not stdout."""
+        tmpfile = tmp_path / "shell_integration"
+        original = options.shell_integration_file
         try:
-            options.shell_integration = True
+            options.shell_integration_file = str(tmpfile)
             success = terminal_service._echo_commands(test_path, "setup.sh")
 
             captured = capsys.readouterr()
             assert success
-            assert captured.out.startswith("__autowt_cd__")
-            assert "cd /test/worktree; setup.sh" in captured.out
+            assert captured.out == ""
+            assert tmpfile.read_text() == "cd /test/worktree; setup.sh"
         finally:
-            options.shell_integration = original
+            options.shell_integration_file = original
 
-    def test_echo_commands_without_shell_integration(
+    def test_echo_commands_prints_to_stdout_without_file(
         self, terminal_service, test_path, capsys
     ):
-        """Echo output has no sentinel when shell_integration is False."""
-        original = options.shell_integration
+        """Without shell_integration_file, cd command goes to stdout as before."""
+        original = options.shell_integration_file
         try:
-            options.shell_integration = False
+            options.shell_integration_file = None
             success = terminal_service._echo_commands(test_path, "setup.sh")
 
             captured = capsys.readouterr()
             assert success
-            assert not captured.out.startswith("__autowt_cd__")
             assert captured.out.strip() == "cd /test/worktree; setup.sh"
         finally:
-            options.shell_integration = original
+            options.shell_integration_file = original
 
-    def test_echo_commands_sentinel_with_no_init_script(
-        self, terminal_service, test_path, capsys
+    def test_echo_commands_file_with_no_init_script(
+        self, terminal_service, test_path, tmp_path
     ):
-        """Sentinel is added even when there's no init script."""
-        original = options.shell_integration
+        """File receives just the cd command when no init script is provided."""
+        tmpfile = tmp_path / "shell_integration"
+        original = options.shell_integration_file
         try:
-            options.shell_integration = True
+            options.shell_integration_file = str(tmpfile)
             success = terminal_service._echo_commands(test_path)
 
-            captured = capsys.readouterr()
             assert success
-            assert captured.out.strip() == "__autowt_cd__cd /test/worktree"
+            assert tmpfile.read_text() == "cd /test/worktree"
         finally:
-            options.shell_integration = original
+            options.shell_integration_file = original
 
 
 class TestInitScriptEdgeCases:

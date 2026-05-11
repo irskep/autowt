@@ -8,12 +8,10 @@ variables for maximum flexibility.
 import logging
 import os
 import subprocess
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from autowt.config import HookConfig
-from autowt.global_config import options
 
 if TYPE_CHECKING:
     from autowt.models import CustomScript
@@ -85,16 +83,14 @@ class HookRunner:
 
             # Execute the hook script directly with shell=True
             # The shell naturally handles multi-line scripts without preprocessing
-            # When shell integration is active, redirect stdout to stderr so hook
-            # output doesn't enter the pipe that the shell wrapper reads from.
-            stdout_target = sys.stderr if options.shell_integration else None
+            # Output streams directly to terminal for visibility
             result = subprocess.run(
                 hook_script,
                 shell=True,
                 cwd=str(working_dir),
                 env=env,
                 timeout=timeout,
-                stdout=stdout_target,
+                capture_output=False,
                 text=True,
             )
 

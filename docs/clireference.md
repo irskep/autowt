@@ -115,7 +115,7 @@ Opens an interactive TUI to configure global `autowt` settings, such as the defa
 
 Generates a shell function that wraps the `autowt` binary, enabling worktree switches to `cd` in your current shell. The shell argument is optional; when omitted, it auto-detects from `$SHELL`. Supports `bash`, `zsh`, and `fish`.
 
-When shell integration is active, commands like `autowt my-branch` change your working directory directly instead of opening a new terminal tab. Scripts configured in `session_init` (e.g., `source .env`, `conda activate`) also run in your current shell.
+When shell integration is active, commands like `autowt my-branch` change your working directory in your current shell instead of opening a new terminal tab. No terminal automation (AppleScript, tmux, etc.) is required.
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc:

@@ -87,7 +87,7 @@ autowt hotfix/urgent-bug
 autowt new-feature
 ```
 
-Without shell integration, you can also pass `--terminal=inplace` for the same effect on a one-off basis.
+Without shell integration, you can also pass `--terminal=inplace` for the same effect on a one-off basis using AppleScript or dbus to “type” into the current terminal.
 
 For special cases where you need the worktree in a specific location, you can override the default directory pattern with `--dir`:
 

@@ -214,9 +214,10 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     if terminal_mode is None:
         terminal_mode = config.terminal
 
-    # Enable output suppression for echo mode
+    # Enable output suppression for echo mode (but not shell integration,
+    # where stdout is a real TTY and the cd command goes to a file)
     original_suppress = options.suppress_rich_output
-    if terminal_mode == TerminalMode.ECHO:
+    if terminal_mode == TerminalMode.ECHO and not options.shell_integration_file:
         options.suppress_rich_output = True
 
     # Check if worktree already exists

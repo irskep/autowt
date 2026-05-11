@@ -49,4 +49,4 @@ eval "$(autowt shell-init)"
 autowt shell-init | source
 ```
 
-This also means `session_init` scripts like `source .env` or `conda activate` take effect in your shell directly. See [Terminal Support](terminalsupport.md#shell-integration-alternative-to-terminal-automation) for details.
+See [Terminal Support](terminalsupport.md#shell-integration-alternative-to-terminal-automation) for details.
