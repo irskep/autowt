@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autowt.commands.config import ConfigApp
+from autowt.tui.config import ConfigApp
 from autowt.config import (
     CleanupConfig,
     Config,
