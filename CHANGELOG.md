@@ -7,6 +7,7 @@
 ### Added
 
 - Shell integration via `autowt shell-init <shell>` for bash, zsh, and fish. When enabled, worktree switches `cd` in your current shell instead of opening a new tab, so `source .env`, `conda activate`, and similar commands work natively. Includes a `--dry-run` flag to preview what would be eval'd.
+- Tab completion for `autowt switch` completes branch names that have existing worktrees. Activated automatically by `shell-init`, or manually via Click's standard `_AUTOWT_COMPLETE` mechanism.
 
 ### Changed
 
