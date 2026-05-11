@@ -16,9 +16,6 @@ class TestGetShellInitScript:
         assert "would eval" in script
         assert "eval $eval_cmd" not in script
 
-    def test_zsh_matches_bash(self):
-        assert get_shell_init_script("bash") == get_shell_init_script("zsh")
-
     def test_unsupported_shell_raises(self):
         try:
             get_shell_init_script("powershell")

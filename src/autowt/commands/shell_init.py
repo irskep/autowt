@@ -16,6 +16,7 @@ autowt() {{
     return $exit_code
 }}
 alias awt=autowt
+{completions}
 """
 
 _FISH_TEMPLATE = """\
@@ -38,6 +39,9 @@ end
 function awt --wraps=autowt
     autowt $argv
 end
+
+_AUTOWT_COMPLETE=fish_source autowt | source
+_AWT_COMPLETE=fish_source awt | source
 """
 
 SUPPORTED_SHELLS = ("bash", "zsh", "fish")
@@ -69,7 +73,11 @@ def get_shell_init_script(shell: str, *, dry_run: bool = False) -> str:
             eval_line = 'echo "[autowt dry-run] would eval: $eval_cmd" >&2'
         else:
             eval_line = 'echo "[autowt: eval] $eval_cmd" >&2\n        eval "$eval_cmd"'
-        return _BASH_ZSH_TEMPLATE.format(eval_line=eval_line)
+        completions = (
+            f'eval "$(_AUTOWT_COMPLETE={shell}_source autowt)"\n'
+            f'eval "$(_AWT_COMPLETE={shell}_source awt)"'
+        )
+        return _BASH_ZSH_TEMPLATE.format(eval_line=eval_line, completions=completions)
     elif shell == "fish":
         if dry_run:
             eval_line = 'echo "[autowt dry-run] would eval: $eval_cmd" >&2'
