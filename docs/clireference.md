@@ -113,7 +113,7 @@ Opens an interactive TUI to configure global `autowt` settings, such as the defa
 
 ## `autowt shell-init [shell]`
 
-Generates a shell function that wraps the `autowt` binary, enabling worktree switches to `cd` in your current shell. The shell argument is optional — it auto-detects from `$SHELL`. Supports `bash`, `zsh`, and `fish`.
+Generates a shell function that wraps the `autowt` binary, enabling worktree switches to `cd` in your current shell. The shell argument is optional; when omitted, it auto-detects from `$SHELL`. Supports `bash`, `zsh`, and `fish`.
 
 When shell integration is active, commands like `autowt my-branch` change your working directory directly instead of opening a new terminal tab. Scripts configured in `session_init` (e.g., `source .env`, `conda activate`) also run in your current shell.
 
