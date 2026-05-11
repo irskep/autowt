@@ -477,7 +477,9 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # Set global options
     options.auto_confirm = auto_confirm
     options.debug = debug
-    options.shell_integration_file = os.getenv("AUTOWT_SHELL_INTEGRATION_FILE")
+    options.shell_integration_file = os.environ.pop(
+        "AUTOWT_SHELL_INTEGRATION_FILE", None
+    )
 
     setup_logging(debug)
 
