@@ -3,13 +3,6 @@
 import logging
 from pathlib import Path
 
-try:
-    from autowt.tui.cleanup import run_cleanup_tui
-
-    HAS_CLEANUP_TUI = True
-except ImportError:
-    HAS_CLEANUP_TUI = False
-
 from autowt.config import HookConfig
 from autowt.console import print_error, print_info, print_success
 from autowt.hooks import HookType, extract_hook_scripts
@@ -440,9 +433,11 @@ def _interactive_selection(branch_statuses: list[BranchStatus]) -> list[BranchSt
         return []
 
     # Try to use Textual TUI if available
-    if HAS_CLEANUP_TUI:
+    try:
+        from autowt.tui.cleanup import run_cleanup_tui  # noqa: PLC0415
+
         return run_cleanup_tui(branch_statuses)
-    else:
+    except ImportError:
         # Fall back to simple text interface
         return _simple_interactive_selection(branch_statuses)
 

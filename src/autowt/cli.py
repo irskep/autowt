@@ -29,7 +29,6 @@ from autowt.models import (
     TerminalMode,
 )
 from autowt.prompts import prompt_cleanup_mode_selection
-from autowt.tui.switch import run_switch_tui
 from autowt.utils import (
     is_interactive_terminal,
     run_command_quiet_on_failure,
@@ -107,6 +106,8 @@ def _run_interactive_switch(services) -> tuple[str | None, bool]:
 
     # Get all local branches
     all_branches = _get_all_local_branches(repo_path)
+
+    from autowt.tui.switch import run_switch_tui  # noqa: PLC0415
 
     return run_switch_tui(worktrees, all_branches)
 
