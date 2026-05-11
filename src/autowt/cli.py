@@ -7,6 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 import click
+from click.shell_completion import CompletionItem
 from click_aliases import ClickAliasedGroup
 
 from autowt.cli_config import (
@@ -125,6 +126,34 @@ def _get_all_local_branches(repo_path: Path) -> list[str]:
         return [branch for branch in branches if branch and not branch.startswith("*")]
 
     return []
+
+
+def _complete_branch(ctx, param, incomplete):
+    """Provide branch completions for the switch command."""
+    try:
+        services = create_services()
+        repo_path = services.git.find_repo_root()
+        if not repo_path:
+            return []
+
+        worktrees = services.git.list_worktrees(repo_path)
+        items = []
+
+        # Worktree branches first (most common switch target)
+        for wt in worktrees:
+            if wt.branch.startswith(incomplete) and not wt.is_primary:
+                items.append(CompletionItem(wt.branch, help="worktree"))
+
+        # Then other local branches
+        worktree_branches = {wt.branch for wt in worktrees}
+        all_branches = _get_all_local_branches(repo_path)
+        for branch in all_branches:
+            if branch.startswith(incomplete) and branch not in worktree_branches:
+                items.append(CompletionItem(branch, help="branch"))
+
+        return items
+    except Exception:
+        return []
 
 
 # Custom Group class that handles unknown commands as branch names and supports aliases
@@ -645,7 +674,9 @@ def shell_init(shell: str | None, dry_run: bool) -> None:
     aliases=["sw", "checkout", "co", "goto", "go"],
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.argument("branch", required=False, metavar="BRANCH_OR_PATH")
+@click.argument(
+    "branch", required=False, metavar="BRANCH_OR_PATH", shell_complete=_complete_branch
+)
 @click.option(
     "--terminal",
     type=click.Choice(["tab", "window", "inplace", "echo", "vscode", "cursor"]),
