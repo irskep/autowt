@@ -51,6 +51,14 @@ class TestGetShellInitScript:
         script = get_shell_init_script("fish")
         assert "eval " in script
 
+    def test_bash_includes_awt_alias(self):
+        script = get_shell_init_script("bash")
+        assert "alias awt=autowt" in script
+
+    def test_fish_includes_awt_wrapper(self):
+        script = get_shell_init_script("fish")
+        assert "function awt" in script
+
     def test_unsupported_shell_raises(self):
         try:
             get_shell_init_script("powershell")

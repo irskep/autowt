@@ -14,6 +14,7 @@ autowt() {{
     fi
     return $exit_code
 }}
+alias awt=autowt
 """
 
 _FISH_TEMPLATE = """\
@@ -26,6 +27,10 @@ function autowt
         printf '%s\\n' $output
     end
     return $exit_code
+end
+
+function awt --wraps=autowt
+    autowt $argv
 end
 """
 
