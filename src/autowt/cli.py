@@ -139,7 +139,7 @@ def _complete_branch(ctx, param, incomplete):
         return [
             CompletionItem(wt.branch)
             for wt in services.git.list_worktrees(repo_path)
-            if wt.branch.startswith(incomplete) and not wt.is_primary
+            if incomplete.lower() in wt.branch.lower()
         ]
     except Exception:
         return []
