@@ -130,19 +130,12 @@ def _get_all_local_branches(repo_path: Path) -> list[str]:
 
 def _complete_branch(ctx, param, incomplete):
     """Complete with branches that have existing worktrees."""
-    try:
-        services = create_services()
-        repo_path = services.git.find_repo_root()
-        if not repo_path:
-            return []
+    from autowt.services.completion import complete_worktree_branches  # noqa: PLC0415
 
-        return [
-            CompletionItem(wt.branch)
-            for wt in services.git.list_worktrees(repo_path)
-            if incomplete.lower() in wt.branch.lower()
-        ]
-    except Exception:
-        return []
+    return [
+        CompletionItem(branch, help=help_text)
+        for branch, help_text in complete_worktree_branches(incomplete)
+    ]
 
 
 # Custom Group class that handles unknown commands as branch names and supports aliases
