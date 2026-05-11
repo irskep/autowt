@@ -18,10 +18,12 @@ from autowt.cli_config import (
 from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
+from autowt.commands.hook import run_hook_command
 from autowt.commands.ls import list_worktrees
 from autowt.commands.shell_init import detect_shell, get_shell_init_script
 from autowt.config import get_config
 from autowt.global_config import options
+from autowt.hooks import ALL_HOOK_TYPES
 from autowt.models import (
     CleanupCommand,
     CleanupMode,
@@ -658,6 +660,21 @@ def shell_init(shell: str | None, dry_run: bool) -> None:
                 "Please specify one: autowt shell-init bash|zsh|fish"
             )
     print(get_shell_init_script(shell, dry_run=dry_run))
+
+
+@main.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.argument("hook_name", type=click.Choice(ALL_HOOK_TYPES))
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+def hook(hook_name: str, debug: bool) -> None:
+    """Run a specific lifecycle hook.
+
+    Runs the configured global and project hooks for the given hook type.
+    Useful for integrating autowt's hook configuration with other worktree tools.
+    """
+    setup_logging(debug)
+    services = create_services()
+    if not run_hook_command(hook_name, services):
+        raise SystemExit(1)
 
 
 @main.command(

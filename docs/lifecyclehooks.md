@@ -4,30 +4,29 @@
 
 ## Example: installing dependencies and copying secrets
 
-The most common hook is the **`session_init` script**, which runs in your new terminal session after creating a new worktree. This is perfect for setting up your shell environment, activating virtual environments, and running interactive setup tasks.
+The **`post_create` hook** runs as a subprocess after creating a new worktree but before switching to it. This is the right place for setup tasks like installing dependencies and copying files.
 
 ### Configuration
 
-Set the `scripts.session_init` key in your `.autowt.toml` file:
+Set the `scripts.post_create` key in your `.autowt.toml` file:
 
 ```toml
 # .autowt.toml
 [scripts]
-session_init = "npm install"
+post_create = "npm install"
 ```
 
 ### Copying `.env` files
 
-Worktrees start as clean checkouts, which means untracked files like `.env` are not automatically carried over. You can use an init script to copy these files from your main worktree.
+Worktrees start as clean checkouts, which means untracked files like `.env` are not automatically carried over. You can use a hook to copy these files from your main worktree.
 
 autowt provides environment variables that make this easier, including `AUTOWT_MAIN_REPO_DIR` which points to the main repository directory.
 
 ```toml
 # .autowt.toml
 [scripts]
-# Copy .env file from main worktree if it exists
-session_init = """
-npm install # kept from before
+post_create = """
+npm install
 if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
   cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
 fi
@@ -36,7 +35,7 @@ fi
 
 ### Installing things in the background
 
-If your dependency installation step takes a long time, you might wish to do all this in `post_create_async` instead of `session_init`. That way, you can get an interactive terminal without waiting for everything to get set up.
+If your dependency installation step takes a long time, you might wish to use `post_create_async` instead. That way, you can get an interactive terminal without waiting for everything to finish.
 
 ```toml
 # .autowt.toml
@@ -118,6 +117,21 @@ sequenceDiagram
     autowt->>autowt: post_cleanup hook
     autowt-->>User: Cleanup complete
 ```
+
+## Running hooks standalone
+
+If you use another worktree tool but want to reuse autowt's hook configuration, you can run individual hooks with `autowt hook <hook_name>`:
+
+```bash
+# After your tool creates a worktree, cd into it and run:
+autowt hook post_create
+autowt hook session_init
+
+# Before your tool deletes a worktree:
+autowt hook pre_cleanup
+```
+
+The command auto-detects the repository root, worktree directory, and branch name from the current working directory. It runs the same global + project hook cascade as the built-in commands. See the [CLI reference](clireference.md#autowt-hook-hook_name) for details.
 
 ## Configuration
 

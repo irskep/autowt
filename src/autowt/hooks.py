@@ -32,6 +32,18 @@ class HookType:
     POST_SWITCH = "post_switch"
 
 
+ALL_HOOK_TYPES = [
+    HookType.PRE_CREATE,
+    HookType.POST_CREATE,
+    HookType.POST_CREATE_ASYNC,
+    HookType.SESSION_INIT,
+    HookType.PRE_CLEANUP,
+    HookType.POST_CLEANUP,
+    HookType.PRE_SWITCH,
+    HookType.POST_SWITCH,
+]
+
+
 class HookRunner:
     """Executes lifecycle hooks with proper environment and arguments."""
 

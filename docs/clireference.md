@@ -133,6 +133,22 @@ autowt shell-init | source
 
 Commands that don't switch worktrees (`ls`, `cleanup`, `config`, etc.) continue to work normally with their output printed as-is.
 
+## `autowt hook <hook_name>`
+
+Runs a specific lifecycle hook using the configured global and project hooks. This is useful for integrating autowt's hook configuration with other worktree management tools, so they can shell out to autowt instead of duplicating hook configuration.
+
+`hook_name` must be one of: `pre_create`, `post_create`, `post_create_async`, `session_init`, `pre_cleanup`, `post_cleanup`, `pre_switch`, `post_switch`.
+
+The command auto-detects the repository root, worktree directory, and branch name from the current working directory. It exits with code 1 if any hook fails.
+
+```bash
+# Run session_init hooks from within a worktree
+cd ~/dev/my-project-worktrees/feature-branch
+autowt hook session_init
+
+# Run post_create hooks after another tool creates a worktree
+autowt hook post_create
+```
 ## Global options
 
 These options can be used with any `autowt` command.
