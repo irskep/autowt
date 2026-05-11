@@ -18,8 +18,8 @@ class TestGetShellInitScript:
         script = get_shell_init_script("bash", dry_run=True)
         assert "dry-run" in script
         assert "would eval" in script
-        # Should not contain a bare eval line
-        assert 'eval "${output#' not in script
+        # Should not contain a bare eval line (only the echo variant)
+        assert 'eval "$eval_cmd"' not in script
 
     def test_zsh_matches_bash(self):
         bash = get_shell_init_script("bash")
@@ -38,7 +38,7 @@ class TestGetShellInitScript:
     def test_fish_uses_fish_syntax(self):
         script = get_shell_init_script("fish")
         assert "function autowt" in script
-        assert "set -l output" in script
+        assert "set -l eval_cmd" in script
         assert "string match" in script
         assert "string replace" in script
 
