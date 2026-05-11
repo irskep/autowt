@@ -8,6 +8,8 @@
 
 ### Changed
 
+- CLI startup is ~2x faster for non-TUI commands (`ls`, `switch <branch>`, `cleanup <branch>`, etc.) by lazy-importing Textual
+
 ### Fixed
 
 ### Removed
