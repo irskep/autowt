@@ -18,6 +18,7 @@ from autowt.commands.checkout import checkout_branch
 from autowt.commands.cleanup import cleanup_worktrees
 from autowt.commands.config import configure_settings, show_config
 from autowt.commands.ls import list_worktrees
+from autowt.commands.shell_init import get_shell_init_script
 from autowt.config import get_config
 from autowt.global_config import options
 from autowt.models import (
@@ -278,11 +279,12 @@ class AutowtGroup(ClickAliasedGroup):
 
             # Get terminal mode from configuration
             config = get_config()
-            terminal_mode = (
-                config.terminal.mode
-                if not kwargs.get("terminal")
-                else TerminalMode(kwargs["terminal"])
-            )
+            if options.shell_integration:
+                terminal_mode = TerminalMode.ECHO
+            elif kwargs.get("terminal"):
+                terminal_mode = TerminalMode(kwargs["terminal"])
+            else:
+                terminal_mode = config.terminal.mode
 
             services = create_services()
             check_for_version_updates(services)
@@ -369,11 +371,12 @@ class AutowtGroup(ClickAliasedGroup):
 
             # Get terminal mode from configuration
             config = get_config()
-            terminal_mode = (
-                config.terminal.mode
-                if not kwargs.get("terminal")
-                else TerminalMode(kwargs["terminal"])
-            )
+            if options.shell_integration:
+                terminal_mode = TerminalMode.ECHO
+            elif kwargs.get("terminal"):
+                terminal_mode = TerminalMode(kwargs["terminal"])
+            else:
+                terminal_mode = config.terminal.mode
 
             services = create_services()
             check_for_version_updates(services)
@@ -454,6 +457,12 @@ class AutowtGroup(ClickAliasedGroup):
 )
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option(
+    "--_shell-integration",
+    "shell_integration",
+    is_flag=True,
+    hidden=True,
+)
+@click.option(
     "--version",
     is_flag=True,
     expose_value=False,
@@ -465,7 +474,9 @@ class AutowtGroup(ClickAliasedGroup):
     help="Show version and exit",
 )
 @click.pass_context
-def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
+def main(
+    ctx: click.Context, auto_confirm: bool, debug: bool, shell_integration: bool
+) -> None:
     """Git worktree manager. Available as: autowt, awt
 
     Use subcommands like 'ls', 'cleanup', 'config', or 'switch'.
@@ -474,6 +485,7 @@ def main(ctx: click.Context, auto_confirm: bool, debug: bool) -> None:
     # Set global options
     options.auto_confirm = auto_confirm
     options.debug = debug
+    options.shell_integration = shell_integration
 
     setup_logging(debug)
 
@@ -603,6 +615,28 @@ def config(debug: bool, show: bool) -> None:
         configure_settings(services)
 
 
+@main.command("shell-init", context_settings={"help_option_names": ["-h", "--help"]})
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Generate a variant that prints commands instead of eval'ing them",
+)
+def shell_init(shell: str, dry_run: bool) -> None:
+    """Generate shell integration code.
+
+    Prints a shell function that wraps the autowt binary so that
+    worktree switches cd in your current shell.
+
+    \b
+    Setup:
+      bash: eval "$(autowt shell-init bash)"  # add to ~/.bashrc
+      zsh:  eval "$(autowt shell-init zsh)"   # add to ~/.zshrc
+      fish: autowt shell-init fish | source   # add to ~/.config/fish/config.fish
+    """
+    print(get_shell_init_script(shell, dry_run=dry_run))
+
+
 @main.command(
     aliases=["sw", "checkout", "co", "goto", "go"],
     context_settings={"help_option_names": ["-h", "--help"]},
@@ -693,7 +727,12 @@ def switch(
 
     # Get configuration values
     config = get_config()
-    terminal_mode = config.terminal.mode if not terminal else TerminalMode(terminal)
+    if options.shell_integration:
+        terminal_mode = TerminalMode.ECHO
+    elif terminal:
+        terminal_mode = TerminalMode(terminal)
+    else:
+        terminal_mode = config.terminal.mode
 
     # Create and execute SwitchCommand with full option support
     switch_cmd = SwitchCommand(

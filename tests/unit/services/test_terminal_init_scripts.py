@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from autowt.global_config import options
 from autowt.models import TerminalMode
 from autowt.services.terminal import TerminalService
 from tests.fixtures.service_builders import MockStateService
@@ -223,6 +224,57 @@ class TestTerminalServiceInitScripts:
         # Should switch to session, not create new tab
         mock_switch.assert_called_once_with(working_directory=str(test_path))
         mock_new_tab.assert_not_called()
+
+
+class TestShellIntegrationSentinel:
+    """Tests for sentinel prefix in echo mode with shell integration."""
+
+    def test_echo_commands_with_shell_integration(
+        self, terminal_service, test_path, capsys
+    ):
+        """Echo output is prefixed with sentinel when shell_integration is True."""
+        original = options.shell_integration
+        try:
+            options.shell_integration = True
+            success = terminal_service._echo_commands(test_path, "setup.sh")
+
+            captured = capsys.readouterr()
+            assert success
+            assert captured.out.startswith("__autowt_cd__")
+            assert "cd /test/worktree; setup.sh" in captured.out
+        finally:
+            options.shell_integration = original
+
+    def test_echo_commands_without_shell_integration(
+        self, terminal_service, test_path, capsys
+    ):
+        """Echo output has no sentinel when shell_integration is False."""
+        original = options.shell_integration
+        try:
+            options.shell_integration = False
+            success = terminal_service._echo_commands(test_path, "setup.sh")
+
+            captured = capsys.readouterr()
+            assert success
+            assert not captured.out.startswith("__autowt_cd__")
+            assert captured.out.strip() == "cd /test/worktree; setup.sh"
+        finally:
+            options.shell_integration = original
+
+    def test_echo_commands_sentinel_with_no_init_script(
+        self, terminal_service, test_path, capsys
+    ):
+        """Sentinel is added even when there's no init script."""
+        original = options.shell_integration
+        try:
+            options.shell_integration = True
+            success = terminal_service._echo_commands(test_path)
+
+            captured = capsys.readouterr()
+            assert success
+            assert captured.out.strip() == "__autowt_cd__cd /test/worktree"
+        finally:
+            options.shell_integration = original
 
 
 class TestInitScriptEdgeCases:

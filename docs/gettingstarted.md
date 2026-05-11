@@ -24,8 +24,8 @@ Here’s what `autowt` does behind the scenes:
 
 1.  Fetches the latest changes from your remote repository.
 2.  Creates a new directory for your worktree at `../my-project-worktrees/new-feature/`.
-3.  Creates a new git worktree for the `new-feature` branch. If the branch doesn't exist, it will be created from your main branch.
-4.  Opens a new terminal tab or window and navigates to the new worktree directory.
+3.  Creates a new git worktree for the `new-feature` branch. If the branch doesn’t exist, it will be created from your main branch.
+4.  Navigates to the new worktree directory (either by opening a new terminal tab, or `cd`’ing in your current shell if you’ve set up [shell integration](terminalsupport.md#shell-integration-alternative-to-terminal-automation)).
 
 You now have a clean, isolated environment for your new feature, without disturbing the main branch.
 
@@ -73,15 +73,21 @@ Imagine you're working on `new-feature` when you get a request for an urgent bug
 autowt hotfix/urgent-bug
 ```
 
-A new terminal tab opens for the bug fix. You can now work on the fix without affecting your `new-feature` branch. Once you're done with the bug fix, close your terminal tab and forget about it.
+autowt switches you to the bug fix worktree. You can now work on the fix without affecting your `new-feature` branch. Once you're done with the bug fix, switch back to your feature or let `autowt cleanup` handle it later.
 
-If you prefer to stay in your existing terminal tab the whole time, you can pass `--terminal=inplace`:
+If you prefer to stay in your existing terminal tab the whole time, you can set up [shell integration](terminalsupport.md#shell-integration-alternative-to-terminal-automation):
 
 ```bash
-autowt hotfix/urgent-bug --terminal=inplace
+# Add to your shell config once:
+eval "$(autowt shell-init bash)"  # or zsh/fish
+
+# Then just use autowt normally — it cd's in your current shell
+autowt hotfix/urgent-bug
 # code code code, commit, push
-autowt new-feature --terminal=inplace
+autowt new-feature
 ```
+
+Without shell integration, you can also pass `--terminal=inplace` for the same effect on a one-off basis.
 
 For special cases where you need the worktree in a specific location, you can override the default directory pattern with `--dir`:
 

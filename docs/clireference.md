@@ -111,6 +111,28 @@ Opens an interactive TUI to configure global `autowt` settings, such as the defa
 | -------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `--show` | Display current configuration values from all sources (global and project). Useful for debugging configuration issues. |
 
+## `autowt shell-init <shell>`
+
+Generates a shell function that wraps the `autowt` binary, enabling worktree switches to `cd` in your current shell. Supports `bash`, `zsh`, and `fish`.
+
+When shell integration is active, commands like `autowt my-branch` change your working directory directly instead of opening a new terminal tab. Scripts configured in `session_init` (e.g., `source .env`, `conda activate`) also run in your current shell.
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc:
+eval "$(autowt shell-init bash)"
+
+# Add to ~/.config/fish/config.fish:
+autowt shell-init fish | source
+```
+
+<div class="autowt-clitable-wrapper"></div>
+
+| Option      | Description                                                                      |
+| ----------- | -------------------------------------------------------------------------------- |
+| `--dry-run` | Generate a variant of the function that prints what would run instead of eval'ing it. Useful for verifying the protocol. |
+
+Commands that don't switch worktrees (`ls`, `cleanup`, `config`, etc.) continue to work normally with their output printed as-is.
+
 ## Global options
 
 These options can be used with any `autowt` command.

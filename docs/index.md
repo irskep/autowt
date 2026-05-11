@@ -52,7 +52,7 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
     ***
 
-    It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. And autowt integrates with your terminal program to automate opening new sessions. It supports everything [automate-terminal](https://github.com/irskep/automate-terminal), including iTerm2, tmux, Ghostty, and more.
+    It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. autowt can open new terminal tabs via [automate-terminal](https://github.com/irskep/automate-terminal) (iTerm2, tmux, Ghostty, and more), or with [shell integration](terminalsupport.md#shell-integration-alternative-to-terminal-automation), it can `cd` directly in your current shell.
 
 -   **:lucide-factory: Deep, customizable automation**
 
@@ -84,10 +84,17 @@ First, install autowt:
 pip install autowt
 ```
 
+Optionally, set up shell integration so worktree switches `cd` in your current shell:
+
+```bash
+# bash/zsh
+eval "$(autowt shell-init bash)"
+```
+
 Then, make a new worktree for a new or existing branch in your current repo:
 
 ```bash
 autowt my-new-feature
 ```
 
-Watch as `autowt` creates a new worktree and opens it in a new terminal tab or window.
+With shell integration, this creates the worktree and `cd`'s you into it. Without it, autowt opens a new terminal tab or window instead.

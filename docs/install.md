@@ -36,3 +36,20 @@ pip install autowt
 ```bash
 uvx autowt
 ```
+
+## Shell integration (optional)
+
+By default, autowt opens new terminal tabs when you switch worktrees. If you'd prefer worktree switches to `cd` in your current shell, add shell integration to your shell config:
+
+```bash
+# bash (~/.bashrc)
+eval "$(autowt shell-init bash)"
+
+# zsh (~/.zshrc)
+eval "$(autowt shell-init zsh)"
+
+# fish (~/.config/fish/config.fish)
+autowt shell-init fish | source
+```
+
+This also means `session_init` scripts like `source .env` or `conda activate` take effect in your shell directly. See [Terminal Support](terminalsupport.md#shell-integration-alternative-to-terminal-automation) for details.

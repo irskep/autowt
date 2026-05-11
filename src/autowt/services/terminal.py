@@ -17,9 +17,12 @@ from automate_terminal import (
     switch_to_session,
 )
 
+from autowt.global_config import options as global_options
 from autowt.models import TerminalMode
 from autowt.prompts import confirm_default_yes
 from autowt.services.state import StateService
+
+SHELL_INTEGRATION_SENTINEL = "__autowt_cd__"
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +147,11 @@ class TerminalService:
                 normalized_after = after_init.replace("\n", "; ").strip()
                 if normalized_after:
                     commands.append(normalized_after)
-            print("; ".join(commands))
+            line = "; ".join(commands)
+            if global_options.shell_integration:
+                print(f"{SHELL_INTEGRATION_SENTINEL}{line}")
+            else:
+                print(line)
             return True
         except Exception as e:
             logger.error(f"Failed to output cd command: {e}")

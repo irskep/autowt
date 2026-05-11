@@ -1,6 +1,7 @@
 """Prompt utilities that respect global options."""
 
 import shutil
+import sys
 
 import click
 
@@ -12,6 +13,9 @@ def confirm(message: str, default: bool = False) -> bool:
     """
     Ask for user confirmation, respecting the global auto_confirm option.
 
+    When shell integration is active, prompts are written to stderr so they
+    don't get captured by the shell wrapper function.
+
     Args:
         message: The prompt message to display
         default: The default value if user just presses enter
@@ -20,7 +24,8 @@ def confirm(message: str, default: bool = False) -> bool:
         bool: True if confirmed, False otherwise
     """
     if options.auto_confirm:
-        print(f"{message} [auto-confirmed]")
+        out = sys.stderr if options.shell_integration else sys.stdout
+        print(f"{message} [auto-confirmed]", file=out)
         return True
 
     # Format the prompt based on default
@@ -31,7 +36,13 @@ def confirm(message: str, default: bool = False) -> bool:
         prompt = f"{message} (y/N) "
         valid_yes = ["y", "yes"]
 
-    response = input(prompt)
+    if options.shell_integration:
+        # input(prompt) writes prompt to stdout, which would be captured by
+        # the shell wrapper. Write to stderr instead, then read without prompt.
+        print(prompt, end="", file=sys.stderr, flush=True)
+        response = input()
+    else:
+        response = input(prompt)
     return response.lower() in valid_yes
 
 
