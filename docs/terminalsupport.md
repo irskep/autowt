@@ -22,12 +22,17 @@ Instead of opening new tabs or windows, you can have `autowt` change directories
 Add the appropriate line to your shell config:
 
 ```bash
-# ~/.bashrc or ~/.zshrc (shell is auto-detected from $SHELL)
-eval "$(autowt shell-init)"
+# ~/.bashrc
+eval "$(autowt shell-init bash)"
+
+# ~/.zshrc
+eval "$(autowt shell-init zsh)"
 
 # ~/.config/fish/config.fish
-autowt shell-init | source
+autowt shell-init fish | source
 ```
+
+The shell argument can be omitted if `$SHELL` matches your config file (i.e., your login shell is the same as the shell you're configuring). When in doubt, pass it explicitly.
 
 Once configured, running `autowt my-branch` will `cd` into the worktree in your current shell instead of opening a new tab or window. No terminal automation (AppleScript, tmux, etc.) is required, so this works in any terminal.
 

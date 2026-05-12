@@ -648,9 +648,9 @@ def shell_init(shell: str | None, dry_run: bool) -> None:
 
     \b
     Setup:
-      bash: eval "$(autowt shell-init)"       # add to ~/.bashrc
-      zsh:  eval "$(autowt shell-init)"       # add to ~/.zshrc
-      fish: autowt shell-init | source        # add to ~/.config/fish/config.fish
+      bash: eval "$(autowt shell-init bash)"   # add to ~/.bashrc
+      zsh:  eval "$(autowt shell-init zsh)"   # add to ~/.zshrc
+      fish: autowt shell-init fish | source   # add to ~/.config/fish/config.fish
     """
     if shell is None:
         shell = detect_shell()

@@ -376,8 +376,17 @@ class ConfigLoader:
             "CONFIRMATIONS_FORCE_OPERATIONS": ["confirmations", "force_operations"],
         }
 
+        # Env vars used internally by autowt but not for configuration
+        non_config_env_vars = {
+            "AUTOWT_SHELL_INTEGRATION_FILE",
+            "AUTOWT_TEST_FORCE_ECHO",
+            "AUTOWT_FORCE_UPGRADE_PROMPT",
+        }
+
         for key, value in os.environ.items():
             if not key.startswith("AUTOWT_"):
+                continue
+            if key in non_config_env_vars:
                 continue
 
             # Get the suffix after AUTOWT_
