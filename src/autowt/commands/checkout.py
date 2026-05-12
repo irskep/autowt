@@ -175,6 +175,14 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
         print_error("Error: No branch name provided and dynamic resolution failed")
         return
 
+    # Handle '-' like 'cd -': switch to previous worktree
+    if switch_cmd.branch == "-":
+        prev = services.state.get_previous_worktree_branch(repo_path)
+        if prev is None:
+            print_error("No previous worktree to switch to")
+            return
+        switch_cmd = replace(switch_cmd, branch=prev)
+
     # Resolve branch or path to a branch name
     try:
         resolved_branch = resolve_worktree_argument(switch_cmd.branch, services)
@@ -188,6 +196,11 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
     # Get current worktrees before applying prefix (we need to check if branches exist)
     git_worktrees = services.git.list_worktrees(repo_path)
+
+    # Record current worktree before switching (for 'autowt -' support)
+    current_worktree = services.git.get_current_worktree(Path.cwd(), git_worktrees)
+    if current_worktree:
+        services.state.set_previous_worktree_branch(repo_path, current_worktree.branch)
 
     def branch_exists(b: str) -> bool:
         """Check if branch exists locally or on remote."""
