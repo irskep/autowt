@@ -66,6 +66,12 @@ class MockStateService:
     def mark_experimental_terminal_warning_shown(self) -> None:
         self.app_state["experimental_terminal_warning_shown"] = True
 
+    def get_previous_worktree_branch(self) -> str | None:
+        return self.app_state.get("previous_worktree_branch")
+
+    def set_previous_worktree_branch(self, branch: str) -> None:
+        self.app_state["previous_worktree_branch"] = branch
+
 
 class MockBranchResolver:
     """Mock branch resolver for testing."""

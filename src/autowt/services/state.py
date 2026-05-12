@@ -144,3 +144,14 @@ class StateService:
         state = self.load_app_state()
         state["experimental_terminal_warning_shown"] = True
         self.save_app_state(state)
+
+    def get_previous_worktree_branch(self) -> str | None:
+        """Get the branch of the worktree we last switched away from."""
+        state = self.load_app_state()
+        return state.get("previous_worktree_branch")
+
+    def set_previous_worktree_branch(self, branch: str) -> None:
+        """Record the branch of the worktree we're switching away from."""
+        state = self.load_app_state()
+        state["previous_worktree_branch"] = branch
+        self.save_app_state(state)
