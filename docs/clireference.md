@@ -11,7 +11,6 @@ Switch to a worktree, or create a new one. Accepts:
 - A branch name (e.g., `feature-branch`)
 - A branch name without prefix (if you've configured `branch_prefix`, you can omit it)
 - A path to an existing worktree directory
-- `-` to switch to the previous worktree (like `cd -`)
 
 Intelligently checks out existing branches from your default remote (i.e. `origin`), or offers to create a new one if none exists.
 
