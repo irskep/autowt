@@ -118,11 +118,14 @@ Generates a shell function that wraps the `autowt` binary, enabling worktree swi
 When shell integration is active, commands like `autowt my-branch` change your working directory in your current shell instead of opening a new terminal tab. No terminal automation (AppleScript, tmux, etc.) is required.
 
 ```bash
-# Add to ~/.bashrc or ~/.zshrc:
-eval "$(autowt shell-init)"
+# Add to ~/.bashrc:
+eval "$(autowt shell-init bash)"
+
+# Add to ~/.zshrc:
+eval "$(autowt shell-init zsh)"
 
 # Add to ~/.config/fish/config.fish:
-autowt shell-init | source
+autowt shell-init fish | source
 ```
 
 <div class="autowt-clitable-wrapper"></div>

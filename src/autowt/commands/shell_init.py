@@ -6,13 +6,13 @@ from pathlib import Path
 _BASH_ZSH_TEMPLATE = """\
 autowt() {{
     local tmpfile=$(mktemp)
-    trap 'rm -f "$tmpfile"' RETURN
     AUTOWT_SHELL_INTEGRATION_FILE="$tmpfile" command autowt "$@"
     local exit_code=$?
     if [ -s "$tmpfile" ]; then
         local eval_cmd=$(cat "$tmpfile")
         {eval_line}
     fi
+    rm -f "$tmpfile"
     return $exit_code
 }}
 alias awt=autowt

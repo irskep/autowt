@@ -87,8 +87,8 @@ pip install autowt
 Optionally, set up shell integration so worktree switches `cd` in your current shell:
 
 ```bash
-# bash/zsh
-eval "$(autowt shell-init)"
+# bash/zsh (add to ~/.bashrc or ~/.zshrc)
+eval "$(autowt shell-init bash)"
 ```
 
 Then, make a new worktree for a new or existing branch in your current repo:
