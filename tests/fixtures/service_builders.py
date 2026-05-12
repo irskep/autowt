@@ -66,11 +66,18 @@ class MockStateService:
     def mark_experimental_terminal_warning_shown(self) -> None:
         self.app_state["experimental_terminal_warning_shown"] = True
 
-    def get_previous_worktree_branch(self) -> str | None:
-        return self.app_state.get("previous_worktree_branch")
+    def get_previous_worktree_branch(self, repo_path: Path) -> str | None:
+        previous = self.app_state.get("previous_worktree_branch", {})
+        if isinstance(previous, dict):
+            return previous.get(str(repo_path))
+        return None
 
-    def set_previous_worktree_branch(self, branch: str) -> None:
-        self.app_state["previous_worktree_branch"] = branch
+    def set_previous_worktree_branch(self, repo_path: Path, branch: str) -> None:
+        previous = self.app_state.get("previous_worktree_branch", {})
+        if not isinstance(previous, dict):
+            previous = {}
+        previous[str(repo_path)] = branch
+        self.app_state["previous_worktree_branch"] = previous
 
 
 class MockBranchResolver:

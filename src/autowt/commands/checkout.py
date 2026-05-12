@@ -177,7 +177,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
 
     # Handle '-' like 'cd -': switch to previous worktree
     if switch_cmd.branch == "-":
-        prev = services.state.get_previous_worktree_branch()
+        prev = services.state.get_previous_worktree_branch(repo_path)
         if prev is None:
             print_error("No previous worktree to switch to")
             return
@@ -200,7 +200,7 @@ def checkout_branch(switch_cmd: SwitchCommand, services: Services) -> None:
     # Record current worktree before switching (for 'autowt -' support)
     current_worktree = services.git.get_current_worktree(Path.cwd(), git_worktrees)
     if current_worktree:
-        services.state.set_previous_worktree_branch(current_worktree.branch)
+        services.state.set_previous_worktree_branch(repo_path, current_worktree.branch)
 
     def branch_exists(b: str) -> bool:
         """Check if branch exists locally or on remote."""

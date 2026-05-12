@@ -22,7 +22,7 @@ class TestDashSwitchesToPrevious:
             WorktreeInfo(branch="branch-b", path=self.worktree_b),
         ]
         mock_services.terminal.switch_success = True
-        mock_services.state.app_state["previous_worktree_branch"] = "branch-b"
+        mock_services.state.set_previous_worktree_branch(self.repo_path, "branch-b")
 
         switch_cmd = SwitchCommand(branch="-", terminal_mode=TerminalMode.ECHO)
 
@@ -58,4 +58,7 @@ class TestDashSwitchesToPrevious:
         with patch("autowt.commands.checkout.Path.cwd", return_value=self.worktree_a):
             checkout_branch(switch_cmd, mock_services)
 
-        assert mock_services.state.get_previous_worktree_branch() == "branch-a"
+        assert (
+            mock_services.state.get_previous_worktree_branch(self.repo_path)
+            == "branch-a"
+        )
