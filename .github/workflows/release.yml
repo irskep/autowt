@@ -30,11 +30,22 @@ jobs:
             GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/awt-${os}-${arch}" ./cmd/awt
           done
 
+      - name: Determine prerelease
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if echo "$TAG" | grep -qE '(rc|dev|alpha|beta)'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            dist/*
+          FLAGS="--title $GITHUB_REF_NAME --generate-notes"
+          if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then
+            FLAGS="$FLAGS --prerelease"
+          fi
+          gh release create "$GITHUB_REF_NAME" $FLAGS dist/*
