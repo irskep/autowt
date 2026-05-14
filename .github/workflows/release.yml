@@ -13,21 +13,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: autowt
-
-      - uses: actions/checkout@v4
-        with:
-          repository: irskep/automate-terminal
-          ref: rewrite-it-in-go
-          path: automate-terminal
 
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
 
       - name: Build binaries
-        working-directory: autowt
         run: |
           mkdir -p dist
 
@@ -36,7 +27,6 @@ jobs:
           GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X github.com/irskep/autowt/internal/cli.version=${GITHUB_REF_NAME}" -o dist/autowt-linux-arm64 .
 
       - name: Create release
-        working-directory: autowt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

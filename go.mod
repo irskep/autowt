@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/irskep/automate-terminal v0.0.0-00010101000000-000000000000
+	github.com/irskep/automate-terminal v0.2.0-rc0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/term v0.43.0
 )
@@ -39,5 +39,3 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 )
-
-replace github.com/irskep/automate-terminal => ../automate-terminal
