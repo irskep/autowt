@@ -30,10 +30,11 @@ func newSwitchCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "switch [branch]",
-		Aliases: []string{"sw", "checkout", "co", "goto", "go"},
-		Short:   "Switch to or create a worktree for the specified branch",
-		Args:    cobra.MaximumNArgs(1),
+		Use:               "switch [branch]",
+		Aliases:           []string{"sw", "checkout", "co", "goto", "go"},
+		Short:             "Switch to or create a worktree for the specified branch",
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completeBranches,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return runInteractiveSwitch()
@@ -60,6 +61,28 @@ func newSwitchCmd() *cobra.Command {
 	cmd.Flags().StringVar(&flagDir, "dir", "", "Directory path for the new worktree")
 
 	return cmd
+}
+
+func completeBranches(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) > 0 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	a := newApp()
+	repoPath, err := a.Git.FindRepoRoot("")
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	worktrees, err := a.Git.ListWorktrees(repoPath)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	var completions []string
+	for _, wt := range worktrees {
+		if strings.Contains(strings.ToLower(wt.Branch), strings.ToLower(toComplete)) {
+			completions = append(completions, wt.Branch)
+		}
+	}
+	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 func runInteractiveSwitch() error {
