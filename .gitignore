@@ -62,6 +62,9 @@ dmypy.json
 site/
 docs/CHANGELOG.md
 
+# Go binary
+/autowt
+
 # Other
 scratch/
 /.claude/autowt
