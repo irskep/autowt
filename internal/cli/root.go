@@ -9,6 +9,7 @@ import (
 
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/git"
+	"github.com/irskep/autowt/internal/versioncheck"
 	"github.com/spf13/cobra"
 )
 
@@ -50,6 +51,10 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 			level = slog.LevelDebug
 		}
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
+
+		// Version update check (rate-limited, non-blocking).
+		stateDir := config.DefaultStateDir()
+		versioncheck.Print(versioncheck.Check(version, stateDir))
 	}
 
 	// Pop AUTOWT_SHELL_INTEGRATION_FILE from env early.
