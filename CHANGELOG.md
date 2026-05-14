@@ -2,7 +2,7 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 1.0.0 - Unreleased
+## 0.6.0 - Unreleased
 
 Complete rewrite in Go. All features from the Python version are preserved. The CLI interface, configuration files, and hook system are fully compatible.
 
