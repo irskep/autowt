@@ -18,6 +18,10 @@ import (
 type Service struct {
 	runner   *atexec.Runner
 	terminal atterminal.Terminal
+
+	// ConfirmSessionSwitch is called to ask the user whether to switch to
+	// an existing session. If nil, switches happen without prompting.
+	ConfirmSessionSwitch func(branchName string) bool
 }
 
 // NewService creates a terminal Service, detecting the current terminal.
@@ -101,9 +105,11 @@ func (s *Service) tabMode(worktreePath, sessionInit, afterInit, branchName strin
 	// Try to switch to existing session.
 	if !ignoreSameSession && caps.CanSwitchToSession {
 		if sid := s.terminal.FindSessionByWorkingDirectory(worktreePath, true); sid != nil {
-			if err := s.terminal.SwitchToSession(*sid, pasteScript); err == nil {
-				fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(branchName))
-				return nil
+			if s.shouldSwitchToExisting(branchName) {
+				if err := s.terminal.SwitchToSession(*sid, pasteScript); err == nil {
+					fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(branchName))
+					return nil
+				}
 			}
 		}
 	}
@@ -128,9 +134,11 @@ func (s *Service) windowMode(worktreePath, sessionInit, afterInit, branchName st
 	// Try to switch to existing session.
 	if !ignoreSameSession && caps.CanSwitchToSession {
 		if sid := s.terminal.FindSessionByWorkingDirectory(worktreePath, true); sid != nil {
-			if err := s.terminal.SwitchToSession(*sid, pasteScript); err == nil {
-				fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(branchName))
-				return nil
+			if s.shouldSwitchToExisting(branchName) {
+				if err := s.terminal.SwitchToSession(*sid, pasteScript); err == nil {
+					fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(branchName))
+					return nil
+				}
 			}
 		}
 	}
@@ -152,6 +160,13 @@ func (s *Service) editorMode(cliCmd, editorName, worktreePath, sessionInit, afte
 
 	cmd := exec.Command(cliCmd, worktreePath)
 	return cmd.Run()
+}
+
+func (s *Service) shouldSwitchToExisting(branchName string) bool {
+	if s.ConfirmSessionSwitch != nil {
+		return s.ConfirmSessionSwitch(branchName)
+	}
+	return true
 }
 
 func buildCommandLine(worktreePath, sessionInit, afterInit string) string {

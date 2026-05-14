@@ -9,6 +9,7 @@ import (
 
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/git"
+	"github.com/irskep/autowt/internal/prompt"
 	"github.com/irskep/autowt/internal/versioncheck"
 	"github.com/spf13/cobra"
 )
@@ -51,6 +52,9 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 			level = slog.LevelDebug
 		}
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
+
+		// Propagate auto-confirm to the prompt package.
+		prompt.AutoConfirm = flagAutoConfirm
 
 		// Version update check (rate-limited, non-blocking).
 		stateDir := config.DefaultStateDir()

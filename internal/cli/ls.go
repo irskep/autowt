@@ -35,6 +35,13 @@ func runLs() error {
 		return err
 	}
 
+	if flagDebug {
+		fmt.Println("  Debug Information:")
+		fmt.Printf("    Config file: %s\n", a.Config.GlobalConfigFile)
+		fmt.Printf("    Git repository root: %s\n", repoPath)
+		fmt.Println()
+	}
+
 	if len(worktrees) == 0 {
 		fmt.Println("  No worktrees found.")
 		return nil

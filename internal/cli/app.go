@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/git"
 	"github.com/irskep/autowt/internal/github"
 	"github.com/irskep/autowt/internal/hooks"
+	"github.com/irskep/autowt/internal/prompt"
 	"github.com/irskep/autowt/internal/terminal"
 )
 
@@ -19,10 +22,19 @@ type app struct {
 
 // newApp creates a fully initialized app.
 func newApp() *app {
+	ts := terminal.NewService()
+	ts.ConfirmSessionSwitch = func(branchName string) bool {
+		name := branchName
+		if name == "" {
+			name = "Worktree"
+		}
+		return prompt.ConfirmDefaultYes(fmt.Sprintf("%s already has a session. Switch to it?", name))
+	}
+
 	return &app{
 		Git:      git.NewService(),
 		GitHub:   github.NewService(),
-		Terminal: terminal.NewService(),
+		Terminal: ts,
 		Hooks:    hooks.NewRunner(),
 		Config:   config.NewLoader(),
 	}

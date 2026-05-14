@@ -63,16 +63,25 @@ type CustomScript struct {
 	PostSwitch       string
 }
 
-// DisplayPath returns a human-friendly version of the worktree path,
-// replacing the home directory prefix with ~.
+// DisplayPath returns a human-friendly version of the worktree path.
 func (w WorktreeInfo) DisplayPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return w.Path
+	return FormatPath(w.Path)
+}
+
+// FormatPath returns a human-friendly path, replacing the home directory
+// prefix with ~ and preferring relative paths from cwd.
+func FormatPath(path string) string {
+	// Try relative to cwd first.
+	if cwd, err := os.Getwd(); err == nil {
+		if rel, err := filepath.Rel(cwd, path); err == nil && !strings.HasPrefix(rel, "..") {
+			return rel
+		}
 	}
-	rel, err := filepath.Rel(home, w.Path)
-	if err != nil || strings.HasPrefix(rel, "..") {
-		return w.Path
+	// Try relative to home.
+	if home, err := os.UserHomeDir(); err == nil {
+		if rel, err := filepath.Rel(home, path); err == nil && !strings.HasPrefix(rel, "..") {
+			return "~/" + rel
+		}
 	}
-	return "~/" + rel
+	return path
 }

@@ -246,8 +246,7 @@ func (s *Service) BranchExistsLocally(repoPath, branch string) bool {
 
 // BranchExistsRemotely checks if a branch exists on a remote.
 func (s *Service) BranchExistsRemotely(repoPath, branch string) bool {
-	remotes := []string{"origin", "upstream"}
-	for _, remote := range remotes {
+	for _, remote := range s.getRemotes(repoPath) {
 		if gitRun(repoPath, "show-ref", "--verify", fmt.Sprintf("refs/remotes/%s/%s", remote, branch)) == nil {
 			return true
 		}
@@ -255,10 +254,45 @@ func (s *Service) BranchExistsRemotely(repoPath, branch string) bool {
 	return false
 }
 
+// getRemotes returns available remotes in priority order: origin first,
+// then upstream, then any others.
+func (s *Service) getRemotes(repoPath string) []string {
+	out, err := gitOutput(repoPath, "remote")
+	if err != nil {
+		return []string{"origin", "upstream"}
+	}
+	var remotes []string
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			remotes = append(remotes, line)
+		}
+	}
+	if len(remotes) == 0 {
+		return []string{"origin", "upstream"}
+	}
+	// Ensure origin and upstream come first if present.
+	prioritized := make([]string, 0, len(remotes))
+	for _, priority := range []string{"origin", "upstream"} {
+		for _, r := range remotes {
+			if r == priority {
+				prioritized = append(prioritized, r)
+				break
+			}
+		}
+	}
+	for _, r := range remotes {
+		if r != "origin" && r != "upstream" {
+			prioritized = append(prioritized, r)
+		}
+	}
+	return prioritized
+}
+
 // CheckRemoteBranchAvailability checks if a branch exists on a remote.
 // Returns (exists, remoteName).
 func (s *Service) CheckRemoteBranchAvailability(repoPath, branch string) (bool, string) {
-	for _, remote := range []string{"origin", "upstream"} {
+	for _, remote := range s.getRemotes(repoPath) {
 		ref := fmt.Sprintf("refs/remotes/%s/%s", remote, branch)
 		if gitRun(repoPath, "show-ref", "--verify", ref) == nil {
 			return true, remote
@@ -284,7 +318,7 @@ func (s *Service) resolveWorktreeSource(repoPath, branch, fromBranch string) ([]
 	}
 
 	// Check remotes.
-	for _, remote := range []string{"origin", "upstream"} {
+	for _, remote := range s.getRemotes(repoPath) {
 		ref := fmt.Sprintf("refs/remotes/%s/%s", remote, branch)
 		if gitRun(repoPath, "show-ref", "--verify", ref) == nil {
 			return []string{"--track", "-b", branch, ref}, nil
@@ -298,7 +332,7 @@ func (s *Service) resolveWorktreeSource(repoPath, branch, fromBranch string) ([]
 
 func (s *Service) findBestStartPoint(repoPath string) string {
 	// Try remote HEAD.
-	for _, remote := range []string{"origin", "upstream"} {
+	for _, remote := range s.getRemotes(repoPath) {
 		out, err := gitOutput(repoPath, "symbolic-ref", fmt.Sprintf("refs/remotes/%s/HEAD", remote))
 		if err == nil {
 			ref := strings.TrimSpace(out)
@@ -322,7 +356,7 @@ func (s *Service) findBestStartPoint(repoPath string) string {
 }
 
 func (s *Service) getDefaultBranch(repoPath string) string {
-	for _, remote := range []string{"origin", "upstream"} {
+	for _, remote := range s.getRemotes(repoPath) {
 		out, err := gitOutput(repoPath, "symbolic-ref", fmt.Sprintf("refs/remotes/%s/HEAD", remote))
 		if err == nil {
 			ref := strings.TrimSpace(out)

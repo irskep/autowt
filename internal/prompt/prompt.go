@@ -8,16 +8,28 @@ import (
 	"strings"
 )
 
+// AutoConfirm, when true, causes all prompts to return their default
+// value without asking the user. Set this from the CLI layer.
+var AutoConfirm bool
+
 // ConfirmDefaultYes asks the user a yes/no question, defaulting to yes.
 // Returns true if the user confirms (or presses enter).
+// If AutoConfirm is set, returns true immediately.
 func ConfirmDefaultYes(question string) bool {
+	if AutoConfirm {
+		return true
+	}
 	fmt.Fprintf(os.Stderr, "%s (Y/n) ", question)
 	return readConfirmation(true)
 }
 
 // ConfirmDefaultNo asks the user a yes/no question, defaulting to no.
 // Returns true if the user explicitly enters yes.
+// If AutoConfirm is set, returns false immediately (the default).
 func ConfirmDefaultNo(question string) bool {
+	if AutoConfirm {
+		return false
+	}
 	fmt.Fprintf(os.Stderr, "%s (y/N) ", question)
 	return readConfirmation(false)
 }

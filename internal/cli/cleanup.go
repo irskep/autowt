@@ -145,6 +145,9 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 		statuses = a.Git.AnalyzeBranchesForCleanup(repoPath, secondary)
 	}
 
+	// Display categorized branch status.
+	displayBranchStatus(mode, statuses)
+
 	// Select branches for cleanup.
 	toCleanup := selectBranchesForCleanup(mode, statuses)
 	if len(toCleanup) == 0 {
@@ -172,7 +175,7 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 
 	fmt.Fprintf(os.Stderr, "\n%sWorktrees to be removed:\n", dryPrefix)
 	for _, bs := range toCleanup {
-		fmt.Fprintf(os.Stderr, "- %s (%s)\n", bs.Branch, bs.Path)
+		fmt.Fprintf(os.Stderr, "- %s (%s)\n", bs.Branch, model.FormatPath(bs.Path))
 	}
 	fmt.Fprintln(os.Stderr)
 
@@ -210,7 +213,15 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 			removedBranches = append(removedBranches, bs.Branch)
 			removedCount++
 		} else {
-			if err := a.Git.RemoveWorktree(repoPath, bs.Path, force); err != nil {
+			err := a.Git.RemoveWorktree(repoPath, bs.Path, force)
+			if err != nil && !force {
+				// Offer interactive retry with --force for dirty worktrees.
+				fmt.Fprintf(os.Stderr, "Git error: %v\n", err)
+				if prompt.ConfirmDefaultNo("Retry with --force to remove worktree with modified files?") {
+					err = a.Git.RemoveWorktree(repoPath, bs.Path, true)
+				}
+			}
+			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to remove %s: %v\n", bs.Branch, err)
 			} else {
 				fmt.Fprintf(os.Stderr, "Removed %s\n", bs.Branch)
@@ -282,6 +293,68 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	fmt.Fprintln(os.Stderr, summary+".")
 
 	return nil
+}
+
+func displayBranchStatus(mode model.CleanupMode, statuses []model.BranchStatus) {
+	if mode == model.CleanupModeGitHub {
+		var merged, open []string
+		for _, bs := range statuses {
+			if bs.IsMerged {
+				merged = append(merged, bs.Branch)
+			} else {
+				open = append(open, bs.Branch)
+			}
+		}
+		if len(merged) > 0 {
+			fmt.Fprintln(os.Stderr, "Branches with merged or closed PRs:")
+			for _, b := range merged {
+				fmt.Fprintf(os.Stderr, "- %s\n", b)
+			}
+			fmt.Fprintln(os.Stderr)
+		}
+		if len(open) > 0 {
+			fmt.Fprintln(os.Stderr, "Branches with open or no PRs (will be kept):")
+			for _, b := range open {
+				fmt.Fprintf(os.Stderr, "- %s\n", b)
+			}
+			fmt.Fprintln(os.Stderr)
+		}
+		return
+	}
+
+	var remoteless, identical, merged []string
+	for _, bs := range statuses {
+		if !bs.HasRemote {
+			remoteless = append(remoteless, bs.Branch)
+		}
+		if bs.IsIdentical {
+			identical = append(identical, bs.Branch)
+		}
+		if bs.IsMerged {
+			merged = append(merged, bs.Branch)
+		}
+	}
+	if len(remoteless) > 0 {
+		fmt.Fprintln(os.Stderr, "Branches without remotes:")
+		for _, b := range remoteless {
+			fmt.Fprintf(os.Stderr, "- %s\n", b)
+		}
+		fmt.Fprintln(os.Stderr)
+	}
+	if len(identical) > 0 {
+		fmt.Fprintln(os.Stderr, "Branches identical to main:")
+		for _, b := range identical {
+			fmt.Fprintf(os.Stderr, "- %s\n", b)
+		}
+		fmt.Fprintln(os.Stderr)
+	}
+	if len(merged) > 0 {
+		fmt.Fprintln(os.Stderr, "Branches that were merged:")
+		for _, b := range merged {
+			fmt.Fprintf(os.Stderr, "- %s\n", b)
+		}
+		fmt.Fprintln(os.Stderr)
+	}
 }
 
 func filterWorktreesByArgs(worktrees []model.WorktreeInfo, args []string) []model.WorktreeInfo {
