@@ -2,21 +2,21 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.5.12 - Unreleased
+## 1.0.0 - Unreleased
 
-### Added
-
-- Shell integration via `autowt shell-init <shell>` for bash, zsh, and fish. When enabled, worktree switches `cd` in your current shell instead of opening a new tab, so `source .env`, `conda activate`, and similar commands work natively. Includes a `--dry-run` flag to preview what would be eval'd.
-- Tab completion for `autowt switch` completes branch names that have existing worktrees. Activated automatically by `shell-init`.
-- `autowt hook <hook_name>` command to run a specific lifecycle hook standalone, so other worktree tools can shell out to autowt instead of duplicating hook configuration
+Complete rewrite in Go. All features from the Python version are preserved. The CLI interface, configuration files, and hook system are fully compatible.
 
 ### Changed
 
-- CLI startup is ~2x faster for non-TUI commands (`ls`, `switch <branch>`, `cleanup <branch>`, etc.) by lazy-importing Textual
-
-### Fixed
+- autowt is now distributed as a static binary instead of a Python package. Install via `go install`, `mise`, or download from GitHub Releases.
+- Interactive TUIs rebuilt with bubbletea (replacing Textual)
+- Terminal automation now uses automate-terminal as a Go library (no subprocess overhead)
+- Version update notifications now check GitHub Releases instead of PyPI
 
 ### Removed
+
+- Python runtime dependency
+- `pip install autowt` installation method (use `go install` or binary download instead)
 
 ## 0.5.11 - 2026-04-22
 
