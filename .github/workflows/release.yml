@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          LDFLAGS="-s -w -X github.com/irskep/autowt/internal/cli.version=${GITHUB_REF_NAME}"
+
+          for pair in darwin/arm64 linux/amd64 linux/arm64; do
+            os="${pair%/*}"
+            arch="${pair#*/}"
+            GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/autowt-${os}-${arch}" .
+            GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/awt-${os}-${arch}" ./cmd/awt
+          done
+
+      - name: Determine prerelease
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if echo "$TAG" | grep -qE '(rc|dev|alpha|beta)'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FLAGS="--title $GITHUB_REF_NAME --generate-notes"
+          if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then
+            FLAGS="$FLAGS --prerelease"
+          fi
+          gh release create "$GITHUB_REF_NAME" $FLAGS dist/*

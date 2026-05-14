@@ -5,6 +5,7 @@ python.uv_venv_auto = true
 python = "3.12"
 uv = "latest"
 jq = "latest"
+go = "1.26"
 
 [env]
 _.python.venv = { path = ".venv" }
@@ -20,6 +21,11 @@ claude-hook-lint = "./scripts/claude-hook-lint.sh"
 sync-readme = "uv run python scripts/sync_readme.py"
 "docs:install" = "uv sync --group docs --group dev"
 "docs:prep" = "cp CHANGELOG.md docs/CHANGELOG.md"
+
+"go:build" = "go build -o autowt . && go build -o awt ./cmd/awt"
+"go:vet" = "go vet ./..."
+"go:run" = "go run ."
+"go:test" = "go test ./..."
 
 [tasks."docs:serve"]
 run = "uv run zensical serve"

@@ -76,12 +76,19 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
 ## Getting started
 
-You'll need Python 3.10+ and a version of `git` released less than ten years ago (2.5+).
+You'll need `git` 2.5+ (anything from the last ten years).
 
-First, install autowt:
+Install autowt using one of:
 
 ```bash
-pip install autowt
+# go install
+go install github.com/irskep/autowt@latest
+
+# mise (in any repo's mise.toml)
+mise use go:github.com/irskep/autowt
+
+# or download a binary from GitHub Releases
+# https://github.com/irskep/autowt/releases
 ```
 
 Optionally, set up shell integration so worktree switches `cd` in your current shell:
