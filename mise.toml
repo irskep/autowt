@@ -22,7 +22,7 @@ sync-readme = "uv run python scripts/sync_readme.py"
 "docs:install" = "uv sync --group docs --group dev"
 "docs:prep" = "cp CHANGELOG.md docs/CHANGELOG.md"
 
-"go:build" = "go build -o autowt ."
+"go:build" = "go build -o autowt . && go build -o awt ./cmd/awt"
 "go:vet" = "go vet ./..."
 "go:run" = "go run ."
 "go:test" = "go test ./..."
