@@ -1,12 +1,15 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/google/shlex"
 	"github.com/irskep/autowt/internal/branch"
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/hooks"
@@ -472,7 +475,10 @@ func resolveCanonicalBranch(a *app, cfg config.Config, branchName string, worktr
 }
 
 func resolveCustomScript(cfg config.Config, spec string) (model.CustomScript, []string, bool) {
-	parts := strings.Fields(spec)
+	parts, err := shlex.Split(spec)
+	if err != nil {
+		return model.CustomScript{}, nil, false
+	}
 	if len(parts) == 0 {
 		return model.CustomScript{}, nil, false
 	}
@@ -500,11 +506,17 @@ func resolveCustomScript(cfg config.Config, spec string) (model.CustomScript, []
 	return cs, args, true
 }
 
-func executeBranchNameCommand(cmd, repoPath string) (string, error) {
-	c := exec.Command("sh", "-c", cmd)
+func executeBranchNameCommand(cmdStr, repoPath string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	c := exec.CommandContext(ctx, "sh", "-c", cmdStr)
 	c.Dir = repoPath
 	out, err := c.Output()
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("branch_name command timed out after 30 seconds")
+		}
 		return "", err
 	}
 	raw := strings.TrimSpace(string(out))

@@ -49,6 +49,13 @@ func (s *Service) FindRepoRoot(startDir string) (string, error) {
 			return dir, nil
 		}
 
+		// Check for bare repos in subdirectories (*.git pattern).
+		if bareDir, err := findBareRepoInDir(dir); err != nil {
+			return "", err
+		} else if bareDir != "" {
+			return bareDir, nil
+		}
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			break
@@ -97,6 +104,36 @@ func isBareRepo(dir string) bool {
 		}
 	}
 	return true
+}
+
+// findBareRepoInDir looks for *.git subdirectories that are bare repos.
+// Returns an error if multiple are found (ambiguous).
+func findBareRepoInDir(dir string) (string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "", nil
+	}
+	var found []string
+	for _, e := range entries {
+		if e.IsDir() && strings.HasSuffix(e.Name(), ".git") {
+			sub := filepath.Join(dir, e.Name())
+			if isBareRepo(sub) {
+				found = append(found, sub)
+			}
+		}
+	}
+	switch len(found) {
+	case 0:
+		return "", nil
+	case 1:
+		return found[0], nil
+	default:
+		names := make([]string, len(found))
+		for i, f := range found {
+			names[i] = filepath.Base(f)
+		}
+		return "", fmt.Errorf("multiple bare git repositories found in %s: %s. Please run autowt from within one of the specific repository directories", dir, strings.Join(names, ", "))
+	}
 }
 
 // GetCurrentBranch returns the current branch name for the repo at path.

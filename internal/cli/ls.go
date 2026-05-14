@@ -36,7 +36,7 @@ func runLs() error {
 	}
 
 	if len(worktrees) == 0 {
-		fmt.Fprintln(os.Stderr, "  No worktrees found.")
+		fmt.Println("  No worktrees found.")
 		return nil
 	}
 
@@ -51,7 +51,7 @@ func runLs() error {
 		termWidth = w
 	}
 
-	fmt.Fprintln(os.Stderr, "  Worktrees:")
+	fmt.Println("  Worktrees:")
 	for _, wt := range worktrees {
 		isCurrent := currentWT != nil && currentWT.Path == wt.Path
 		line := formatWorktreeLine(wt, isCurrent, termWidth)

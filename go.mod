@@ -5,6 +5,7 @@ go 1.26.0
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/irskep/automate-terminal v0.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/term v0.43.0
