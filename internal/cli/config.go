@@ -37,21 +37,21 @@ func showConfig() error {
 		return err
 	}
 
-	fmt.Printf("Terminal mode:       %s\n", cfg.Terminal.Mode)
-	fmt.Printf("Always new session:  %v\n", cfg.Terminal.AlwaysNew)
+	console.Plain(fmt.Sprintf("Terminal mode:       %s", cfg.Terminal.Mode))
+	console.Plain(fmt.Sprintf("Always new session:  %v", cfg.Terminal.AlwaysNew))
 	if cfg.Terminal.Program != "" {
-		fmt.Printf("Terminal program:    %s\n", cfg.Terminal.Program)
+		console.Plain(fmt.Sprintf("Terminal program:    %s", cfg.Terminal.Program))
 	}
-	fmt.Printf("Directory pattern:   %s\n", cfg.Worktree.DirectoryPattern)
-	fmt.Printf("Auto fetch:          %v\n", cfg.Worktree.AutoFetch)
+	console.Plain(fmt.Sprintf("Directory pattern:   %s", cfg.Worktree.DirectoryPattern))
+	console.Plain(fmt.Sprintf("Auto fetch:          %v", cfg.Worktree.AutoFetch))
 	if cfg.Worktree.BranchPrefix != "" {
-		fmt.Printf("Branch prefix:       %s\n", cfg.Worktree.BranchPrefix)
+		console.Plain(fmt.Sprintf("Branch prefix:       %s", cfg.Worktree.BranchPrefix))
 	}
-	fmt.Printf("Default cleanup:     %s\n", cfg.Cleanup.DefaultMode)
+	console.Plain(fmt.Sprintf("Default cleanup:     %s", cfg.Cleanup.DefaultMode))
 	if cfg.Scripts.SessionInit != "" {
-		fmt.Printf("Session init:        %s\n", cfg.Scripts.SessionInit)
+		console.Plain(fmt.Sprintf("Session init:        %s", cfg.Scripts.SessionInit))
 	}
-	fmt.Printf("Global config:       %s\n", a.Config.GlobalConfigFile)
+	console.Plain(fmt.Sprintf("Global config:       %s", a.Config.GlobalConfigFile))
 
 	return nil
 }

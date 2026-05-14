@@ -62,14 +62,14 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 
 		if !a.Config.HasUserConfiguredCleanupMode() {
 			// First-run prompt.
-			fmt.Println("Select your default cleanup mode:")
-			fmt.Println("  1. interactive - Choose which worktrees to remove")
-			fmt.Println("  2. merged      - Remove branches merged into main")
-			fmt.Println("  3. remoteless  - Remove branches without remote tracking")
+			console.Section("Select your default cleanup mode:")
+			console.Plain("  1. interactive - Choose which worktrees to remove")
+			console.Plain("  2. merged      - Remove branches merged into main")
+			console.Plain("  3. remoteless  - Remove branches without remote tracking")
 			if a.GitHub.IsAvailable() {
-				fmt.Println("  4. github      - Remove branches with merged/closed PRs")
+				console.Plain("  4. github      - Remove branches with merged/closed PRs")
 			}
-			fmt.Print("Choice [1]: ")
+			fmt.Fprint(os.Stderr, "Choice [1]: ")
 			var choice string
 			fmt.Scanln(&choice)
 			switch strings.TrimSpace(choice) {

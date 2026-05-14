@@ -5,10 +5,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
+
+var dimStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 
 func newLsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -36,14 +40,14 @@ func runLs() error {
 	}
 
 	if a.Opts.Debug {
-		fmt.Println("  Debug Information:")
-		fmt.Printf("    Config file: %s\n", a.Config.GlobalConfigFile)
-		fmt.Printf("    Git repository root: %s\n", repoPath)
-		fmt.Println()
+		console.Section("  Debug Information:")
+		console.Plain(fmt.Sprintf("    Config file: %s", a.Config.GlobalConfigFile))
+		console.Plain(fmt.Sprintf("    Git repository root: %s", repoPath))
+		console.Plain("")
 	}
 
 	if len(worktrees) == 0 {
-		fmt.Println("  No worktrees found.")
+		console.Plain("  No worktrees found.")
 		return nil
 	}
 
@@ -58,14 +62,14 @@ func runLs() error {
 		termWidth = w
 	}
 
-	fmt.Println("  Worktrees:")
+	console.Section("  Worktrees:")
 	for _, wt := range worktrees {
 		isCurrent := currentWT != nil && currentWT.Path == wt.Path
 		line := formatWorktreeLine(wt, isCurrent, termWidth)
-		fmt.Println(line)
+		console.Plain(line)
 	}
-	fmt.Println()
-	fmt.Println("Use 'autowt <branch>' to switch to a worktree or create a new one.")
+	console.Plain("")
+	console.Plain("Use 'autowt <branch>' to switch to a worktree or create a new one.")
 	return nil
 }
 
@@ -97,8 +101,8 @@ func formatWorktreeLine(wt model.WorktreeInfo, isCurrent bool, termWidth int) st
 	mainTag := ""
 	mainTagLen := 0
 	if wt.IsPrimary {
-		mainTag = " (main worktree)"
-		mainTagLen = len(mainTag)
+		mainTag = dimStyle.Render(" (main worktree)")
+		mainTagLen = len(" (main worktree)")
 	}
 
 	arrow := ""
