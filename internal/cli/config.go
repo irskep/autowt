@@ -2,8 +2,8 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
+	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -69,7 +69,7 @@ func editConfig() error {
 		return err
 	}
 	if result == nil {
-		fmt.Fprintln(os.Stderr, "Configuration edit cancelled.")
+		console.Info("Configuration edit cancelled.")
 		return nil
 	}
 
@@ -77,6 +77,6 @@ func editConfig() error {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr, "Configuration saved.")
+	console.Success("Configuration saved.")
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/spf13/cobra"
 )
@@ -45,7 +46,7 @@ func runHook(hookName string) error {
 	all := append(globalScripts, projectScripts...)
 
 	if len(all) == 0 {
-		fmt.Fprintf(os.Stderr, "No %s hooks configured\n", hookName)
+		console.Infof("No %s hooks configured", hookName)
 		return nil
 	}
 

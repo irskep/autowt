@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/irskep/autowt/internal/config"
+	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
@@ -81,11 +82,11 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 			default:
 				mode = model.CleanupModeInteractive
 			}
-			fmt.Fprintf(os.Stderr, "\nSaving '%s' as your default cleanup mode...\n", mode)
+			console.Infof("Saving '%s' as your default cleanup mode...", mode)
 			if err := a.Config.SaveCleanupMode(mode); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to save preference: %v\n", err)
+				console.Warningf("failed to save preference: %v", err)
 			}
-			fmt.Fprintln(os.Stderr, "You can change this later using 'autowt config' or by editing config.toml")
+			console.Info("You can change this later using 'autowt config' or by editing config.toml")
 		} else {
 			mode = cfg.Cleanup.DefaultMode
 		}
@@ -97,12 +98,12 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 	}
 
 	// Fetch branches.
-	fmt.Fprintln(os.Stderr, "Fetching branches...")
+	console.Info("Fetching branches...")
 	if err := a.Git.FetchBranches(repoPath); err != nil {
-		fmt.Fprintln(os.Stderr, "Warning: Failed to fetch latest branches")
+		console.Warning("Failed to fetch latest branches")
 	}
 
-	fmt.Fprintln(os.Stderr, "Checking branch status...")
+	console.Info("Checking branch status...")
 
 	worktrees, err := a.Git.ListWorktrees(repoPath)
 	if err != nil {
@@ -118,7 +119,7 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 	}
 
 	if len(secondary) == 0 {
-		fmt.Fprintln(os.Stderr, "No secondary worktrees found.")
+		console.Info("No secondary worktrees found.")
 		return nil
 	}
 
@@ -159,7 +160,7 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 			}
 		}
 		if len(toCleanup) == 0 {
-			fmt.Fprintln(os.Stderr, "No worktrees selected for cleanup.")
+			console.Info("No worktrees selected for cleanup.")
 			return nil
 		}
 	}
@@ -173,11 +174,11 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 		dryPrefix = "[DRY RUN] "
 	}
 
-	fmt.Fprintf(os.Stderr, "\n%sWorktrees to be removed:\n", dryPrefix)
+	console.Section(fmt.Sprintf("%sWorktrees to be removed:", dryPrefix))
 	for _, bs := range toCleanup {
-		fmt.Fprintf(os.Stderr, "- %s (%s)\n", bs.Branch, model.FormatPath(bs.Path))
+		console.Plain(fmt.Sprintf("- %s (%s)", bs.Branch, model.FormatPath(bs.Path)))
 	}
-	fmt.Fprintln(os.Stderr)
+	console.Plain("")
 
 	if mode != model.CleanupModeInteractive && !flagAutoConfirm {
 		action := "cleanup"
@@ -185,7 +186,7 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 			action = "dry run"
 		}
 		if !prompt.ConfirmDefaultYes(fmt.Sprintf("Proceed with %s?", action)) {
-			fmt.Fprintln(os.Stderr, "Cleanup cancelled.")
+			console.Info("Cleanup cancelled.")
 			return nil
 		}
 	}
@@ -196,35 +197,35 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 		globalScripts, projectScripts := hooks.ExtractScripts(globalHookCfg, projectHookCfg, hooks.PreCleanup)
 		if len(globalScripts) > 0 || len(projectScripts) > 0 {
 			for _, bs := range toCleanup {
-				fmt.Fprintf(os.Stderr, "Running pre_cleanup hooks for %s\n", bs.Branch)
+				console.Infof("Running pre_cleanup hooks for %s", bs.Branch)
 				a.Hooks.RunHooks(globalScripts, projectScripts, hooks.PreCleanup, bs.Path, repoPath, bs.Branch)
 			}
 		}
 	}
 
 	// Remove worktrees.
-	fmt.Fprintf(os.Stderr, "%sRemoving worktrees...\n", dryPrefix)
+	console.Infof("%sRemoving worktrees...", dryPrefix)
 	var removedBranches []string
 	removedCount := 0
 
 	for _, bs := range toCleanup {
 		if dryRun {
-			fmt.Fprintf(os.Stderr, "%sWould remove %s\n", dryPrefix, bs.Branch)
+			console.Infof("%sWould remove %s", dryPrefix, bs.Branch)
 			removedBranches = append(removedBranches, bs.Branch)
 			removedCount++
 		} else {
 			err := a.Git.RemoveWorktree(repoPath, bs.Path, force)
 			if err != nil && !force {
 				// Offer interactive retry with --force for dirty worktrees.
-				fmt.Fprintf(os.Stderr, "Git error: %v\n", err)
+				console.Errorf("Git error: %v", err)
 				if prompt.ConfirmDefaultNo("Retry with --force to remove worktree with modified files?") {
 					err = a.Git.RemoveWorktree(repoPath, bs.Path, true)
 				}
 			}
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to remove %s: %v\n", bs.Branch, err)
+				console.Errorf("Failed to remove %s: %v", bs.Branch, err)
 			} else {
-				fmt.Fprintf(os.Stderr, "Removed %s\n", bs.Branch)
+				console.Successf("Removed %s", bs.Branch)
 				removedBranches = append(removedBranches, bs.Branch)
 				removedCount++
 			}
@@ -236,9 +237,9 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	if len(removedBranches) > 0 {
 		shouldDelete := flagAutoConfirm
 		if !flagAutoConfirm {
-			fmt.Fprintf(os.Stderr, "\n%sThe following local branches will be deleted:\n", dryPrefix)
+			console.Section(fmt.Sprintf("%sThe following local branches will be deleted:", dryPrefix))
 			for _, b := range removedBranches {
-				fmt.Fprintf(os.Stderr, "  - %s\n", b)
+				console.Plain(fmt.Sprintf("  - %s", b))
 			}
 			action := "Delete"
 			if dryRun {
@@ -248,16 +249,16 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 		}
 
 		if shouldDelete {
-			fmt.Fprintf(os.Stderr, "%sDeleting local branches...\n", dryPrefix)
+			console.Infof("%sDeleting local branches...", dryPrefix)
 			for _, b := range removedBranches {
 				if dryRun {
-					fmt.Fprintf(os.Stderr, "%sWould delete branch %s\n", dryPrefix, b)
+					console.Infof("%sWould delete branch %s", dryPrefix, b)
 					deletedCount++
 				} else {
 					if err := a.Git.DeleteBranch(repoPath, b); err != nil {
-						fmt.Fprintf(os.Stderr, "Failed to delete branch %s: %v\n", b, err)
+						console.Errorf("Failed to delete branch %s: %v", b, err)
 					} else {
-						fmt.Fprintf(os.Stderr, "Deleted branch %s\n", b)
+						console.Successf("Deleted branch %s", b)
 						deletedCount++
 					}
 				}
@@ -271,7 +272,7 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 		globalScripts, projectScripts := hooks.ExtractScripts(globalHookCfg, projectHookCfg, hooks.PostCleanup)
 		if len(globalScripts) > 0 || len(projectScripts) > 0 {
 			for _, bs := range toCleanup {
-				fmt.Fprintf(os.Stderr, "Running post_cleanup hooks for %s\n", bs.Branch)
+				console.Infof("Running post_cleanup hooks for %s", bs.Branch)
 				a.Hooks.RunHooks(globalScripts, projectScripts, hooks.PostCleanup, bs.Path, repoPath, bs.Branch)
 			}
 		}
@@ -290,7 +291,7 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 		}
 		summary += fmt.Sprintf(" and %s %d local branches", deleteVerb, deletedCount)
 	}
-	fmt.Fprintln(os.Stderr, summary+".")
+	console.Success(summary+".")
 
 	return nil
 }
@@ -306,18 +307,18 @@ func displayBranchStatus(mode model.CleanupMode, statuses []model.BranchStatus) 
 			}
 		}
 		if len(merged) > 0 {
-			fmt.Fprintln(os.Stderr, "Branches with merged or closed PRs:")
+			console.Info("Branches with merged or closed PRs:")
 			for _, b := range merged {
-				fmt.Fprintf(os.Stderr, "- %s\n", b)
+				console.Plain(fmt.Sprintf("- %s", b))
 			}
-			fmt.Fprintln(os.Stderr)
+			console.Plain("")
 		}
 		if len(open) > 0 {
-			fmt.Fprintln(os.Stderr, "Branches with open or no PRs (will be kept):")
+			console.Info("Branches with open or no PRs (will be kept):")
 			for _, b := range open {
-				fmt.Fprintf(os.Stderr, "- %s\n", b)
+				console.Plain(fmt.Sprintf("- %s", b))
 			}
-			fmt.Fprintln(os.Stderr)
+			console.Plain("")
 		}
 		return
 	}
@@ -335,25 +336,25 @@ func displayBranchStatus(mode model.CleanupMode, statuses []model.BranchStatus) 
 		}
 	}
 	if len(remoteless) > 0 {
-		fmt.Fprintln(os.Stderr, "Branches without remotes:")
+		console.Info("Branches without remotes:")
 		for _, b := range remoteless {
-			fmt.Fprintf(os.Stderr, "- %s\n", b)
+			console.Plain(fmt.Sprintf("- %s", b))
 		}
-		fmt.Fprintln(os.Stderr)
+		console.Plain("")
 	}
 	if len(identical) > 0 {
-		fmt.Fprintln(os.Stderr, "Branches identical to main:")
+		console.Info("Branches identical to main:")
 		for _, b := range identical {
-			fmt.Fprintf(os.Stderr, "- %s\n", b)
+			console.Plain(fmt.Sprintf("- %s", b))
 		}
-		fmt.Fprintln(os.Stderr)
+		console.Plain("")
 	}
 	if len(merged) > 0 {
-		fmt.Fprintln(os.Stderr, "Branches that were merged:")
+		console.Info("Branches that were merged:")
 		for _, b := range merged {
-			fmt.Fprintf(os.Stderr, "- %s\n", b)
+			console.Plain(fmt.Sprintf("- %s", b))
 		}
-		fmt.Fprintln(os.Stderr)
+		console.Plain("")
 	}
 }
 
@@ -418,7 +419,7 @@ func filterClean(statuses []model.BranchStatus) []model.BranchStatus {
 		}
 	}
 	if dirtyCount > 0 {
-		fmt.Fprintf(os.Stderr, "Skipping %d worktree(s) with uncommitted changes\n", dirtyCount)
+		console.Infof("Skipping %d worktree(s) with uncommitted changes", dirtyCount)
 	}
 	return clean
 }
@@ -450,9 +451,9 @@ func interactiveSelection(statuses []model.BranchStatus) []model.BranchStatus {
 }
 
 func textInteractiveSelection(statuses []model.BranchStatus) []model.BranchStatus {
-	fmt.Fprintln(os.Stderr, "\nInteractive cleanup mode")
-	fmt.Fprintln(os.Stderr, "Select worktrees to remove:")
-	fmt.Fprintln(os.Stderr)
+	console.Section("\nInteractive cleanup mode")
+	console.Info("Select worktrees to remove:")
+	console.Plain("")
 
 	var selected []model.BranchStatus
 	for i, bs := range statuses {
@@ -474,7 +475,7 @@ func textInteractiveSelection(statuses []model.BranchStatus) []model.BranchStatu
 	}
 
 	if len(selected) > 0 {
-		fmt.Fprintf(os.Stderr, "\nSelected %d worktrees for removal.\n", len(selected))
+		console.Infof("Selected %d worktrees for removal.", len(selected))
 	}
 	return selected
 }

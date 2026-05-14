@@ -12,6 +12,7 @@ import (
 	"github.com/google/shlex"
 	"github.com/irskep/autowt/internal/branch"
 	"github.com/irskep/autowt/internal/config"
+	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
@@ -98,7 +99,7 @@ func runInteractiveSwitch() error {
 		return err
 	}
 
-	fmt.Fprintln(os.Stderr, "Fetching branches...")
+	console.Info("Fetching branches...")
 	a.Git.FetchBranches(repoPath)
 
 	// Get all local branches.
@@ -215,12 +216,12 @@ func runSwitch(opts switchOpts) error {
 
 			if cs.BranchName != "" {
 				// Dynamic branch name from command.
-				fmt.Fprintf(os.Stderr, "Generating branch name: %s\n", cs.BranchName)
+				console.Infof("Generating branch name: %s", cs.BranchName)
 				dynamicBranch, err := executeBranchNameCommand(cs.BranchName, repoPath)
 				if err != nil {
 					return fmt.Errorf("failed to resolve dynamic branch name: %w", err)
 				}
-				fmt.Fprintf(os.Stderr, "Branch: %s\n", dynamicBranch)
+				console.Infof("Branch: %s", dynamicBranch)
 				opts.Branch = dynamicBranch
 			} else if opts.Branch == "" && len(scriptArgs) > 0 {
 				// Simple format: first arg is the branch name.
@@ -235,7 +236,7 @@ func runSwitch(opts switchOpts) error {
 
 	// Resolve branch-or-path argument.
 	resolved, err := a.Git.ResolveWorktreeArgument(opts.Branch, func(name string) bool {
-		fmt.Fprintf(os.Stderr, "Directory '%s' exists locally.\n", name)
+		console.Infof("Directory '%s' exists locally.", name)
 		return prompt.ConfirmDefaultYes(fmt.Sprintf("Did you mean to switch to branch '%s'? (no = use directory './%s')", name, name))
 	})
 	if err != nil {
@@ -260,6 +261,13 @@ func runSwitch(opts switchOpts) error {
 		termMode = model.TerminalMode(opts.Terminal)
 	}
 
+	// Suppress styled output in echo mode (but not shell integration,
+	// where stdout is a real TTY and the cd command goes to a file).
+	if termMode == model.TerminalModeEcho && shellIntegrationFile == "" {
+		console.Suppressed = true
+		defer func() { console.Suppressed = false }()
+	}
+
 	// Check if worktree already exists.
 	for _, wt := range worktrees {
 		if wt.Branch == opts.Branch {
@@ -270,7 +278,7 @@ func runSwitch(opts switchOpts) error {
 	// New worktree: confirm if dynamic command.
 	if opts.FromDynamic && !flagAutoConfirm {
 		if !prompt.ConfirmDefaultYes(fmt.Sprintf("Create a branch '%s' and worktree?", opts.Branch)) {
-			fmt.Fprintln(os.Stderr, "Worktree creation cancelled.")
+			console.Info("Worktree creation cancelled.")
 			return nil
 		}
 	}
@@ -285,7 +293,7 @@ func switchToExisting(a *app, wt model.WorktreeInfo, opts switchOpts, cfg config
 	cwd, _ := os.Getwd()
 	currentWT := a.Git.GetCurrentWorktree(cwd, []model.WorktreeInfo{wt})
 	if currentWT != nil && currentWT.Path == wt.Path {
-		fmt.Fprintf(os.Stderr, "Already in %s worktree\n", opts.Branch)
+		console.Infof("Already in %s worktree", opts.Branch)
 		return nil
 	}
 
@@ -313,9 +321,9 @@ func switchToExisting(a *app, wt model.WorktreeInfo, opts switchOpts, cfg config
 func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Config, projectHookCfg config.HookConfig, termMode model.TerminalMode, sessionInitScript string, customScript *model.CustomScript) error {
 	// Fetch branches.
 	if cfg.Worktree.AutoFetch {
-		fmt.Fprintln(os.Stderr, "Fetching branches...")
+		console.Info("Fetching branches...")
 		if err := a.Git.FetchBranches(repoPath); err != nil {
-			fmt.Fprintln(os.Stderr, "Warning: Failed to fetch latest branches")
+			console.Warning("Failed to fetch latest branches")
 		}
 	}
 
@@ -324,7 +332,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 		exists, remoteName := a.Git.CheckRemoteBranchAvailability(repoPath, opts.Branch)
 		if exists && !flagAutoConfirm {
 			if !prompt.ConfirmDefaultYes(fmt.Sprintf("Branch '%s' exists on remote '%s'. Create a local worktree tracking the remote branch?", opts.Branch, remoteName)) {
-				fmt.Fprintln(os.Stderr, "Worktree creation cancelled.")
+				console.Info("Worktree creation cancelled.")
 				return nil
 			}
 		}
@@ -338,9 +346,9 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 	for _, wt := range worktrees {
 		if wt.Path == worktreePath && wt.Branch != opts.Branch {
 			alt := generateAlternativePath(worktreePath, worktrees)
-			fmt.Fprintf(os.Stderr, "That branch's original worktree is now on a different branch ('%s')\n", wt.Branch)
+			console.Infof("That branch's original worktree is now on a different branch ('%s')", wt.Branch)
 			if !prompt.ConfirmDefaultYes(fmt.Sprintf("Create a new worktree at %s?", alt)) {
-				fmt.Fprintln(os.Stderr, "Worktree creation cancelled.")
+				console.Info("Worktree creation cancelled.")
 				return nil
 			}
 			worktreePath = alt
@@ -348,7 +356,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Creating worktree for %s...\n", opts.Branch)
+	console.Infof("Creating worktree for %s...", opts.Branch)
 
 	// Pre-create hooks.
 	if err := runHookSet(a, hooks.PreCreate, worktreePath, repoPath, cfg, projectHookCfg, opts.Branch, customScript, true); err != nil {
@@ -359,7 +367,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 	if err := a.Git.CreateWorktree(repoPath, opts.Branch, worktreePath, opts.From); err != nil {
 		return fmt.Errorf("failed to create worktree for %s: %w", opts.Branch, err)
 	}
-	fmt.Fprintf(os.Stderr, "Worktree created at %s\n", worktreePath)
+	console.Successf("Worktree created at %s", worktreePath)
 
 	// Post-create hooks.
 	if err := runHookSet(a, hooks.PostCreate, worktreePath, repoPath, cfg, projectHookCfg, opts.Branch, customScript, true); err != nil {
@@ -394,7 +402,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 		runHookSet(a, hooks.PostCreateAsync, worktreePath, repoPath, cfg, projectHookCfg, opts.Branch, customScript, false)
 	}
 
-	fmt.Fprintf(os.Stderr, "Switched to new %s worktree\n", opts.Branch)
+	console.Successf("Switched to new %s worktree", opts.Branch)
 	return nil
 }
 
@@ -569,13 +577,13 @@ func runHookSet(a *app, hookType, worktreePath, repoPath string, cfg config.Conf
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Running %s hooks for %s\n", hookType, branchName)
+	console.Infof("Running %s hooks for %s", hookType, branchName)
 	for _, script := range merged {
 		if err := a.Hooks.RunHook(script, hookType, worktreePath, repoPath, branchName); err != nil {
 			if abortOnFailure {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "Warning: %s hook failed, continuing: %v\n", hookType, err)
+			console.Warningf("%s hook failed, continuing: %v", hookType, err)
 		}
 	}
 	return nil
