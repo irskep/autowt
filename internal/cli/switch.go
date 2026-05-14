@@ -12,6 +12,7 @@ import (
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
+	"github.com/irskep/autowt/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -32,8 +33,7 @@ func newSwitchCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				fmt.Fprintln(os.Stderr, "switch: interactive mode not yet implemented")
-				return nil
+				return runInteractiveSwitch()
 			}
 
 			return runSwitch(switchOpts{
@@ -57,6 +57,54 @@ func newSwitchCmd() *cobra.Command {
 	cmd.Flags().StringVar(&flagDir, "dir", "", "Directory path for the new worktree")
 
 	return cmd
+}
+
+func runInteractiveSwitch() error {
+	a := newApp()
+
+	repoPath, err := a.Git.FindRepoRoot("")
+	if err != nil {
+		return fmt.Errorf("not in a git repository")
+	}
+
+	worktrees, err := a.Git.ListWorktrees(repoPath)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(os.Stderr, "Fetching branches...")
+	a.Git.FetchBranches(repoPath)
+
+	// Get all local branches.
+	allBranches := getAllLocalBranches(repoPath)
+
+	result, err := ui.RunSwitchTUI(worktrees, allBranches)
+	if err != nil {
+		return err
+	}
+	if result == nil {
+		return nil
+	}
+
+	return runSwitch(switchOpts{
+		Branch:      result.Branch,
+		FromDynamic: result.IsNew,
+	})
+}
+
+func getAllLocalBranches(repoPath string) []string {
+	out, err := exec.Command("git", "-C", repoPath, "branch", "--format=%(refname:short)").Output()
+	if err != nil {
+		return nil
+	}
+	var branches []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "*") {
+			branches = append(branches, line)
+		}
+	}
+	return branches
 }
 
 // runDynamicBranch handles unknown subcommands as branch names.

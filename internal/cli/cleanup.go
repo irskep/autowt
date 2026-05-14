@@ -9,6 +9,7 @@ import (
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
+	"github.com/irskep/autowt/internal/ui"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -362,7 +363,20 @@ func dedup(statuses []model.BranchStatus) []model.BranchStatus {
 }
 
 func interactiveSelection(statuses []model.BranchStatus) []model.BranchStatus {
-	// Simple text-based selection (TUI can be added later).
+	isTTY := term.IsTerminal(int(os.Stdin.Fd()))
+	if !isTTY {
+		return textInteractiveSelection(statuses)
+	}
+
+	selected, err := ui.RunCleanupTUI(statuses)
+	if err != nil {
+		// Fall back to text-based selection on TUI error.
+		return textInteractiveSelection(statuses)
+	}
+	return selected
+}
+
+func textInteractiveSelection(statuses []model.BranchStatus) []model.BranchStatus {
 	fmt.Fprintln(os.Stderr, "\nInteractive cleanup mode")
 	fmt.Fprintln(os.Stderr, "Select worktrees to remove:")
 	fmt.Fprintln(os.Stderr)

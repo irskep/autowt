@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/irskep/autowt/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -18,11 +19,7 @@ func newConfigCmd() *cobra.Command {
 			if flagShow {
 				return showConfig()
 			}
-			// TODO: interactive config TUI via bubbletea
-			fmt.Fprintln(os.Stderr, "Interactive config editor not yet implemented.")
-			fmt.Fprintln(os.Stderr, "Use 'autowt config --show' to view current settings,")
-			fmt.Fprintf(os.Stderr, "or edit %s directly.\n", newApp().Config.GlobalConfigFile)
-			return nil
+			return editConfig()
 		},
 	}
 
@@ -56,5 +53,30 @@ func showConfig() error {
 	}
 	fmt.Printf("Global config:       %s\n", a.Config.GlobalConfigFile)
 
+	return nil
+}
+
+func editConfig() error {
+	a := newApp()
+
+	cfg, err := a.Config.LoadGlobalOnly()
+	if err != nil {
+		return err
+	}
+
+	result, err := ui.RunConfigTUI(cfg)
+	if err != nil {
+		return err
+	}
+	if result == nil {
+		fmt.Fprintln(os.Stderr, "Configuration edit cancelled.")
+		return nil
+	}
+
+	if err := a.Config.SaveConfig(*result); err != nil {
+		return fmt.Errorf("failed to save configuration: %w", err)
+	}
+
+	fmt.Fprintln(os.Stderr, "Configuration saved.")
 	return nil
 }
