@@ -60,24 +60,31 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 	cmd.SetVersionTemplate("{{.Version}}\n")
 
 	// Register built-in subcommands.
-	cmd.AddCommand(
+	builtinGroup := &cobra.Group{ID: "builtin", Title: "Commands:"}
+	customGroup := &cobra.Group{ID: "custom", Title: "Custom Scripts:"}
+	cmd.AddGroup(builtinGroup, customGroup)
+
+	for _, sub := range []*cobra.Command{
 		newLsCmd(),
 		newSwitchCmd(),
 		newCleanupCmd(),
 		newConfigCmd(),
 		newShellInitCmd(),
 		newHookCmd(),
-	)
+	} {
+		sub.GroupID = "builtin"
+		cmd.AddCommand(sub)
+	}
 
 	// Register custom scripts from config as subcommands.
-	registerCustomScriptCommands(cmd)
+	registerCustomScriptCommands(cmd, customGroup.ID)
 
 	return cmd
 }
 
 // registerCustomScriptCommands loads config and adds cobra commands for
 // each custom script. Errors are silently ignored (config may not exist).
-func registerCustomScriptCommands(parent *cobra.Command) {
+func registerCustomScriptCommands(parent *cobra.Command, groupID string) {
 	loader := config.NewLoader()
 	gitSvc := git.NewService()
 
@@ -89,7 +96,9 @@ func registerCustomScriptCommands(parent *cobra.Command) {
 		return
 	}
 	for name, cs := range cfg.Scripts.Custom {
-		parent.AddCommand(newCustomScriptCmd(name, cs.Description))
+		sub := newCustomScriptCmd(name, cs.Description)
+		sub.GroupID = groupID
+		parent.AddCommand(sub)
 	}
 }
 
