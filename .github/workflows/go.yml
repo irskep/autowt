@@ -1,0 +1,41 @@
+name: Go
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: autowt
+
+      - uses: actions/checkout@v4
+        with:
+          repository: irskep/automate-terminal
+          ref: rewrite-it-in-go
+          path: automate-terminal
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Build
+        working-directory: autowt
+        run: go build ./...
+
+      - name: Vet
+        working-directory: autowt
+        run: go vet ./...
+
+      - name: Test
+        working-directory: autowt
+        run: go test ./...
