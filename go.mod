@@ -1,11 +1,14 @@
 module github.com/irskep/autowt
 
-go 1.24.13
+go 1.26.0
 
 require (
 	github.com/irskep/automate-terminal v0.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/term v0.43.0
 )
+
+require golang.org/x/sys v0.44.0 // indirect
 
 require (
 	github.com/BurntSushi/toml v1.6.0

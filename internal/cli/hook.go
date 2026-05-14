@@ -2,32 +2,58 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/irskep/autowt/internal/hooks"
 	"github.com/spf13/cobra"
 )
 
-var allHookTypes = []string{
-	"pre_create",
-	"post_create",
-	"post_create_async",
-	"session_init",
-	"pre_cleanup",
-	"post_cleanup",
-	"pre_switch",
-	"post_switch",
-}
-
 func newHookCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:       "hook <hook_name>",
-		Short:     "Run a specific lifecycle hook",
+		Use:   "hook <hook_name>",
+		Short: "Run a specific lifecycle hook",
+		Long: `Run the configured global and project hooks for the given hook type.
+Useful for integrating autowt's hook configuration with other worktree tools.`,
 		Args:      cobra.ExactArgs(1),
-		ValidArgs: allHookTypes,
+		ValidArgs: hooks.AllTypes,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: implement
-			fmt.Printf("hook %s: not yet implemented\n", args[0])
-			return nil
+			return runHook(args[0])
 		},
 	}
 	return cmd
+}
+
+func runHook(hookName string) error {
+	a := newApp()
+
+	repoPath, err := a.Git.FindRepoRoot("")
+	if err != nil {
+		return fmt.Errorf("not in a git repository")
+	}
+
+	branchName, err := a.Git.GetCurrentBranch(repoPath)
+	if err != nil {
+		return fmt.Errorf("could not determine current branch: %w", err)
+	}
+
+	cwd, _ := os.Getwd()
+
+	globalHookCfg := a.Config.LoadGlobalHookConfig()
+	projectHookCfg := a.Config.LoadProjectHookConfig(repoPath)
+
+	globalScripts, projectScripts := hooks.ExtractScripts(globalHookCfg, projectHookCfg, hookName)
+	all := append(globalScripts, projectScripts...)
+
+	if len(all) == 0 {
+		fmt.Fprintf(os.Stderr, "No %s hooks configured\n", hookName)
+		return nil
+	}
+
+	for _, script := range all {
+		if err := a.Hooks.RunHook(script, hookName, cwd, repoPath, branchName); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

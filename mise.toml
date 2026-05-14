@@ -5,7 +5,7 @@ python.uv_venv_auto = true
 python = "3.12"
 uv = "latest"
 jq = "latest"
-go = "1.24"
+go = "1.26"
 
 [env]
 _.python.venv = { path = ".venv" }
