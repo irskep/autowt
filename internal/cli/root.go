@@ -28,8 +28,13 @@ func newRootCmd() *cobra.Command {
 
 Use subcommands like 'ls', 'cleanup', 'config', or 'switch'.
 Or simply run 'autowt <branch>' to switch to a branch.`,
-		// No subcommand -> list worktrees.
+		// No subcommand -> list worktrees. If args are present,
+		// treat the first one as a branch name (dynamic command).
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return runDynamicBranch(args[0], args[1:])
+			}
 			return runLs()
 		},
 		SilenceUsage:  true,

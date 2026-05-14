@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
@@ -49,9 +50,9 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 	}
 	projectHookCfg := a.Config.LoadProjectHookConfig(repoPath)
 
-	// Determine mode.
+	// Determine mode. Skip mode selection when specific worktrees are given.
 	mode := model.CleanupMode(modeStr)
-	if modeStr == "" {
+	if modeStr == "" && len(worktreeArgs) == 0 {
 		isTTY := term.IsTerminal(int(os.Stdin.Fd()))
 		if !isTTY {
 			return fmt.Errorf("no TTY detected. Please specify --mode explicitly when running in scripts or CI. Available modes: all, remoteless, merged, interactive, github")
@@ -120,12 +121,14 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 		return nil
 	}
 
-	// If specific worktrees were named, filter to those.
+	// If specific worktrees were named, handle them directly (bypass mode selection).
 	if len(worktreeArgs) > 0 {
 		secondary = filterWorktreesByArgs(secondary, worktreeArgs)
 		if len(secondary) == 0 {
 			return fmt.Errorf("none of the specified worktrees were found")
 		}
+		statuses := a.Git.AnalyzeBranchesForCleanup(repoPath, secondary)
+		return executeCleanup(a, statuses, mode, repoPath, projectHookCfg, dryRun, force)
 	}
 
 	// Analyze branches.
@@ -157,7 +160,10 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 		}
 	}
 
-	// Confirm.
+	return executeCleanup(a, toCleanup, mode, repoPath, projectHookCfg, dryRun, force)
+}
+
+func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMode, repoPath string, projectHookCfg config.HookConfig, dryRun, force bool) error {
 	dryPrefix := ""
 	if dryRun {
 		dryPrefix = "[DRY RUN] "
