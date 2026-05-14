@@ -135,26 +135,39 @@ func runSwitch(opts switchOpts) error {
 	// Resolve custom script.
 	var customScript *model.CustomScript
 	if opts.CustomScript != "" {
-		cs, ok := resolveCustomScript(cfg, opts.CustomScript)
+		cs, scriptArgs, ok := resolveCustomScript(cfg, opts.CustomScript)
 		if ok {
 			customScript = &cs
-		}
-	}
 
-	// If custom script has a branch_name command, execute it.
-	if customScript != nil && customScript.BranchName != "" {
-		fmt.Fprintf(os.Stderr, "Generating branch name: %s\n", customScript.BranchName)
-		dynamicBranch, err := executeBranchNameCommand(customScript.BranchName, repoPath)
-		if err != nil {
-			return fmt.Errorf("failed to resolve dynamic branch name: %w", err)
+			if cs.BranchName != "" {
+				// Dynamic branch name from command.
+				fmt.Fprintf(os.Stderr, "Generating branch name: %s\n", cs.BranchName)
+				dynamicBranch, err := executeBranchNameCommand(cs.BranchName, repoPath)
+				if err != nil {
+					return fmt.Errorf("failed to resolve dynamic branch name: %w", err)
+				}
+				fmt.Fprintf(os.Stderr, "Branch: %s\n", dynamicBranch)
+				opts.Branch = dynamicBranch
+			} else if opts.Branch == "" && len(scriptArgs) > 0 {
+				// Simple format: first arg is the branch name.
+				opts.Branch = scriptArgs[0]
+			}
 		}
-		fmt.Fprintf(os.Stderr, "Branch: %s\n", dynamicBranch)
-		opts.Branch = dynamicBranch
 	}
 
 	if opts.Branch == "" {
 		return fmt.Errorf("no branch name provided")
 	}
+
+	// Resolve branch-or-path argument.
+	resolved, err := a.Git.ResolveWorktreeArgument(opts.Branch, func(name string) bool {
+		fmt.Fprintf(os.Stderr, "Directory '%s' exists locally.\n", name)
+		return prompt.ConfirmDefaultYes(fmt.Sprintf("Did you mean to switch to branch '%s'? (no = use directory './%s')", name, name))
+	})
+	if err != nil {
+		return err
+	}
+	opts.Branch = resolved
 
 	// Apply branch prefix.
 	worktrees, err := a.Git.ListWorktrees(repoPath)
@@ -410,18 +423,33 @@ func resolveCanonicalBranch(a *app, cfg config.Config, branchName string, worktr
 	return prefixed
 }
 
-func resolveCustomScript(cfg config.Config, spec string) (model.CustomScript, bool) {
+func resolveCustomScript(cfg config.Config, spec string) (model.CustomScript, []string, bool) {
 	parts := strings.Fields(spec)
 	if len(parts) == 0 {
-		return model.CustomScript{}, false
+		return model.CustomScript{}, nil, false
 	}
 	name := parts[0]
 	cs, ok := cfg.Scripts.Custom[name]
 	if !ok {
-		return model.CustomScript{}, false
+		return model.CustomScript{}, nil, false
 	}
-	// TODO: interpolate $1, $2, etc. from remaining args
-	return cs, true
+
+	args := parts[1:]
+
+	// Interpolate $1, $2, etc. from remaining arguments.
+	if len(args) > 0 {
+		cs.BranchName = branch.InterpolateArgs(cs.BranchName, args)
+		cs.SessionInit = branch.InterpolateArgs(cs.SessionInit, args)
+		cs.PreCreate = branch.InterpolateArgs(cs.PreCreate, args)
+		cs.PostCreate = branch.InterpolateArgs(cs.PostCreate, args)
+		cs.PostCreateAsync = branch.InterpolateArgs(cs.PostCreateAsync, args)
+		cs.PreCleanup = branch.InterpolateArgs(cs.PreCleanup, args)
+		cs.PostCleanup = branch.InterpolateArgs(cs.PostCleanup, args)
+		cs.PreSwitch = branch.InterpolateArgs(cs.PreSwitch, args)
+		cs.PostSwitch = branch.InterpolateArgs(cs.PostSwitch, args)
+	}
+
+	return cs, args, true
 }
 
 func executeBranchNameCommand(cmd, repoPath string) (string, error) {

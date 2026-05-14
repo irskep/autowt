@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
+	"github.com/irskep/autowt/internal/config"
+	"github.com/irskep/autowt/internal/git"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +54,7 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 	cmd.Version = version
 	cmd.SetVersionTemplate("{{.Version}}\n")
 
-	// Register subcommands.
+	// Register built-in subcommands.
 	cmd.AddCommand(
 		newLsCmd(),
 		newSwitchCmd(),
@@ -61,17 +64,79 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 		newHookCmd(),
 	)
 
+	// Register custom scripts from config as subcommands.
+	registerCustomScriptCommands(cmd)
+
+	return cmd
+}
+
+// registerCustomScriptCommands loads config and adds cobra commands for
+// each custom script. Errors are silently ignored (config may not exist).
+func registerCustomScriptCommands(parent *cobra.Command) {
+	loader := config.NewLoader()
+	gitSvc := git.NewService()
+
+	// Try to find the repo root for project config.
+	repoPath, _ := gitSvc.FindRepoRoot("")
+
+	cfg, err := loader.Load(repoPath, nil)
+	if err != nil {
+		return
+	}
+	for name, cs := range cfg.Scripts.Custom {
+		parent.AddCommand(newCustomScriptCmd(name, cs.Description))
+	}
+}
+
+func newCustomScriptCmd(name, description string) *cobra.Command {
+	var (
+		flagTerminal          string
+		flagAfterInit         string
+		flagIgnoreSameSession bool
+		flagFrom              string
+		flagDir               string
+	)
+
+	help := description
+	if help == "" {
+		help = fmt.Sprintf("Run custom script '%s'", name)
+	}
+
+	cmd := &cobra.Command{
+		Use:   fmt.Sprintf("%s [args...]", name),
+		Short: help,
+		Args:  cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Build the script spec: "name arg1 arg2 ..."
+			spec := name
+			if len(args) > 0 {
+				spec += " " + strings.Join(args, " ")
+			}
+
+			return runSwitch(switchOpts{
+				CustomScript:      spec,
+				Terminal:          flagTerminal,
+				AfterInit:         flagAfterInit,
+				IgnoreSameSession: flagIgnoreSameSession,
+				From:              flagFrom,
+				Dir:               flagDir,
+				FromDynamic:       true,
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flagTerminal, "terminal", "", "How to open the worktree terminal")
+	cmd.Flags().StringVar(&flagAfterInit, "after-init", "", "Command to run after session_init")
+	cmd.Flags().BoolVar(&flagIgnoreSameSession, "ignore-same-session", false, "Always create new terminal")
+	cmd.Flags().StringVar(&flagFrom, "from", "", "Source branch/commit to create worktree from")
+	cmd.Flags().StringVar(&flagDir, "dir", "", "Directory path for the new worktree")
+
 	return cmd
 }
 
 // Execute runs the root command. Unknown subcommands are treated as branch names.
 func Execute() error {
 	root := newRootCmd()
-
-	// Intercept unknown subcommand errors and treat them as branch names.
-	root.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
-		return err
-	})
 
 	err := root.Execute()
 	if err != nil {
@@ -90,18 +155,5 @@ func isUnknownCommandError(err error) bool {
 		return false
 	}
 	msg := err.Error()
-	return len(msg) > 0 && (contains(msg, "unknown command") || contains(msg, "unknown flag"))
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(msg, "unknown command") || strings.Contains(msg, "unknown flag")
 }
