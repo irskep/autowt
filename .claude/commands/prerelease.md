@@ -1,25 +1,4 @@
-1. Verify you're on the main branch and it's up to date
-2. Parse the current version from pyproject.toml
-3. Validate the version is in format `X.Y.Z.devN` (e.g., `0.5.0.dev0`)
-   - If not in this format, ERROR and tell the user to manually fix it first
-4. Create and push the tag for the **current** version:
-   ```bash
-   git tag v<current-version>
-   git push origin main
-   git push origin v<current-version>
-   ```
-5. Create the GitHub prerelease using the changelog content for the notes. Extract ALL content under the "Unreleased" section (the ### sections and their bullet points, excluding empty sections) and use it verbatim:
-   ```bash
-   gh release create v<current-version> --prerelease --title "v<current-version>" --notes "<changelog content>"
-   ```
-6. Increment the dev number: `.dev0` → `.dev1`, `.dev1` → `.dev2`, etc.
-7. Update the version in pyproject.toml with the new version
-8. Run `uv sync` to update the lock file
-9. Commit and push:
-   ```bash
-   git add pyproject.toml uv.lock
-   git commit -m "Bump to v<new-version>"
-   git push origin main
-   ```
-
-Example: code starts at `0.5.0.dev0` → tags `v0.5.0.dev0` → bumps code to `0.5.0.dev1`
+1. Ensure you're on the branch you want to prerelease from (does not need to be main).
+2. Look at existing tags to determine the next prerelease tag. If there are already rc tags for the current version (e.g. v0.2.0-rc0), increment the rc number (v0.2.0-rc1). If there are no rc tags yet, ask the user what version to prerelease.
+3. Create the tag and push it and the branch to origin. The release workflow builds binaries and creates a GitHub Release.
+4. Mark the GitHub Release as a prerelease using `gh release edit <tag> --prerelease`.
