@@ -3,6 +3,7 @@ package cli
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -34,6 +35,14 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 
 	cmd.PersistentFlags().BoolVar(&flagDebug, "debug", false, "Enable debug logging")
 	cmd.PersistentFlags().BoolVarP(&flagAutoConfirm, "yes", "y", false, "Automatically confirm all prompts")
+
+	cmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		level := slog.LevelWarn
+		if flagDebug {
+			level = slog.LevelDebug
+		}
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
+	}
 
 	// Pop AUTOWT_SHELL_INTEGRATION_FILE from env early.
 	shellIntegrationFile = os.Getenv("AUTOWT_SHELL_INTEGRATION_FILE")
