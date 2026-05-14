@@ -107,6 +107,12 @@ func (s *Service) tabMode(o SwitchOpts) error {
 
 	pasteScript := combineScripts(o.SessionInitScript, o.AfterInit)
 
+	// Warn if terminal can't paste scripts.
+	if pasteScript != nil && !caps.CanPasteCommands {
+		fmt.Fprintf(os.Stderr, "Warning: %s cannot execute paste scripts.\n", s.terminal.DisplayName())
+		fmt.Fprintf(os.Stderr, "You will need to run these commands manually:\n  %s\n", *pasteScript)
+	}
+
 	// Try to switch to existing session.
 	if !o.IgnoreSameSession && caps.CanSwitchToSession {
 		if sid := s.terminal.FindSessionByWorkingDirectory(o.WorktreePath, true); sid != nil {
@@ -135,6 +141,12 @@ func (s *Service) windowMode(o SwitchOpts) error {
 	}
 
 	pasteScript := combineScripts(o.SessionInitScript, o.AfterInit)
+
+	// Warn if terminal can't paste scripts.
+	if pasteScript != nil && !caps.CanPasteCommands {
+		fmt.Fprintf(os.Stderr, "Warning: %s cannot execute paste scripts.\n", s.terminal.DisplayName())
+		fmt.Fprintf(os.Stderr, "You will need to run these commands manually:\n  %s\n", *pasteScript)
+	}
 
 	// Try to switch to existing session.
 	if !o.IgnoreSameSession && caps.CanSwitchToSession {

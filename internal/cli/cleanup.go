@@ -192,7 +192,9 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	}
 
 	// Run pre_cleanup hooks.
-	if !dryRun {
+	if dryRun {
+		console.Info("[DRY RUN] Would run pre_cleanup hooks")
+	} else {
 		globalHookCfg := a.Config.LoadGlobalHookConfig()
 		globalScripts, projectScripts := hooks.ExtractScripts(globalHookCfg, projectHookCfg, hooks.PreCleanup)
 		if len(globalScripts) > 0 || len(projectScripts) > 0 {
@@ -267,7 +269,9 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	}
 
 	// Run post_cleanup hooks.
-	if !dryRun {
+	if dryRun {
+		console.Info("[DRY RUN] Would run post_cleanup hooks")
+	} else {
 		globalHookCfg := a.Config.LoadGlobalHookConfig()
 		globalScripts, projectScripts := hooks.ExtractScripts(globalHookCfg, projectHookCfg, hooks.PostCleanup)
 		if len(globalScripts) > 0 || len(projectScripts) > 0 {
@@ -279,19 +283,23 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	}
 
 	// Summary.
-	verb := "Removed"
-	if dryRun {
-		verb = "Would remove"
-	}
-	summary := fmt.Sprintf("\n%s%s %d worktrees", dryPrefix, verb, removedCount)
-	if deletedCount > 0 {
-		deleteVerb := "deleted"
+	if removedCount == 0 {
+		console.Infof("\n%sCleanup complete. No worktrees were removed.", dryPrefix)
+	} else {
+		verb := "Removed"
 		if dryRun {
-			deleteVerb = "would delete"
+			verb = "Would remove"
 		}
-		summary += fmt.Sprintf(" and %s %d local branches", deleteVerb, deletedCount)
+		summary := fmt.Sprintf("\n%sCleanup complete. %s %d worktrees", dryPrefix, verb, removedCount)
+		if deletedCount > 0 {
+			deleteVerb := "deleted"
+			if dryRun {
+				deleteVerb = "would delete"
+			}
+			summary += fmt.Sprintf(" and %s %d local branches", deleteVerb, deletedCount)
+		}
+		console.Success(summary + ".")
 	}
-	console.Success(summary+".")
 
 	return nil
 }
