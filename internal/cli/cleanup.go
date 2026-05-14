@@ -100,7 +100,7 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 	// Fetch branches.
 	console.Info("Fetching branches...")
 	if err := a.Git.FetchBranches(repoPath); err != nil {
-		console.Warning("Failed to fetch latest branches")
+		console.Warningf("Failed to fetch latest branches: %v", err)
 	}
 
 	console.Info("Checking branch status...")
@@ -154,8 +154,8 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 	if len(toCleanup) == 0 {
 		// Offer interactive fallback if in TTY.
 		isTTY := term.IsTerminal(int(os.Stdin.Fd()))
-		if mode != model.CleanupModeInteractive && isTTY && !flagAutoConfirm {
-			if prompt.ConfirmDefaultNo("No branches found for cleanup. Enter interactive mode?") {
+		if mode != model.CleanupModeInteractive && isTTY && !a.Opts.AutoConfirm {
+			if prompt.ConfirmNo("No branches found for cleanup. Enter interactive mode?", false) {
 				toCleanup = interactiveSelection(statuses)
 			}
 		}
@@ -180,12 +180,12 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	}
 	console.Plain("")
 
-	if mode != model.CleanupModeInteractive && !flagAutoConfirm {
+	if mode != model.CleanupModeInteractive && !a.Opts.AutoConfirm {
 		action := "cleanup"
 		if dryRun {
 			action = "dry run"
 		}
-		if !prompt.ConfirmDefaultYes(fmt.Sprintf("Proceed with %s?", action)) {
+		if !prompt.ConfirmYes(fmt.Sprintf("Proceed with %s?", action), a.Opts.AutoConfirm) {
 			console.Info("Cleanup cancelled.")
 			return nil
 		}
@@ -218,7 +218,7 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 			if err != nil && !force {
 				// Offer interactive retry with --force for dirty worktrees.
 				console.Errorf("Git error: %v", err)
-				if prompt.ConfirmDefaultNo("Retry with --force to remove worktree with modified files?") {
+				if prompt.ConfirmNo("Retry with --force to remove worktree with modified files?", false) {
 					err = a.Git.RemoveWorktree(repoPath, bs.Path, true)
 				}
 			}
@@ -235,8 +235,8 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 	// Delete local branches.
 	deletedCount := 0
 	if len(removedBranches) > 0 {
-		shouldDelete := flagAutoConfirm
-		if !flagAutoConfirm {
+		shouldDelete := a.Opts.AutoConfirm
+		if !a.Opts.AutoConfirm {
 			console.Section(fmt.Sprintf("%sThe following local branches will be deleted:", dryPrefix))
 			for _, b := range removedBranches {
 				console.Plain(fmt.Sprintf("  - %s", b))
@@ -245,7 +245,7 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 			if dryRun {
 				action = "Simulate deleting"
 			}
-			shouldDelete = prompt.ConfirmDefaultYes(fmt.Sprintf("%s these local branches?", action))
+			shouldDelete = prompt.ConfirmYes(fmt.Sprintf("%s these local branches?", action), a.Opts.AutoConfirm)
 		}
 
 		if shouldDelete {
@@ -469,7 +469,7 @@ func textInteractiveSelection(statuses []model.BranchStatus) []model.BranchStatu
 			suffix = fmt.Sprintf(" (%s)", strings.Join(info, ", "))
 		}
 
-		if prompt.ConfirmDefaultNo(fmt.Sprintf("%d. Remove %s%s?", i+1, bs.Branch, suffix)) {
+		if prompt.ConfirmNo(fmt.Sprintf("%d. Remove %s%s?", i+1, bs.Branch, suffix), false) {
 			selected = append(selected, bs)
 		}
 	}

@@ -11,8 +11,16 @@ import (
 	"github.com/irskep/autowt/internal/terminal"
 )
 
-// app holds all services used by CLI commands.
+// opts holds global CLI options parsed from flags and environment.
+type opts struct {
+	Debug                bool
+	AutoConfirm          bool
+	ShellIntegrationFile string
+}
+
+// app holds all services and options used by CLI commands.
 type app struct {
+	Opts     opts
 	Git      *git.Service
 	GitHub   *github.Service
 	Terminal *terminal.Service
@@ -20,18 +28,21 @@ type app struct {
 	Config   *config.Loader
 }
 
-// newApp creates a fully initialized app.
+// newApp creates a fully initialized app with the current global options.
 func newApp() *app {
+	o := globalOpts
+
 	ts := terminal.NewService()
 	ts.ConfirmSessionSwitch = func(branchName string) bool {
 		name := branchName
 		if name == "" {
 			name = "Worktree"
 		}
-		return prompt.ConfirmDefaultYes(fmt.Sprintf("%s already has a session. Switch to it?", name))
+		return prompt.ConfirmYes(fmt.Sprintf("%s already has a session. Switch to it?", name), o.AutoConfirm)
 	}
 
 	return &app{
+		Opts:     o,
 		Git:      git.NewService(),
 		GitHub:   github.NewService(),
 		Terminal: ts,
@@ -39,6 +50,3 @@ func newApp() *app {
 		Config:   config.NewLoader(),
 	}
 }
-
-// shellIntegrationFile is the path set by shell integration, or empty.
-var shellIntegrationFile string

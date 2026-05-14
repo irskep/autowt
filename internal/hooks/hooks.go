@@ -2,6 +2,7 @@
 package hooks
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -57,32 +58,27 @@ func (r *Runner) RunHook(script, hookType, worktreeDir, mainRepoDir, branchName 
 		workDir = mainRepoDir
 	}
 
-	cmd := exec.Command("sh", "-c", script)
-	cmd.Dir = workDir
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
 	timeout := r.Timeout
 	if timeout == 0 {
 		timeout = 60 * time.Second
 	}
 
-	done := make(chan error, 1)
-	go func() { done <- cmd.Run() }()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	select {
-	case err := <-done:
-		if err != nil {
-			return fmt.Errorf("%s hook failed: %w", hookType, err)
+	cmd := exec.CommandContext(ctx, "sh", "-c", script)
+	cmd.Dir = workDir
+	cmd.Env = env
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("%s hook timed out after %s", hookType, timeout)
 		}
-		return nil
-	case <-time.After(timeout):
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
-		return fmt.Errorf("%s hook timed out after %s", hookType, timeout)
+		return fmt.Errorf("%s hook failed: %w", hookType, err)
 	}
+	return nil
 }
 
 // RunHooks executes global then project hooks in sequence.

@@ -111,14 +111,16 @@ func readCache(path string) (cacheState, bool) {
 }
 
 func writeCache(path, latest string) {
-	os.MkdirAll(filepath.Dir(path), 0o755)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return
+	}
 	state := cacheState{Latest: latest, CheckedAt: time.Now()}
 	f, err := os.Create(path)
 	if err != nil {
 		return
 	}
 	defer f.Close()
-	toml.NewEncoder(f).Encode(state)
+	_ = toml.NewEncoder(f).Encode(state)
 }
 
 // compareVersions compares two semver-ish strings (without the "v" prefix).

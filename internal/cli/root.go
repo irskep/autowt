@@ -9,7 +9,6 @@ import (
 
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/git"
-	"github.com/irskep/autowt/internal/prompt"
 	"github.com/irskep/autowt/internal/versioncheck"
 	"github.com/spf13/cobra"
 )
@@ -17,10 +16,8 @@ import (
 // version is set at build time via ldflags.
 var version = "dev"
 
-var (
-	flagDebug       bool
-	flagAutoConfirm bool
-)
+// globalOpts is populated by PersistentPreRun before any command runs.
+var globalOpts opts
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -43,18 +40,15 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 		SilenceErrors: true,
 	}
 
-	cmd.PersistentFlags().BoolVar(&flagDebug, "debug", false, "Enable debug logging")
-	cmd.PersistentFlags().BoolVarP(&flagAutoConfirm, "yes", "y", false, "Automatically confirm all prompts")
+	cmd.PersistentFlags().BoolVar(&globalOpts.Debug, "debug", false, "Enable debug logging")
+	cmd.PersistentFlags().BoolVarP(&globalOpts.AutoConfirm, "yes", "y", false, "Automatically confirm all prompts")
 
 	cmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		level := slog.LevelWarn
-		if flagDebug {
+		if globalOpts.Debug {
 			level = slog.LevelDebug
 		}
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
-
-		// Propagate auto-confirm to the prompt package.
-		prompt.AutoConfirm = flagAutoConfirm
 
 		// Version update check (rate-limited, non-blocking).
 		stateDir := config.DefaultStateDir()
@@ -62,7 +56,7 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 	}
 
 	// Pop AUTOWT_SHELL_INTEGRATION_FILE from env early.
-	shellIntegrationFile = os.Getenv("AUTOWT_SHELL_INTEGRATION_FILE")
+	globalOpts.ShellIntegrationFile = os.Getenv("AUTOWT_SHELL_INTEGRATION_FILE")
 	os.Unsetenv("AUTOWT_SHELL_INTEGRATION_FILE")
 
 	cmd.Version = version

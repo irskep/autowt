@@ -8,26 +8,20 @@ import (
 	"strings"
 )
 
-// AutoConfirm, when true, causes all prompts to return their default
-// value without asking the user. Set this from the CLI layer.
-var AutoConfirm bool
-
-// ConfirmDefaultYes asks the user a yes/no question, defaulting to yes.
-// Returns true if the user confirms (or presses enter).
-// If AutoConfirm is set, returns true immediately.
-func ConfirmDefaultYes(question string) bool {
-	if AutoConfirm {
+// ConfirmYes asks a yes/no question defaulting to yes.
+// If autoConfirm is true, returns true without prompting.
+func ConfirmYes(question string, autoConfirm bool) bool {
+	if autoConfirm {
 		return true
 	}
 	fmt.Fprintf(os.Stderr, "%s (Y/n) ", question)
 	return readConfirmation(true)
 }
 
-// ConfirmDefaultNo asks the user a yes/no question, defaulting to no.
-// Returns true if the user explicitly enters yes.
-// If AutoConfirm is set, returns false immediately (the default).
-func ConfirmDefaultNo(question string) bool {
-	if AutoConfirm {
+// ConfirmNo asks a yes/no question defaulting to no.
+// If autoConfirm is true, returns false without prompting.
+func ConfirmNo(question string, autoConfirm bool) bool {
+	if autoConfirm {
 		return false
 	}
 	fmt.Fprintf(os.Stderr, "%s (y/N) ", question)

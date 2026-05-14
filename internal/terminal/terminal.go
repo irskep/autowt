@@ -21,6 +21,7 @@ type Service struct {
 
 	// ConfirmSessionSwitch is called to ask the user whether to switch to
 	// an existing session. If nil, switches happen without prompting.
+	// Not safe for concurrent use.
 	ConfirmSessionSwitch func(branchName string) bool
 }
 
@@ -33,17 +34,21 @@ func NewService() *Service {
 	}
 }
 
+// SwitchOpts bundles all parameters for SwitchToWorktree.
+type SwitchOpts struct {
+	WorktreePath         string
+	Mode                 model.TerminalMode
+	SessionInitScript    string
+	AfterInit            string
+	BranchName           string
+	IgnoreSameSession    bool
+	ShellIntegrationFile string
+}
+
 // SwitchToWorktree switches to a worktree using the given mode.
-func (s *Service) SwitchToWorktree(
-	worktreePath string,
-	mode model.TerminalMode,
-	sessionInitScript string,
-	afterInit string,
-	branchName string,
-	autoConfirm bool,
-	ignoreSameSession bool,
-	shellIntegrationFile string,
-) error {
+func (s *Service) SwitchToWorktree(o SwitchOpts) error {
+	mode := o.Mode
+
 	// Override to echo if test env var is set.
 	if os.Getenv("AUTOWT_TEST_FORCE_ECHO") != "" {
 		mode = model.TerminalModeEcho
@@ -51,17 +56,17 @@ func (s *Service) SwitchToWorktree(
 
 	switch mode {
 	case model.TerminalModeEcho:
-		return s.echoCommands(worktreePath, sessionInitScript, afterInit, shellIntegrationFile)
+		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
 	case model.TerminalModeInplace:
-		return s.inplaceCommands(worktreePath, sessionInitScript, afterInit)
+		return s.inplaceCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit)
 	case model.TerminalModeTab:
-		return s.tabMode(worktreePath, sessionInitScript, afterInit, branchName, autoConfirm, ignoreSameSession, shellIntegrationFile)
+		return s.tabMode(o)
 	case model.TerminalModeWindow:
-		return s.windowMode(worktreePath, sessionInitScript, afterInit, branchName, autoConfirm, ignoreSameSession, shellIntegrationFile)
+		return s.windowMode(o)
 	case model.TerminalModeVSCode:
-		return s.editorMode("code", "VSCode", worktreePath, sessionInitScript, afterInit)
+		return s.editorMode("code", "VSCode", o.WorktreePath, o.SessionInitScript, o.AfterInit)
 	case model.TerminalModeCursor:
-		return s.editorMode("cursor", "Cursor", worktreePath, sessionInitScript, afterInit)
+		return s.editorMode("cursor", "Cursor", o.WorktreePath, o.SessionInitScript, o.AfterInit)
 	default:
 		return fmt.Errorf("unknown terminal mode: %s", mode)
 	}
@@ -88,62 +93,62 @@ func (s *Service) inplaceCommands(worktreePath, sessionInit, afterInit string) e
 	return nil
 }
 
-func (s *Service) tabMode(worktreePath, sessionInit, afterInit, branchName string, autoConfirm, ignoreSameSession bool, shellIntegrationFile string) error {
+func (s *Service) tabMode(o SwitchOpts) error {
 	if s.terminal == nil {
 		slog.Warn("No terminal detected, falling back to echo")
-		return s.echoCommands(worktreePath, sessionInit, afterInit, shellIntegrationFile)
+		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
 	}
 
 	caps := s.terminal.GetCapabilities()
 	if !caps.CanCreateTabs {
 		slog.Warn("Terminal does not support tabs, falling back to echo")
-		return s.echoCommands(worktreePath, sessionInit, afterInit, shellIntegrationFile)
+		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
 	}
 
-	pasteScript := combineScripts(sessionInit, afterInit)
+	pasteScript := combineScripts(o.SessionInitScript, o.AfterInit)
 
 	// Try to switch to existing session.
-	if !ignoreSameSession && caps.CanSwitchToSession {
-		if sid := s.terminal.FindSessionByWorkingDirectory(worktreePath, true); sid != nil {
-			if s.shouldSwitchToExisting(branchName) {
+	if !o.IgnoreSameSession && caps.CanSwitchToSession {
+		if sid := s.terminal.FindSessionByWorkingDirectory(o.WorktreePath, true); sid != nil {
+			if s.shouldSwitchToExisting(o.BranchName) {
 				if err := s.terminal.SwitchToSession(*sid, pasteScript); err == nil {
-					fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(branchName))
+					fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(o.BranchName))
 					return nil
 				}
 			}
 		}
 	}
 
-	return s.terminal.OpenNewTab(worktreePath, pasteScript)
+	return s.terminal.OpenNewTab(o.WorktreePath, pasteScript)
 }
 
-func (s *Service) windowMode(worktreePath, sessionInit, afterInit, branchName string, autoConfirm, ignoreSameSession bool, shellIntegrationFile string) error {
+func (s *Service) windowMode(o SwitchOpts) error {
 	if s.terminal == nil {
 		slog.Warn("No terminal detected, falling back to echo")
-		return s.echoCommands(worktreePath, sessionInit, afterInit, shellIntegrationFile)
+		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
 	}
 
 	caps := s.terminal.GetCapabilities()
 	if !caps.CanCreateWindows {
 		slog.Warn("Terminal does not support windows, falling back to echo")
-		return s.echoCommands(worktreePath, sessionInit, afterInit, shellIntegrationFile)
+		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
 	}
 
-	pasteScript := combineScripts(sessionInit, afterInit)
+	pasteScript := combineScripts(o.SessionInitScript, o.AfterInit)
 
 	// Try to switch to existing session.
-	if !ignoreSameSession && caps.CanSwitchToSession {
-		if sid := s.terminal.FindSessionByWorkingDirectory(worktreePath, true); sid != nil {
-			if s.shouldSwitchToExisting(branchName) {
+	if !o.IgnoreSameSession && caps.CanSwitchToSession {
+		if sid := s.terminal.FindSessionByWorkingDirectory(o.WorktreePath, true); sid != nil {
+			if s.shouldSwitchToExisting(o.BranchName) {
 				if err := s.terminal.SwitchToSession(*sid, pasteScript); err == nil {
-					fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(branchName))
+					fmt.Fprintf(os.Stderr, "Switched to existing %s session\n", displayName(o.BranchName))
 					return nil
 				}
 			}
 		}
 	}
 
-	return s.terminal.OpenNewWindow(worktreePath, pasteScript)
+	return s.terminal.OpenNewWindow(o.WorktreePath, pasteScript)
 }
 
 func (s *Service) editorMode(cliCmd, editorName, worktreePath, sessionInit, afterInit string) error {

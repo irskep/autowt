@@ -35,7 +35,7 @@ func runLs() error {
 		return err
 	}
 
-	if flagDebug {
+	if a.Opts.Debug {
 		fmt.Println("  Debug Information:")
 		fmt.Printf("    Config file: %s\n", a.Config.GlobalConfigFile)
 		fmt.Printf("    Git repository root: %s\n", repoPath)

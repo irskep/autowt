@@ -16,6 +16,7 @@ import (
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
+	"github.com/irskep/autowt/internal/terminal"
 	"github.com/irskep/autowt/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -145,9 +146,9 @@ func runDynamicBranch(branchName string, extraArgs []string) error {
 	for i := 0; i < len(extraArgs); i++ {
 		switch extraArgs[i] {
 		case "-y", "--yes":
-			flagAutoConfirm = true
+			globalOpts.AutoConfirm = true
 		case "--debug":
-			flagDebug = true
+			globalOpts.Debug = true
 		case "--terminal":
 			if i+1 < len(extraArgs) {
 				i++
@@ -237,7 +238,7 @@ func runSwitch(opts switchOpts) error {
 	// Resolve branch-or-path argument.
 	resolved, err := a.Git.ResolveWorktreeArgument(opts.Branch, func(name string) bool {
 		console.Infof("Directory '%s' exists locally.", name)
-		return prompt.ConfirmDefaultYes(fmt.Sprintf("Did you mean to switch to branch '%s'? (no = use directory './%s')", name, name))
+		return prompt.ConfirmYes(fmt.Sprintf("Did you mean to switch to branch '%s'? (no = use directory './%s')", name, name), a.Opts.AutoConfirm)
 	})
 	if err != nil {
 		return err
@@ -255,7 +256,7 @@ func runSwitch(opts switchOpts) error {
 
 	// Determine terminal mode.
 	termMode := cfg.Terminal.Mode
-	if shellIntegrationFile != "" {
+	if a.Opts.ShellIntegrationFile != "" {
 		termMode = model.TerminalModeEcho
 	} else if opts.Terminal != "" {
 		termMode = model.TerminalMode(opts.Terminal)
@@ -263,7 +264,7 @@ func runSwitch(opts switchOpts) error {
 
 	// Suppress styled output in echo mode (but not shell integration,
 	// where stdout is a real TTY and the cd command goes to a file).
-	if termMode == model.TerminalModeEcho && shellIntegrationFile == "" {
+	if termMode == model.TerminalModeEcho && a.Opts.ShellIntegrationFile == "" {
 		console.Suppressed = true
 		defer func() { console.Suppressed = false }()
 	}
@@ -276,8 +277,8 @@ func runSwitch(opts switchOpts) error {
 	}
 
 	// New worktree: confirm if dynamic command.
-	if opts.FromDynamic && !flagAutoConfirm {
-		if !prompt.ConfirmDefaultYes(fmt.Sprintf("Create a branch '%s' and worktree?", opts.Branch)) {
+	if opts.FromDynamic && !a.Opts.AutoConfirm {
+		if !prompt.ConfirmYes(fmt.Sprintf("Create a branch '%s' and worktree?", opts.Branch), a.Opts.AutoConfirm) {
 			console.Info("Worktree creation cancelled.")
 			return nil
 		}
@@ -303,11 +304,14 @@ func switchToExisting(a *app, wt model.WorktreeInfo, opts switchOpts, cfg config
 	// Combine after_init and custom script session_init.
 	afterInit := combineAfterInit(opts.AfterInit, customScript)
 
-	err := a.Terminal.SwitchToWorktree(
-		wt.Path, termMode, "", afterInit,
-		opts.Branch, flagAutoConfirm, opts.IgnoreSameSession || cfg.Terminal.AlwaysNew,
-		shellIntegrationFile,
-	)
+	err := a.Terminal.SwitchToWorktree(terminal.SwitchOpts{
+		WorktreePath:         wt.Path,
+		Mode:                 termMode,
+		AfterInit:            afterInit,
+		BranchName:           opts.Branch,
+		IgnoreSameSession:    opts.IgnoreSameSession || cfg.Terminal.AlwaysNew,
+		ShellIntegrationFile: a.Opts.ShellIntegrationFile,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to switch to %s worktree: %w", opts.Branch, err)
 	}
@@ -323,15 +327,15 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 	if cfg.Worktree.AutoFetch {
 		console.Info("Fetching branches...")
 		if err := a.Git.FetchBranches(repoPath); err != nil {
-			console.Warning("Failed to fetch latest branches")
+			console.Warningf("Failed to fetch latest branches: %v", err)
 		}
 	}
 
 	// Check remote branch availability.
 	if opts.From == "" {
 		exists, remoteName := a.Git.CheckRemoteBranchAvailability(repoPath, opts.Branch)
-		if exists && !flagAutoConfirm {
-			if !prompt.ConfirmDefaultYes(fmt.Sprintf("Branch '%s' exists on remote '%s'. Create a local worktree tracking the remote branch?", opts.Branch, remoteName)) {
+		if exists && !a.Opts.AutoConfirm {
+			if !prompt.ConfirmYes(fmt.Sprintf("Branch '%s' exists on remote '%s'. Create a local worktree tracking the remote branch?", opts.Branch, remoteName), a.Opts.AutoConfirm) {
 				console.Info("Worktree creation cancelled.")
 				return nil
 			}
@@ -347,7 +351,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 		if wt.Path == worktreePath && wt.Branch != opts.Branch {
 			alt := generateAlternativePath(worktreePath, worktrees)
 			console.Infof("That branch's original worktree is now on a different branch ('%s')", wt.Branch)
-			if !prompt.ConfirmDefaultYes(fmt.Sprintf("Create a new worktree at %s?", alt)) {
+			if !prompt.ConfirmYes(fmt.Sprintf("Create a new worktree at %s?", alt), a.Opts.AutoConfirm) {
 				console.Info("Worktree creation cancelled.")
 				return nil
 			}
@@ -385,11 +389,15 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 
 	// Switch terminal.
 	afterInit := combineAfterInit(opts.AfterInit, customScript)
-	err := a.Terminal.SwitchToWorktree(
-		worktreePath, termMode, sessionInitScript, afterInit,
-		opts.Branch, flagAutoConfirm, opts.IgnoreSameSession || cfg.Terminal.AlwaysNew,
-		shellIntegrationFile,
-	)
+	err := a.Terminal.SwitchToWorktree(terminal.SwitchOpts{
+		WorktreePath:         worktreePath,
+		Mode:                 termMode,
+		SessionInitScript:    sessionInitScript,
+		AfterInit:            afterInit,
+		BranchName:           opts.Branch,
+		IgnoreSameSession:    opts.IgnoreSameSession || cfg.Terminal.AlwaysNew,
+		ShellIntegrationFile: a.Opts.ShellIntegrationFile,
+	})
 	if err != nil {
 		return fmt.Errorf("worktree created but failed to switch terminals: %w", err)
 	}

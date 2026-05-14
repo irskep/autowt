@@ -32,8 +32,8 @@ func (l *Loader) Load(projectDir string, cliOverrides map[string]any) (Config, e
 	cfg := DefaultConfig()
 
 	// Global config.
-	if data, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
-		applyTOMLData(&cfg, data)
+	if tf, md, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
+		applyTOMLFile(&cfg, tf, md)
 	} else if !os.IsNotExist(err) {
 		slog.Warn("Failed to load global config", "path", l.GlobalConfigFile, "error", err)
 	}
@@ -42,8 +42,8 @@ func (l *Loader) Load(projectDir string, cliOverrides map[string]any) (Config, e
 	if projectDir != "" {
 		for _, name := range []string{"autowt.toml", ".autowt.toml"} {
 			path := filepath.Join(projectDir, name)
-			if data, err := l.loadTOMLFile(path); err == nil {
-				applyTOMLData(&cfg, data)
+			if tf, md, err := l.loadTOMLFile(path); err == nil {
+				applyTOMLFile(&cfg, tf, md)
 				break
 			}
 		}
@@ -63,10 +63,10 @@ func (l *Loader) Load(projectDir string, cliOverrides map[string]any) (Config, e
 // LoadGlobalOnly loads only the global config (no project, env, or CLI overrides).
 func (l *Loader) LoadGlobalOnly() (Config, error) {
 	cfg := DefaultConfig()
-	if data, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
-		applyTOMLData(&cfg, data)
+	if tf, md, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
+		applyTOMLFile(&cfg, tf, md)
 	} else if !os.IsNotExist(err) {
-		return cfg, fmt.Errorf("loading global config: %w", err)
+		slog.Warn("Failed to load global config", "path", l.GlobalConfigFile, "error", err)
 	}
 	return cfg, nil
 }
@@ -75,8 +75,8 @@ func (l *Loader) LoadGlobalOnly() (Config, error) {
 func (l *Loader) LoadProjectHookConfig(projectDir string) HookConfig {
 	for _, name := range []string{"autowt.toml", ".autowt.toml"} {
 		path := filepath.Join(projectDir, name)
-		if data, err := l.loadTOMLFile(path); err == nil {
-			return hookConfigFromTOML(data)
+		if tf, _, err := l.loadTOMLFile(path); err == nil {
+			return hookConfigFromTOMLFile(tf)
 		}
 	}
 	return HookConfig{}
@@ -84,24 +84,19 @@ func (l *Loader) LoadProjectHookConfig(projectDir string) HookConfig {
 
 // LoadGlobalHookConfig loads only the global hook definitions.
 func (l *Loader) LoadGlobalHookConfig() HookConfig {
-	if data, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
-		return hookConfigFromTOML(data)
+	if tf, _, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
+		return hookConfigFromTOMLFile(tf)
 	}
 	return HookConfig{}
 }
 
 // HasUserConfiguredCleanupMode checks if the user has set a cleanup mode.
 func (l *Loader) HasUserConfiguredCleanupMode() bool {
-	data, err := l.loadTOMLFile(l.GlobalConfigFile)
+	tf, _, err := l.loadTOMLFile(l.GlobalConfigFile)
 	if err != nil {
 		return false
 	}
-	cleanup, ok := data["cleanup"].(map[string]any)
-	if !ok {
-		return false
-	}
-	_, ok = cleanup["default_mode"]
-	return ok
+	return tf.Cleanup.DefaultMode != ""
 }
 
 // SaveCleanupMode updates only the cleanup.default_mode in the global config.
@@ -143,10 +138,10 @@ func (l *Loader) SaveConfig(cfg Config) error {
 	return l.writeTOML(l.GlobalConfigFile, data)
 }
 
-func (l *Loader) loadTOMLFile(path string) (map[string]any, error) {
-	data := make(map[string]any)
-	_, err := toml.DecodeFile(path, &data)
-	return data, err
+func (l *Loader) loadTOMLFile(path string) (tomlFile, toml.MetaData, error) {
+	var tf tomlFile
+	md, err := toml.DecodeFile(path, &tf)
+	return tf, md, err
 }
 
 func (l *Loader) writeTOML(path string, data map[string]any) error {
@@ -158,166 +153,170 @@ func (l *Loader) writeTOML(path string, data map[string]any) error {
 	return toml.NewEncoder(f).Encode(data)
 }
 
-// applyTOMLData merges parsed TOML data onto an existing config.
-func applyTOMLData(cfg *Config, data map[string]any) {
-	if terminal, ok := data["terminal"]; ok {
-		switch v := terminal.(type) {
-		case string:
-			cfg.Terminal.Mode = model.TerminalMode(v)
-		case map[string]any:
-			if mode, ok := v["mode"].(string); ok {
-				cfg.Terminal.Mode = model.TerminalMode(mode)
-			}
-			if alwaysNew, ok := v["always_new"].(bool); ok {
-				cfg.Terminal.AlwaysNew = alwaysNew
-			}
-			if program, ok := v["program"].(string); ok {
-				cfg.Terminal.Program = program
-			}
-		}
-	}
-
-	if worktree, ok := data["worktree"].(map[string]any); ok {
-		if dp, ok := worktree["directory_pattern"].(string); ok {
-			cfg.Worktree.DirectoryPattern = dp
-		}
-		if af, ok := worktree["auto_fetch"].(bool); ok {
-			cfg.Worktree.AutoFetch = af
-		}
-		if bp, ok := worktree["branch_prefix"].(string); ok {
-			cfg.Worktree.BranchPrefix = bp
-		}
-	}
-
-	if cleanup, ok := data["cleanup"].(map[string]any); ok {
-		if dm, ok := cleanup["default_mode"].(string); ok {
-			cfg.Cleanup.DefaultMode = model.CleanupMode(dm)
-		}
-	}
-
-	if scripts, ok := data["scripts"].(map[string]any); ok {
-		applyScriptsData(&cfg.Scripts, scripts)
-	}
-
-	if confirmations, ok := data["confirmations"].(map[string]any); ok {
-		if cm, ok := confirmations["cleanup_multiple"].(bool); ok {
-			cfg.Confirmations.CleanupMultiple = cm
-		}
-		if fo, ok := confirmations["force_operations"].(bool); ok {
-			cfg.Confirmations.ForceOperations = fo
-		}
-	}
+// tomlFile mirrors the TOML file structure for typed decoding.
+type tomlFile struct {
+	Terminal      tomlTerminal      `toml:"terminal"`
+	Worktree      tomlWorktree      `toml:"worktree"`
+	Cleanup       tomlCleanup       `toml:"cleanup"`
+	Scripts       tomlScripts       `toml:"scripts"`
+	Confirmations tomlConfirmations `toml:"confirmations"`
 }
 
-func applyScriptsData(scripts *ScriptsConfig, data map[string]any) {
+type tomlTerminal struct {
+	Mode      string `toml:"mode"`
+	AlwaysNew *bool  `toml:"always_new"`
+	Program   string `toml:"program"`
+}
+
+type tomlWorktree struct {
+	DirectoryPattern string `toml:"directory_pattern"`
+	AutoFetch        *bool  `toml:"auto_fetch"`
+	BranchPrefix     string `toml:"branch_prefix"`
+}
+
+type tomlCleanup struct {
+	DefaultMode string `toml:"default_mode"`
+}
+
+type tomlScripts struct {
+	Init            string                      `toml:"init"` // deprecated
+	SessionInit     string                      `toml:"session_init"`
+	PreCreate       string                      `toml:"pre_create"`
+	PostCreate      string                      `toml:"post_create"`
+	PostCreateAsync string                      `toml:"post_create_async"`
+	PreCleanup      string                      `toml:"pre_cleanup"`
+	PostCleanup     string                      `toml:"post_cleanup"`
+	PreSwitch       string                      `toml:"pre_switch"`
+	PostSwitch      string                      `toml:"post_switch"`
+	Custom          map[string]toml.Primitive   `toml:"custom"`
+}
+
+type tomlCustomScript struct {
+	Description     string `toml:"description"`
+	BranchName      string `toml:"branch_name"`
+	InheritHooks    *bool  `toml:"inherit_hooks"`
+	SessionInit     string `toml:"session_init"`
+	PreCreate       string `toml:"pre_create"`
+	PostCreate      string `toml:"post_create"`
+	PostCreateAsync string `toml:"post_create_async"`
+	PreCleanup      string `toml:"pre_cleanup"`
+	PostCleanup     string `toml:"post_cleanup"`
+	PreSwitch       string `toml:"pre_switch"`
+	PostSwitch      string `toml:"post_switch"`
+}
+
+type tomlConfirmations struct {
+	CleanupMultiple *bool `toml:"cleanup_multiple"`
+	ForceOperations *bool `toml:"force_operations"`
+}
+
+// applyTOMLFile merges a decoded TOML file onto an existing config.
+func applyTOMLFile(cfg *Config, tf tomlFile, md toml.MetaData) {
+	if tf.Terminal.Mode != "" {
+		cfg.Terminal.Mode = model.TerminalMode(tf.Terminal.Mode)
+	}
+	if tf.Terminal.AlwaysNew != nil {
+		cfg.Terminal.AlwaysNew = *tf.Terminal.AlwaysNew
+	}
+	if tf.Terminal.Program != "" {
+		cfg.Terminal.Program = tf.Terminal.Program
+	}
+
+	if tf.Worktree.DirectoryPattern != "" {
+		cfg.Worktree.DirectoryPattern = tf.Worktree.DirectoryPattern
+	}
+	if tf.Worktree.AutoFetch != nil {
+		cfg.Worktree.AutoFetch = *tf.Worktree.AutoFetch
+	}
+	if tf.Worktree.BranchPrefix != "" {
+		cfg.Worktree.BranchPrefix = tf.Worktree.BranchPrefix
+	}
+
+	if tf.Cleanup.DefaultMode != "" {
+		cfg.Cleanup.DefaultMode = model.CleanupMode(tf.Cleanup.DefaultMode)
+	}
+
 	// Handle init -> session_init backward compatibility.
-	if si, ok := data["session_init"].(string); ok {
-		scripts.SessionInit = si
-	} else if init, ok := data["init"].(string); ok {
+	if tf.Scripts.SessionInit != "" {
+		cfg.Scripts.SessionInit = tf.Scripts.SessionInit
+	} else if tf.Scripts.Init != "" {
 		slog.Warn("The 'init' script key is deprecated; rename to 'session_init'")
-		scripts.SessionInit = init
+		cfg.Scripts.SessionInit = tf.Scripts.Init
+	}
+	if tf.Scripts.PreCreate != "" {
+		cfg.Scripts.PreCreate = tf.Scripts.PreCreate
+	}
+	if tf.Scripts.PostCreate != "" {
+		cfg.Scripts.PostCreate = tf.Scripts.PostCreate
+	}
+	if tf.Scripts.PostCreateAsync != "" {
+		cfg.Scripts.PostCreateAsync = tf.Scripts.PostCreateAsync
+	}
+	if tf.Scripts.PreCleanup != "" {
+		cfg.Scripts.PreCleanup = tf.Scripts.PreCleanup
+	}
+	if tf.Scripts.PostCleanup != "" {
+		cfg.Scripts.PostCleanup = tf.Scripts.PostCleanup
+	}
+	if tf.Scripts.PreSwitch != "" {
+		cfg.Scripts.PreSwitch = tf.Scripts.PreSwitch
+	}
+	if tf.Scripts.PostSwitch != "" {
+		cfg.Scripts.PostSwitch = tf.Scripts.PostSwitch
 	}
 
-	if v, ok := data["pre_create"].(string); ok {
-		scripts.PreCreate = v
-	}
-	if v, ok := data["post_create"].(string); ok {
-		scripts.PostCreate = v
-	}
-	if v, ok := data["post_create_async"].(string); ok {
-		scripts.PostCreateAsync = v
-	}
-	if v, ok := data["pre_cleanup"].(string); ok {
-		scripts.PreCleanup = v
-	}
-	if v, ok := data["post_cleanup"].(string); ok {
-		scripts.PostCleanup = v
-	}
-	if v, ok := data["pre_switch"].(string); ok {
-		scripts.PreSwitch = v
-	}
-	if v, ok := data["post_switch"].(string); ok {
-		scripts.PostSwitch = v
-	}
-
-	if custom, ok := data["custom"].(map[string]any); ok {
-		for name, val := range custom {
-			cs := model.CustomScript{InheritHooks: true}
-			switch v := val.(type) {
-			case string:
-				cs.SessionInit = v
-			case map[string]any:
-				if d, ok := v["description"].(string); ok {
-					cs.Description = d
-				}
-				if bn, ok := v["branch_name"].(string); ok {
-					cs.BranchName = bn
-				}
-				if ih, ok := v["inherit_hooks"].(bool); ok {
-					cs.InheritHooks = ih
-				}
-				if s, ok := v["session_init"].(string); ok {
-					cs.SessionInit = s
-				}
-				if s, ok := v["pre_create"].(string); ok {
-					cs.PreCreate = s
-				}
-				if s, ok := v["post_create"].(string); ok {
-					cs.PostCreate = s
-				}
-				if s, ok := v["post_create_async"].(string); ok {
-					cs.PostCreateAsync = s
-				}
-				if s, ok := v["pre_cleanup"].(string); ok {
-					cs.PreCleanup = s
-				}
-				if s, ok := v["post_cleanup"].(string); ok {
-					cs.PostCleanup = s
-				}
-				if s, ok := v["pre_switch"].(string); ok {
-					cs.PreSwitch = s
-				}
-				if s, ok := v["post_switch"].(string); ok {
-					cs.PostSwitch = s
-				}
-			}
-			scripts.Custom[name] = cs
+	for name, prim := range tf.Scripts.Custom {
+		// Try as a string first (simple format).
+		var s string
+		if err := md.PrimitiveDecode(prim, &s); err == nil {
+			cfg.Scripts.Custom[name] = model.CustomScript{InheritHooks: true, SessionInit: s}
+			continue
 		}
+		// Full table format.
+		var tcs tomlCustomScript
+		if err := md.PrimitiveDecode(prim, &tcs); err == nil {
+			cs := model.CustomScript{
+				InheritHooks:    true,
+				Description:     tcs.Description,
+				BranchName:      tcs.BranchName,
+				SessionInit:     tcs.SessionInit,
+				PreCreate:       tcs.PreCreate,
+				PostCreate:      tcs.PostCreate,
+				PostCreateAsync: tcs.PostCreateAsync,
+				PreCleanup:      tcs.PreCleanup,
+				PostCleanup:     tcs.PostCleanup,
+				PreSwitch:       tcs.PreSwitch,
+				PostSwitch:      tcs.PostSwitch,
+			}
+			if tcs.InheritHooks != nil {
+				cs.InheritHooks = *tcs.InheritHooks
+			}
+			cfg.Scripts.Custom[name] = cs
+		}
+	}
+
+	if tf.Confirmations.CleanupMultiple != nil {
+		cfg.Confirmations.CleanupMultiple = *tf.Confirmations.CleanupMultiple
+	}
+	if tf.Confirmations.ForceOperations != nil {
+		cfg.Confirmations.ForceOperations = *tf.Confirmations.ForceOperations
 	}
 }
 
-func hookConfigFromTOML(data map[string]any) HookConfig {
+func hookConfigFromTOMLFile(tf tomlFile) HookConfig {
 	hc := HookConfig{}
-	scripts, ok := data["scripts"].(map[string]any)
-	if !ok {
-		return hc
+	if tf.Scripts.SessionInit != "" {
+		hc.SessionInit = tf.Scripts.SessionInit
+	} else if tf.Scripts.Init != "" {
+		hc.SessionInit = tf.Scripts.Init
 	}
-	if v, ok := scripts["pre_create"].(string); ok {
-		hc.PreCreate = v
-	}
-	if v, ok := scripts["post_create"].(string); ok {
-		hc.PostCreate = v
-	}
-	if v, ok := scripts["post_create_async"].(string); ok {
-		hc.PostCreateAsync = v
-	}
-	if v, ok := scripts["session_init"].(string); ok {
-		hc.SessionInit = v
-	} else if v, ok := scripts["init"].(string); ok {
-		hc.SessionInit = v
-	}
-	if v, ok := scripts["pre_cleanup"].(string); ok {
-		hc.PreCleanup = v
-	}
-	if v, ok := scripts["post_cleanup"].(string); ok {
-		hc.PostCleanup = v
-	}
-	if v, ok := scripts["pre_switch"].(string); ok {
-		hc.PreSwitch = v
-	}
-	if v, ok := scripts["post_switch"].(string); ok {
-		hc.PostSwitch = v
-	}
+	hc.PreCreate = tf.Scripts.PreCreate
+	hc.PostCreate = tf.Scripts.PostCreate
+	hc.PostCreateAsync = tf.Scripts.PostCreateAsync
+	hc.PreCleanup = tf.Scripts.PreCleanup
+	hc.PostCleanup = tf.Scripts.PostCleanup
+	hc.PreSwitch = tf.Scripts.PreSwitch
+	hc.PostSwitch = tf.Scripts.PostSwitch
 	return hc
 }
 
