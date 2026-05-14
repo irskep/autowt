@@ -67,8 +67,7 @@ func Print(info *Info) {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "Update available: autowt %s (you have %s)\n", info.Latest, info.Current)
-	fmt.Fprintf(os.Stderr, "   Run: go install github.com/irskep/autowt@v%s\n", info.Latest)
-	fmt.Fprintf(os.Stderr, "   Release notes: %s\n", releasesPage)
+	fmt.Fprintf(os.Stderr, "   %s\n", releasesPage)
 	fmt.Fprintln(os.Stderr)
 }
 
