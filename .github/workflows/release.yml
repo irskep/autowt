@@ -23,11 +23,12 @@ jobs:
           mkdir -p dist
           LDFLAGS="-s -w -X github.com/irskep/autowt/internal/cli.version=${GITHUB_REF_NAME}"
 
-          for pair in darwin/arm64 linux/amd64 linux/arm64; do
+          for pair in darwin/arm64 linux/amd64 linux/arm64 windows/amd64; do
             os="${pair%/*}"
             arch="${pair#*/}"
-            GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/autowt-${os}-${arch}" .
-            GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/awt-${os}-${arch}" ./cmd/awt
+            ext=""; if [ "$os" = "windows" ]; then ext=".exe"; fi
+            GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/autowt-${os}-${arch}${ext}" .
+            GOOS=$os GOARCH=$arch go build -ldflags="$LDFLAGS" -o "dist/awt-${os}-${arch}${ext}" ./cmd/awt
           done
 
       - name: Determine prerelease
