@@ -52,13 +52,14 @@ type prInfo struct {
 
 // PRStatus returns the status of the PR for a branch: "merged", "closed", "open", or "".
 func (s *Service) PRStatus(repoPath, branch string) string {
-	out, err := exec.Command(
+	cmd := exec.Command(
 		"gh", "pr", "list",
-		"--repo", ".",
 		"--head", branch,
 		"--state", "all",
 		"--json", "state,number,headRefName",
-	).Output()
+	)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
 	if err != nil {
 		slog.Debug("Failed to get PR status", "branch", branch, "error", err)
 		return ""
