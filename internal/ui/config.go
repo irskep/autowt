@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/irskep/autowt/internal/config"
@@ -33,8 +34,9 @@ func RunConfigTUI(cfg config.Config) (*config.Config, error) {
 type configField struct {
 	label    string
 	value    string
-	options  []string // if non-nil, cycle through options
+	options  []string // if non-nil, cycle through options with ←/→
 	optIndex int
+	editable bool // true for free-text string fields
 }
 
 type configModel struct {
@@ -42,6 +44,8 @@ type configModel struct {
 	cursor    int
 	cfg       config.Config
 	cancelled bool
+	editing   bool // true when inline-editing a string field
+	input     textinput.Model
 }
 
 func buildConfigFields(cfg config.Config) []configField {
@@ -54,9 +58,9 @@ func buildConfigFields(cfg config.Config) []configField {
 	return []configField{
 		{label: "Terminal mode", value: string(cfg.Terminal.Mode), options: terminalModes, optIndex: termIdx},
 		{label: "Always new session", value: boolStr(cfg.Terminal.AlwaysNew), options: []string{"false", "true"}, optIndex: boolIdx(cfg.Terminal.AlwaysNew)},
-		{label: "Directory pattern", value: cfg.Worktree.DirectoryPattern},
+		{label: "Directory pattern", value: cfg.Worktree.DirectoryPattern, editable: true},
 		{label: "Auto fetch", value: boolStr(cfg.Worktree.AutoFetch), options: []string{"false", "true"}, optIndex: boolIdx(cfg.Worktree.AutoFetch)},
-		{label: "Branch prefix", value: cfg.Worktree.BranchPrefix},
+		{label: "Branch prefix", value: cfg.Worktree.BranchPrefix, editable: true},
 		{label: "Default cleanup mode", value: string(cfg.Cleanup.DefaultMode), options: cleanupModes, optIndex: cleanIdx},
 	}
 }
@@ -76,13 +80,33 @@ func (m configModel) Init() tea.Cmd {
 }
 
 func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// If editing a text field, delegate to the text input.
+	if m.editing {
+		return m.updateEditing(msg)
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc", "ctrl+c":
 			m.cancelled = true
 			return m, tea.Quit
+		case "ctrl+s":
+			return m, tea.Quit
 		case "enter":
+			f := &m.fields[m.cursor]
+			if f.editable {
+				// Enter inline editing mode.
+				m.editing = true
+				ti := textinput.New()
+				ti.SetValue(f.value)
+				ti.Focus()
+				ti.CharLimit = 256
+				ti.Width = 60
+				m.input = ti
+				return m, ti.Focus()
+			}
+			// Save for non-editable fields.
 			return m, tea.Quit
 		case "up", "k":
 			if m.cursor > 0 {
@@ -109,13 +133,35 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m configModel) updateEditing(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			m.fields[m.cursor].value = m.input.Value()
+			m.editing = false
+			return m, nil
+		case "esc":
+			m.editing = false
+			return m, nil
+		}
+	}
+	var cmd tea.Cmd
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
 func (m configModel) View() string {
 	var b strings.Builder
 
 	headerStyle := lipgloss.NewStyle().Bold(true)
 	b.WriteString(headerStyle.Render("autowt configuration"))
 	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  ←/→: change value  enter: save  q: cancel"))
+	if m.editing {
+		b.WriteString(dimStyle.Render("  type to edit, enter: confirm, esc: cancel"))
+	} else {
+		b.WriteString(dimStyle.Render("  ←/→: change  enter: edit/save  ctrl+s: save  q: cancel"))
+	}
 	b.WriteString("\n\n")
 
 	labelWidth := 0
@@ -132,9 +178,17 @@ func (m configModel) View() string {
 		}
 
 		label := fmt.Sprintf("%-*s", labelWidth, f.label)
-		value := f.value
-		if f.options != nil {
+
+		var value string
+		if m.editing && i == m.cursor {
+			value = m.input.View()
+		} else if f.options != nil {
 			value = renderOptions(f.options, f.optIndex, i == m.cursor)
+		} else {
+			value = f.value
+			if value == "" {
+				value = dimStyle.Render("(empty)")
+			}
 		}
 
 		b.WriteString(fmt.Sprintf("%s%s  %s\n", cursor, label, value))
