@@ -17,7 +17,10 @@ import (
 func (s *Service) ResolveWorktreeArgument(input string, promptFn func(name string) bool) (string, error) {
 	expanded := input
 	if strings.HasPrefix(expanded, "~") {
-		home, _ := os.UserHomeDir()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("expand home directory in %q: %w", input, err)
+		}
 		expanded = filepath.Join(home, expanded[1:])
 	}
 
@@ -37,7 +40,11 @@ func (s *Service) ResolveWorktreeArgument(input string, promptFn func(name strin
 			return input, nil
 		}
 		// User chose to treat it as a directory.
-		expanded, _ = filepath.Abs(filepath.Join(".", input))
+		abs, err := filepath.Abs(filepath.Join(".", input))
+		if err != nil {
+			return "", fmt.Errorf("resolve directory %q: %w", input, err)
+		}
+		expanded = abs
 	}
 
 	// Resolve to absolute.

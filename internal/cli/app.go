@@ -29,8 +29,12 @@ type app struct {
 }
 
 // newApp creates a fully initialized app with the current global options.
-func newApp() *app {
+func newApp() (*app, error) {
 	o := globalOpts
+	loader, err := config.NewLoader()
+	if err != nil {
+		return nil, fmt.Errorf("initialize config: %w", err)
+	}
 
 	ts := terminal.NewService()
 	ts.ConfirmSessionSwitch = func(branchName string) bool {
@@ -47,6 +51,6 @@ func newApp() *app {
 		GitHub:   github.NewService(),
 		Terminal: ts,
 		Hooks:    hooks.NewRunner(),
-		Config:   config.NewLoader(),
-	}
+		Config:   loader,
+	}, nil
 }

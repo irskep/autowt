@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 const bashZshTemplate = `autowt() {
@@ -42,6 +41,8 @@ end
 function awt --wraps=autowt
     autowt $argv
 end
+
+%s
 `
 
 // SupportedShells lists the shells with integration support.
@@ -63,18 +64,18 @@ func DetectShell() string {
 }
 
 // Generate produces the shell integration script for the given shell.
-func Generate(shell string, dryRun bool) (string, error) {
+func Generate(shell string, dryRun bool, completions string) (string, error) {
 	switch shell {
 	case "bash", "zsh":
-		return generateBashZsh(shell, dryRun), nil
+		return generateBashZsh(dryRun, completions), nil
 	case "fish":
-		return generateFish(dryRun), nil
+		return generateFish(dryRun, completions), nil
 	default:
 		return "", fmt.Errorf("unsupported shell: %s", shell)
 	}
 }
 
-func generateBashZsh(shell string, dryRun bool) string {
+func generateBashZsh(dryRun bool, completions string) string {
 	var evalLine string
 	if dryRun {
 		evalLine = `echo "[autowt dry-run] would eval: $eval_cmd" >&2`
@@ -82,23 +83,15 @@ func generateBashZsh(shell string, dryRun bool) string {
 		evalLine = "echo \"[autowt: eval] $eval_cmd\" >&2\n        eval \"$eval_cmd\""
 	}
 
-	var completionLines []string
-	for _, cmd := range []string{"autowt", "awt"} {
-		envVar := strings.ToUpper(fmt.Sprintf("_%s_COMPLETE", cmd))
-		completionLines = append(completionLines,
-			fmt.Sprintf(`eval "$(%s=%s_source command %s)"`, envVar, shell, cmd))
-	}
-	completions := strings.Join(completionLines, "\n")
-
 	return fmt.Sprintf(bashZshTemplate, evalLine, completions)
 }
 
-func generateFish(dryRun bool) string {
+func generateFish(dryRun bool, completions string) string {
 	var evalLine string
 	if dryRun {
 		evalLine = `echo "[autowt dry-run] would eval: $eval_cmd" >&2`
 	} else {
 		evalLine = "echo \"[autowt: eval] $eval_cmd\" >&2\n        eval $eval_cmd"
 	}
-	return fmt.Sprintf(fishTemplate, evalLine)
+	return fmt.Sprintf(fishTemplate, evalLine, completions)
 }

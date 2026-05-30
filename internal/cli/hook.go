@@ -25,11 +25,14 @@ Useful for integrating autowt's hook configuration with other worktree tools.`,
 }
 
 func runHook(hookName string) error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
 	repoPath, err := a.Git.FindRepoRoot("")
 	if err != nil {
-		return fmt.Errorf("not in a git repository")
+		return fmt.Errorf("not in a git repository: %w", err)
 	}
 
 	branchName, err := a.Git.GetCurrentBranch(repoPath)
@@ -37,13 +40,16 @@ func runHook(hookName string) error {
 		return fmt.Errorf("could not determine current branch: %w", err)
 	}
 
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get current directory: %w", err)
+	}
 
 	globalHookCfg := a.Config.LoadGlobalHookConfig()
 	projectHookCfg := a.Config.LoadProjectHookConfig(repoPath)
 
 	globalScripts, projectScripts := hooks.ExtractScripts(globalHookCfg, projectHookCfg, hookName)
-	all := append(globalScripts, projectScripts...)
+	all := hooks.MergeScripts(globalScripts, projectScripts)
 
 	if len(all) == 0 {
 		console.Infof("No %s hooks configured", hookName)

@@ -2,6 +2,8 @@ package git
 
 import (
 	"testing"
+
+	"github.com/irskep/autowt/internal/model"
 )
 
 func TestParseWorktreeList(t *testing.T) {
@@ -55,5 +57,22 @@ func TestParseWorktreeListEmpty(t *testing.T) {
 	wts := parseWorktreeList("")
 	if len(wts) != 0 {
 		t.Fatalf("expected 0 worktrees, got %d", len(wts))
+	}
+}
+
+func TestGetCurrentWorktreeRequiresPathBoundary(t *testing.T) {
+	svc := NewService()
+	worktrees := []model.WorktreeInfo{
+		{Branch: "main", Path: "/home/user/repo"},
+		{Branch: "feature", Path: "/home/user/repo-worktrees/feature"},
+	}
+
+	if got := svc.GetCurrentWorktree("/home/user/repo-extra", worktrees); got != nil {
+		t.Fatalf("GetCurrentWorktree matched %q, want nil", got.Path)
+	}
+
+	got := svc.GetCurrentWorktree("/home/user/repo/subdir", worktrees)
+	if got == nil || got.Branch != "main" {
+		t.Fatalf("GetCurrentWorktree nested = %+v, want main", got)
 	}
 }

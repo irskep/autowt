@@ -50,17 +50,17 @@ type BranchStatus struct {
 
 // CustomScript defines a custom command with optional hook overrides.
 type CustomScript struct {
-	Description      string
-	BranchName       string // shell command whose stdout becomes the branch
-	InheritHooks     bool
-	PreCreate        string
-	PostCreate       string
-	PostCreateAsync  string
-	SessionInit      string
-	PreCleanup       string
-	PostCleanup      string
-	PreSwitch        string
-	PostSwitch       string
+	Description     string
+	BranchName      string // shell command whose stdout becomes the branch
+	InheritHooks    bool
+	PreCreate       string
+	PostCreate      string
+	PostCreateAsync string
+	SessionInit     string
+	PreCleanup      string
+	PostCleanup     string
+	PreSwitch       string
+	PostSwitch      string
 }
 
 // DisplayPath returns a human-friendly version of the worktree path.
@@ -73,15 +73,19 @@ func (w WorktreeInfo) DisplayPath() string {
 func FormatPath(path string) string {
 	// Try relative to cwd first.
 	if cwd, err := os.Getwd(); err == nil {
-		if rel, err := filepath.Rel(cwd, path); err == nil && !strings.HasPrefix(rel, "..") {
+		if rel, err := filepath.Rel(cwd, path); err == nil && isLocalRelPath(rel) {
 			return rel
 		}
 	}
 	// Try relative to home.
 	if home, err := os.UserHomeDir(); err == nil {
-		if rel, err := filepath.Rel(home, path); err == nil && !strings.HasPrefix(rel, "..") {
+		if rel, err := filepath.Rel(home, path); err == nil && isLocalRelPath(rel) {
 			return "~/" + rel
 		}
 	}
 	return path
+}
+
+func isLocalRelPath(rel string) bool {
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }

@@ -29,9 +29,15 @@ func newConfigCmd() *cobra.Command {
 }
 
 func showConfig() error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
-	repoPath, _ := a.Git.FindRepoRoot("")
+	repoPath, err := a.Git.FindRepoRoot("")
+	if err != nil {
+		repoPath = ""
+	}
 	cfg, err := a.Config.Load(repoPath, nil)
 	if err != nil {
 		return err
@@ -57,7 +63,10 @@ func showConfig() error {
 }
 
 func editConfig() error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
 	cfg, err := a.Config.LoadGlobalOnly()
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 )
 
 func TestGenerateBash(t *testing.T) {
-	out, err := Generate("bash", false)
+	out, err := Generate("bash", false, "# completions")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,10 +19,16 @@ func TestGenerateBash(t *testing.T) {
 	if !strings.Contains(out, `eval "$eval_cmd"`) {
 		t.Error("bash output should contain eval")
 	}
+	if strings.Contains(out, "_AUTOWT_COMPLETE") || strings.Contains(out, "_AWT_COMPLETE") {
+		t.Error("bash output should not contain Click-style completion env vars")
+	}
+	if !strings.Contains(out, "# completions") {
+		t.Error("bash output should include generated completions")
+	}
 }
 
 func TestGenerateBashDryRun(t *testing.T) {
-	out, err := Generate("bash", true)
+	out, err := Generate("bash", true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +41,7 @@ func TestGenerateBashDryRun(t *testing.T) {
 }
 
 func TestGenerateFish(t *testing.T) {
-	out, err := Generate("fish", false)
+	out, err := Generate("fish", false, "# completions")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,10 +51,13 @@ func TestGenerateFish(t *testing.T) {
 	if !strings.Contains(out, "function awt --wraps=autowt") {
 		t.Error("fish output should define awt wrapper")
 	}
+	if !strings.Contains(out, "# completions") {
+		t.Error("fish output should include generated completions")
+	}
 }
 
 func TestGenerateUnsupported(t *testing.T) {
-	_, err := Generate("powershell", false)
+	_, err := Generate("powershell", false, "")
 	if err == nil {
 		t.Error("expected error for unsupported shell")
 	}

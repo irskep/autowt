@@ -226,7 +226,7 @@ If you need to use a different programming language, create a separate script fi
 
 !!! note "Why does it work like this?"
 
-    This behavior is identical to Python's [`subprocess.run()`](https://docs.python.org/3/library/subprocess.html#subprocess.run) with `shell=True`.
+    Inline hook strings are executed as `sh -c <script>` in the hook's configured working directory. This is why shell syntax, multi-line scripts, and shebang comments behave the way they do. On systems without `sh`, call an external script file instead so the operating system can use that file's interpreter association.
 
 ## Complete reference
 

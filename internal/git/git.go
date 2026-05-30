@@ -159,7 +159,7 @@ func (s *Service) GetCurrentWorktree(currentPath string, worktrees []model.Workt
 	var best *model.WorktreeInfo
 	bestLen := 0
 	for i, wt := range worktrees {
-		if strings.HasPrefix(currentPath, wt.Path) {
+		if pathContains(wt.Path, currentPath) {
 			if len(wt.Path) > bestLen {
 				best = &worktrees[i]
 				bestLen = len(wt.Path)
@@ -169,12 +169,41 @@ func (s *Service) GetCurrentWorktree(currentPath string, worktrees []model.Workt
 	return best
 }
 
+func pathContains(parent, child string) bool {
+	parent = filepath.Clean(parent)
+	child = filepath.Clean(child)
+	if parent == child {
+		return true
+	}
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
 // FetchBranches runs git fetch --prune with output visible.
 func (s *Service) FetchBranches(repoPath string) error {
 	cmd := exec.Command("git", "-C", repoPath, "fetch", "--prune")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// ListLocalBranches returns all local branch names in refname-short form.
+func (s *Service) ListLocalBranches(repoPath string) ([]string, error) {
+	out, err := gitOutput(repoPath, "branch", "--format=%(refname:short)")
+	if err != nil {
+		return nil, err
+	}
+	var branches []string
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "*") {
+			branches = append(branches, line)
+		}
+	}
+	return branches, nil
 }
 
 // CreateWorktree creates a worktree using the branch resolver strategy.
@@ -371,7 +400,11 @@ func (s *Service) getDefaultBranch(repoPath string) string {
 			return name
 		}
 	}
-	branch, _ := s.GetCurrentBranch(repoPath)
+	branch, err := s.GetCurrentBranch(repoPath)
+	if err != nil {
+		slog.Debug("Failed to get current branch while determining default branch", "error", err)
+		return "HEAD"
+	}
 	return branch
 }
 

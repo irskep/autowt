@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	releaseURL   = "https://api.github.com/repos/irskep/autowt/releases/latest"
-	releasesPage = "https://github.com/irskep/autowt/releases"
+	releaseURL    = "https://api.github.com/repos/irskep/autowt/releases/latest"
+	releasesPage  = "https://github.com/irskep/autowt/releases"
 	checkInterval = 1 * time.Hour
 	httpTimeout   = 5 * time.Second
 )
@@ -120,7 +120,9 @@ func writeCache(path, latest string) {
 		return
 	}
 	defer f.Close()
-	_ = toml.NewEncoder(f).Encode(state)
+	if err := toml.NewEncoder(f).Encode(state); err != nil {
+		return
+	}
 }
 
 // compareVersions compares two semver-ish strings (without the "v" prefix).

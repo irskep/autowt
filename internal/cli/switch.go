@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
+	"github.com/irskep/autowt/internal/shellcmd"
 	"github.com/irskep/autowt/internal/terminal"
 	"github.com/irskep/autowt/internal/ui"
 	"github.com/spf13/cobra"
@@ -69,7 +69,10 @@ func completeBranches(cmd *cobra.Command, args []string, toComplete string) ([]s
 	if len(args) > 0 {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
 	repoPath, err := a.Git.FindRepoRoot("")
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -88,11 +91,14 @@ func completeBranches(cmd *cobra.Command, args []string, toComplete string) ([]s
 }
 
 func runInteractiveSwitch() error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
 	repoPath, err := a.Git.FindRepoRoot("")
 	if err != nil {
-		return fmt.Errorf("not in a git repository")
+		return fmt.Errorf("not in a git repository: %w", err)
 	}
 
 	worktrees, err := a.Git.ListWorktrees(repoPath)
@@ -104,7 +110,10 @@ func runInteractiveSwitch() error {
 	a.Git.FetchBranches(repoPath)
 
 	// Get all local branches.
-	allBranches := getAllLocalBranches(repoPath)
+	allBranches, err := a.Git.ListLocalBranches(repoPath)
+	if err != nil {
+		return fmt.Errorf("list local branches: %w", err)
+	}
 
 	result, err := ui.RunSwitchTUI(worktrees, allBranches)
 	if err != nil {
@@ -118,21 +127,6 @@ func runInteractiveSwitch() error {
 		Branch:      result.Branch,
 		FromDynamic: result.IsNew,
 	})
-}
-
-func getAllLocalBranches(repoPath string) []string {
-	out, err := exec.Command("git", "-C", repoPath, "branch", "--format=%(refname:short)").Output()
-	if err != nil {
-		return nil
-	}
-	var branches []string
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "*") {
-			branches = append(branches, line)
-		}
-	}
-	return branches
 }
 
 // runDynamicBranch handles unknown subcommands as branch names.
@@ -189,11 +183,14 @@ type switchOpts struct {
 }
 
 func runSwitch(opts switchOpts) error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
 	repoPath, err := a.Git.FindRepoRoot("")
 	if err != nil {
-		return fmt.Errorf("not in a git repository")
+		return fmt.Errorf("not in a git repository: %w", err)
 	}
 
 	cfg, err := a.Config.Load(repoPath, nil)
@@ -288,10 +285,16 @@ func runSwitch(opts switchOpts) error {
 }
 
 func switchToExisting(a *app, wt model.WorktreeInfo, opts switchOpts, cfg config.Config, projectHookCfg config.HookConfig, termMode model.TerminalMode, customScript *model.CustomScript) error {
-	repoPath, _ := a.Git.FindRepoRoot("")
+	repoPath, err := a.Git.FindRepoRoot("")
+	if err != nil {
+		return fmt.Errorf("not in a git repository: %w", err)
+	}
 
 	// Check if already in this worktree.
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get current directory: %w", err)
+	}
 	currentWT := a.Git.GetCurrentWorktree(cwd, []model.WorktreeInfo{wt})
 	if currentWT != nil && currentWT.Path == wt.Path {
 		console.Infof("Already in %s worktree", opts.Branch)
@@ -304,15 +307,14 @@ func switchToExisting(a *app, wt model.WorktreeInfo, opts switchOpts, cfg config
 	// Combine after_init and custom script session_init.
 	afterInit := combineAfterInit(opts.AfterInit, customScript)
 
-	err := a.Terminal.SwitchToWorktree(terminal.SwitchOpts{
+	if err := a.Terminal.SwitchToWorktree(terminal.SwitchOpts{
 		WorktreePath:         wt.Path,
 		Mode:                 termMode,
 		AfterInit:            afterInit,
 		BranchName:           opts.Branch,
 		IgnoreSameSession:    opts.IgnoreSameSession || cfg.Terminal.AlwaysNew,
 		ShellIntegrationFile: a.Opts.ShellIntegrationFile,
-	})
-	if err != nil {
+	}); err != nil {
 		return fmt.Errorf("failed to switch to %s worktree: %w", opts.Branch, err)
 	}
 
@@ -342,11 +344,18 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 		}
 	}
 
+	worktrees, err := a.Git.ListWorktrees(repoPath)
+	if err != nil {
+		return fmt.Errorf("list worktrees: %w", err)
+	}
+
 	// Generate worktree path.
-	worktreePath := generateWorktreePath(a, repoPath, opts.Branch, opts.Dir, cfg)
+	worktreePath, err := generateWorktreePath(repoPath, opts.Branch, opts.Dir, cfg, worktrees)
+	if err != nil {
+		return err
+	}
 
 	// Check for conflicting worktree at that path.
-	worktrees, _ := a.Git.ListWorktrees(repoPath)
 	for _, wt := range worktrees {
 		if wt.Path == worktreePath && wt.Branch != opts.Branch {
 			alt := generateAlternativePath(worktreePath, worktrees)
@@ -389,7 +398,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 
 	// Switch terminal.
 	afterInit := combineAfterInit(opts.AfterInit, customScript)
-	err := a.Terminal.SwitchToWorktree(terminal.SwitchOpts{
+	if err := a.Terminal.SwitchToWorktree(terminal.SwitchOpts{
 		WorktreePath:         worktreePath,
 		Mode:                 termMode,
 		SessionInitScript:    sessionInitScript,
@@ -397,8 +406,7 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 		BranchName:           opts.Branch,
 		IgnoreSameSession:    opts.IgnoreSameSession || cfg.Terminal.AlwaysNew,
 		ShellIntegrationFile: a.Opts.ShellIntegrationFile,
-	})
-	if err != nil {
+	}); err != nil {
 		return fmt.Errorf("worktree created but failed to switch terminals: %w", err)
 	}
 
@@ -414,16 +422,18 @@ func createNewWorktree(a *app, opts switchOpts, repoPath string, cfg config.Conf
 	return nil
 }
 
-func generateWorktreePath(a *app, repoPath, branchName, customDir string, cfg config.Config) string {
+func generateWorktreePath(repoPath, branchName, customDir string, cfg config.Config, worktrees []model.WorktreeInfo) (string, error) {
 	if customDir != "" {
 		if filepath.IsAbs(customDir) {
-			return customDir
+			return customDir, nil
 		}
-		cwd, _ := os.Getwd()
-		return filepath.Join(cwd, customDir)
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("get current directory: %w", err)
+		}
+		return filepath.Join(cwd, customDir), nil
 	}
 
-	worktrees, _ := a.Git.ListWorktrees(repoPath)
 	mainRepoPath := repoPath
 	for _, wt := range worktrees {
 		if wt.IsPrimary {
@@ -447,9 +457,9 @@ func generateWorktreePath(a *app, repoPath, branchName, customDir string, cfg co
 	pattern = os.ExpandEnv(pattern)
 
 	if filepath.IsAbs(pattern) {
-		return filepath.Clean(pattern)
+		return filepath.Clean(pattern), nil
 	}
-	return filepath.Clean(filepath.Join(mainRepoPath, pattern))
+	return filepath.Clean(filepath.Join(mainRepoPath, pattern)), nil
 }
 
 func generateAlternativePath(basePath string, worktrees []model.WorktreeInfo) string {
@@ -549,9 +559,7 @@ func executeBranchNameCommand(cmdStr, repoPath string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	c := exec.CommandContext(ctx, "sh", "-c", cmdStr)
-	c.Dir = repoPath
-	out, err := c.Output()
+	out, err := shellcmd.Output(ctx, cmdStr, repoPath)
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			return "", fmt.Errorf("branch_name command timed out after 30 seconds")

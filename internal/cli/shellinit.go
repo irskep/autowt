@@ -11,8 +11,8 @@ func newShellInitCmd() *cobra.Command {
 	var flagDryRun bool
 
 	cmd := &cobra.Command{
-		Use:       "shell-init [bash|zsh|fish]",
-		Short:     "Generate shell integration code",
+		Use:   "shell-init [bash|zsh|fish]",
+		Short: "Generate shell integration code",
 		Long: `Generate shell integration code.
 
 Detects your shell automatically from $SHELL, or accepts an
@@ -38,7 +38,11 @@ Setup:
 				}
 			}
 
-			output, err := shellinit.Generate(shell, flagDryRun)
+			completions, err := cobraCompletion(shell, cmd.Root())
+			if err != nil {
+				return fmt.Errorf("generate completions: %w", err)
+			}
+			output, err := shellinit.Generate(shell, flagDryRun, completions)
 			if err != nil {
 				return err
 			}

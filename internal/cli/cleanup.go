@@ -39,11 +39,14 @@ func newCleanupCmd() *cobra.Command {
 }
 
 func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
 	repoPath, err := a.Git.FindRepoRoot("")
 	if err != nil {
-		return fmt.Errorf("not in a git repository")
+		return fmt.Errorf("not in a git repository: %w", err)
 	}
 
 	cfg, err := a.Config.Load(repoPath, nil)

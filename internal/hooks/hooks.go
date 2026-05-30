@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/model"
+	"github.com/irskep/autowt/internal/shellcmd"
 )
 
 // HookType constants.
@@ -66,13 +66,7 @@ func (r *Runner) RunHook(script, hookType, worktreeDir, mainRepoDir, branchName 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "sh", "-c", script)
-	cmd.Dir = workDir
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
+	if err := shellcmd.Run(ctx, script, workDir, env, os.Stdout, os.Stderr); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			return fmt.Errorf("%s hook timed out after %s", hookType, timeout)
 		}
@@ -84,7 +78,7 @@ func (r *Runner) RunHook(script, hookType, worktreeDir, mainRepoDir, branchName 
 // RunHooks executes global then project hooks in sequence.
 // Returns the first error encountered.
 func (r *Runner) RunHooks(globalScripts, projectScripts []string, hookType, worktreeDir, mainRepoDir, branchName string) error {
-	all := append(globalScripts, projectScripts...)
+	all := MergeScripts(globalScripts, projectScripts)
 	for _, script := range all {
 		if err := r.RunHook(script, hookType, worktreeDir, mainRepoDir, branchName); err != nil {
 			return err
@@ -117,17 +111,26 @@ func ExtractScripts(global, project config.HookConfig, hookType string) (globalS
 	return
 }
 
+// MergeScripts returns a new slice containing global scripts followed by project scripts.
+func MergeScripts(globalScripts, projectScripts []string) []string {
+	all := make([]string, 0, len(globalScripts)+len(projectScripts))
+	all = append(all, globalScripts...)
+	all = append(all, projectScripts...)
+	return all
+}
+
 // MergeForCustomScript merges global/project hooks with a custom script's hooks.
 func MergeForCustomScript(globalScripts, projectScripts []string, cs *model.CustomScript, hookType string) []string {
 	if cs == nil {
-		return append(globalScripts, projectScripts...)
+		return MergeScripts(globalScripts, projectScripts)
 	}
 	customHook := customScriptHookField(*cs, hookType)
 	if customHook == "" {
-		return append(globalScripts, projectScripts...)
+		return MergeScripts(globalScripts, projectScripts)
 	}
 	if cs.InheritHooks {
-		return append(append(globalScripts, projectScripts...), customHook)
+		all := MergeScripts(globalScripts, projectScripts)
+		return append(all, customHook)
 	}
 	return []string{customHook}
 }

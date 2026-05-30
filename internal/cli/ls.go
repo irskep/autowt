@@ -27,11 +27,14 @@ func newLsCmd() *cobra.Command {
 }
 
 func runLs() error {
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		return err
+	}
 
 	repoPath, err := a.Git.FindRepoRoot("")
 	if err != nil {
-		return fmt.Errorf("not in a git repository")
+		return fmt.Errorf("not in a git repository: %w", err)
 	}
 
 	worktrees, err := a.Git.ListWorktrees(repoPath)
@@ -51,7 +54,10 @@ func runLs() error {
 		return nil
 	}
 
-	currentDir, _ := os.Getwd()
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get current directory: %w", err)
+	}
 	currentWT := a.Git.GetCurrentWorktree(currentDir, worktrees)
 
 	// Sort: primary first, then alphabetically by branch.

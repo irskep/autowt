@@ -18,12 +18,15 @@ type Loader struct {
 }
 
 // NewLoader creates a Loader with the default OS-specific config directory.
-func NewLoader() *Loader {
-	dir := DefaultConfigDir()
+func NewLoader() (*Loader, error) {
+	dir, err := DefaultConfigDir()
+	if err != nil {
+		return nil, err
+	}
 	return &Loader{
 		AppDir:           dir,
 		GlobalConfigFile: filepath.Join(dir, "config.toml"),
-	}
+	}, nil
 }
 
 // Load reads configuration with cascading precedence:
@@ -179,16 +182,16 @@ type tomlCleanup struct {
 }
 
 type tomlScripts struct {
-	Init            string                      `toml:"init"` // deprecated
-	SessionInit     string                      `toml:"session_init"`
-	PreCreate       string                      `toml:"pre_create"`
-	PostCreate      string                      `toml:"post_create"`
-	PostCreateAsync string                      `toml:"post_create_async"`
-	PreCleanup      string                      `toml:"pre_cleanup"`
-	PostCleanup     string                      `toml:"post_cleanup"`
-	PreSwitch       string                      `toml:"pre_switch"`
-	PostSwitch      string                      `toml:"post_switch"`
-	Custom          map[string]toml.Primitive   `toml:"custom"`
+	Init            string                    `toml:"init"` // deprecated
+	SessionInit     string                    `toml:"session_init"`
+	PreCreate       string                    `toml:"pre_create"`
+	PostCreate      string                    `toml:"post_create"`
+	PostCreateAsync string                    `toml:"post_create_async"`
+	PreCleanup      string                    `toml:"pre_cleanup"`
+	PostCleanup     string                    `toml:"post_cleanup"`
+	PreSwitch       string                    `toml:"pre_switch"`
+	PostSwitch      string                    `toml:"post_switch"`
+	Custom          map[string]toml.Primitive `toml:"custom"`
 }
 
 type tomlCustomScript struct {
@@ -323,23 +326,23 @@ func hookConfigFromTOMLFile(tf tomlFile) HookConfig {
 // applyEnvVars reads AUTOWT_* environment variables and applies them.
 func applyEnvVars(cfg *Config) {
 	envMap := map[string]func(string){
-		"AUTOWT_TERMINAL_MODE":                    func(v string) { cfg.Terminal.Mode = model.TerminalMode(v) },
-		"AUTOWT_TERMINAL_ALWAYS_NEW":              func(v string) { cfg.Terminal.AlwaysNew = parseBool(v) },
-		"AUTOWT_TERMINAL_PROGRAM":                 func(v string) { cfg.Terminal.Program = v },
-		"AUTOWT_WORKTREE_DIRECTORY_PATTERN":       func(v string) { cfg.Worktree.DirectoryPattern = v },
-		"AUTOWT_WORKTREE_AUTO_FETCH":              func(v string) { cfg.Worktree.AutoFetch = parseBool(v) },
-		"AUTOWT_WORKTREE_BRANCH_PREFIX":           func(v string) { cfg.Worktree.BranchPrefix = v },
-		"AUTOWT_CLEANUP_DEFAULT_MODE":             func(v string) { cfg.Cleanup.DefaultMode = model.CleanupMode(v) },
-		"AUTOWT_SCRIPTS_SESSION_INIT":             func(v string) { cfg.Scripts.SessionInit = v },
-		"AUTOWT_SCRIPTS_PRE_CREATE":               func(v string) { cfg.Scripts.PreCreate = v },
-		"AUTOWT_SCRIPTS_POST_CREATE":              func(v string) { cfg.Scripts.PostCreate = v },
-		"AUTOWT_SCRIPTS_POST_CREATE_ASYNC":        func(v string) { cfg.Scripts.PostCreateAsync = v },
-		"AUTOWT_SCRIPTS_PRE_CLEANUP":              func(v string) { cfg.Scripts.PreCleanup = v },
-		"AUTOWT_SCRIPTS_POST_CLEANUP":             func(v string) { cfg.Scripts.PostCleanup = v },
-		"AUTOWT_SCRIPTS_PRE_SWITCH":               func(v string) { cfg.Scripts.PreSwitch = v },
-		"AUTOWT_SCRIPTS_POST_SWITCH":              func(v string) { cfg.Scripts.PostSwitch = v },
-		"AUTOWT_CONFIRMATIONS_CLEANUP_MULTIPLE":   func(v string) { cfg.Confirmations.CleanupMultiple = parseBool(v) },
-		"AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS":   func(v string) { cfg.Confirmations.ForceOperations = parseBool(v) },
+		"AUTOWT_TERMINAL_MODE":                  func(v string) { cfg.Terminal.Mode = model.TerminalMode(v) },
+		"AUTOWT_TERMINAL_ALWAYS_NEW":            func(v string) { cfg.Terminal.AlwaysNew = parseBool(v) },
+		"AUTOWT_TERMINAL_PROGRAM":               func(v string) { cfg.Terminal.Program = v },
+		"AUTOWT_WORKTREE_DIRECTORY_PATTERN":     func(v string) { cfg.Worktree.DirectoryPattern = v },
+		"AUTOWT_WORKTREE_AUTO_FETCH":            func(v string) { cfg.Worktree.AutoFetch = parseBool(v) },
+		"AUTOWT_WORKTREE_BRANCH_PREFIX":         func(v string) { cfg.Worktree.BranchPrefix = v },
+		"AUTOWT_CLEANUP_DEFAULT_MODE":           func(v string) { cfg.Cleanup.DefaultMode = model.CleanupMode(v) },
+		"AUTOWT_SCRIPTS_SESSION_INIT":           func(v string) { cfg.Scripts.SessionInit = v },
+		"AUTOWT_SCRIPTS_PRE_CREATE":             func(v string) { cfg.Scripts.PreCreate = v },
+		"AUTOWT_SCRIPTS_POST_CREATE":            func(v string) { cfg.Scripts.PostCreate = v },
+		"AUTOWT_SCRIPTS_POST_CREATE_ASYNC":      func(v string) { cfg.Scripts.PostCreateAsync = v },
+		"AUTOWT_SCRIPTS_PRE_CLEANUP":            func(v string) { cfg.Scripts.PreCleanup = v },
+		"AUTOWT_SCRIPTS_POST_CLEANUP":           func(v string) { cfg.Scripts.PostCleanup = v },
+		"AUTOWT_SCRIPTS_PRE_SWITCH":             func(v string) { cfg.Scripts.PreSwitch = v },
+		"AUTOWT_SCRIPTS_POST_SWITCH":            func(v string) { cfg.Scripts.PostSwitch = v },
+		"AUTOWT_CONFIRMATIONS_CLEANUP_MULTIPLE": func(v string) { cfg.Confirmations.CleanupMultiple = parseBool(v) },
+		"AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS": func(v string) { cfg.Confirmations.ForceOperations = parseBool(v) },
 	}
 
 	for key, apply := range envMap {
@@ -378,7 +381,7 @@ func configToTOML(cfg Config) map[string]any {
 		},
 		"worktree": map[string]any{
 			"directory_pattern": cfg.Worktree.DirectoryPattern,
-			"auto_fetch":       cfg.Worktree.AutoFetch,
+			"auto_fetch":        cfg.Worktree.AutoFetch,
 		},
 		"cleanup": map[string]any{
 			"default_mode": string(cfg.Cleanup.DefaultMode),

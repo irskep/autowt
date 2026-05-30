@@ -1,0 +1,156 @@
+Revised release audit
+=====================
+
+Verified against the current Go release surface. The Python tree is treated as
+reference-only unless it affects published docs or release/build metadata.
+
+Confirmed release blockers
+--------------------------
+
+1. isUnknownCommandError incorrectly treats unknown flags as branch names
+   internal/cli/root.go matches "unknown flag", so `autowt ls --badopt` can
+   fall into dynamic branch handling.
+
+   But --badopt is a valid branch name, is it not?
+
+   Status: fixed for known-command flag errors. Unknown subcommands still route
+   to dynamic branch handling, but Cobra "unknown flag" errors are no longer
+   treated as branch names. A branch literally named --badopt remains an edge
+   case that would need explicit `--` handling if we want to support it.
+
+2. GetCurrentWorktree has unsafe path-prefix matching
+   internal/git/git.go uses raw strings.HasPrefix, so /repo-extra can match
+   /repo. It needs a path separator boundary check or filepath-relative check.
+
+   Yes, let's catch this type of issue and fix securely, idiomatically, and comprehensively
+
+   Status: fixed with filepath.Clean + filepath.Rel path containment, plus a
+   regression test for /repo vs /repo-extra.
+
+3. Shell init emits Click/Python completion setup
+   internal/shellinit/shellinit.go generates _AUTOWT_COMPLETE=..., which is
+   Click-style, not Cobra-style. Bash/zsh shell integration is therefore broken
+   or noisy for users.
+
+   Audit for cases where cobra should be used but isn't
+
+   Status: fixed. shell-init now embeds Cobra-generated bash/zsh/fish completion
+   scripts and binds the awt alias/wrapper to the autowt completion function.
+   Verified against Cobra docs/source; tests assert Click env vars are gone.
+
+4. go.mod depends on a release candidate
+   go.mod uses github.com/irskep/automate-terminal v0.2.0-rc0. Whether this
+   blocks release depends on dependency policy, but the audit claim is correct.
+
+   This is fine; i also own that library
+
+   Status: accepted / no change.
+
+5. Published install docs are still Python-era
+   docs/install.md still recommends Python, uv tool install, pipx, pip, and uvx.
+
+   We'll work on this after code changes are in
+
+   Status: deferred.
+
+6. Docs changelog is stale
+   Root CHANGELOG.md has a 0.6.0 - Unreleased Go rewrite entry, so it is not
+   completely stale. But docs/CHANGELOG.md, which MkDocs publishes, is stale at
+   0.5.5 - Unreleased. That is the real docs blocker.
+
+   docs/CHANGELOG.md updates on release I believe; it's an automated copy
+
+   Status: accepted / no change for now.
+
+Confirmed should fix
+--------------------
+
+1. os.UserHomeDir() errors are silently ignored
+   Confirmed in internal/config/platform.go and internal/git/resolve.go. Low
+   probability, but bad failure behavior.
+
+   Look for more of this kind of thing. LLMs commonly take shortcuts and they are not acceptable in this project.
+
+   Status: fixed in config platform path construction and ~ expansion. NewLoader
+   and callers now propagate config-dir failures. Remaining ignored errors are
+   either best-effort display/version-cache paths or intentional fallback probes.
+
+2. getAllLocalBranches bypasses git.Service
+   Confirmed in internal/cli/switch.go. Mostly testability/architecture, not a
+   release blocker by itself.
+
+   Identify and fix similar cases. Use of shared utilities is a requirement for all code in this project.
+
+   Status: fixed. Branch listing moved to git.Service.ListLocalBranches. Inline
+   shell execution for hooks and branch_name commands is centralized in
+   internal/shellcmd. Remaining exec.Command usage is in service packages
+   (git/github/terminal) where it belongs.
+
+3. Append aliasing pattern can mutate caller backing arrays
+   Confirmed in internal/hooks/hooks.go and internal/cli/hook.go. Likely low
+   practical risk here, but easy to harden.
+
+   Fix all such cases
+
+   Status: fixed with hooks.MergeScripts returning a fresh slice. Added a
+   regression test that mutating the merged result does not mutate inputs.
+
+4. Some FindRepoRoot errors are discarded or flattened
+   Confirmed in several places, including internal/cli/hook.go,
+   internal/cli/switch.go, and internal/cli/config.go. Some are intentional
+   best-effort config loading, but user-facing command paths should wrap the
+   original error.
+
+   Sounds like an overall error handling code smell. We may need wider fixes to be idiomatic while avoiding needless defensive programming.
+
+   Status: fixed for user-facing command paths in ls/switch/cleanup/hook.
+   Best-effort config/show-custom-script discovery still falls back intentionally,
+   now with debug logging instead of a bare ignored error.
+
+5. Lifecycle docs reference Python implementation details
+   Confirmed in docs/lifecyclehooks.md. Should say it runs through the platform
+   shell, not compare to Python subprocess.run().
+
+   Well, the details do matter. python stdlib was mentioned because it has its own detailed docs which are not worhtwhile to replicate. what precisely does autowt do via go? how would it differ from python? let's find out in detail.
+
+   Status: fixed. Current Go behavior is explicit `sh -c <script>` for inline
+   hooks and branch_name commands. This matches Python shell=True on POSIX, but
+   not Windows COMSPEC behavior. We decided sh -c is fine for release and updated
+   lifecycle docs to document it directly.
+
+Downgraded / not a release blocker
+----------------------------------
+
+1. Windows changelog entry
+   The Python reference code already had Windows config-path handling, so this
+   is not changelog-worthy unless the Go release materially changes Windows
+   support or starts shipping Windows binaries.
+
+2. Root changelog missing entries
+   Partially valid but overstated. The root changelog already mentions Go
+   rewrite, static binary distribution, Bubble Tea TUIs, automate-terminal
+   library usage, GitHub Releases version checks, and removal of pip install.
+   The real issue is syncing/updating docs/CHANGELOG.md.
+
+3. uv sync examples in README/docs
+   Leave these unless we want to avoid possible confusion. They are examples of
+   project setup commands inside a user's worktree, not installation
+   instructions for autowt.
+
+Nice to have
+------------
+
+1. Deduplicate main.go and cmd/awt/main.go.
+
+   agreed
+
+2. Consolidate duplicate dimStyle definitions in internal/cli/ls.go and
+   internal/ui/cleanup.go.
+
+   agreed
+
+3. Check docs build config later: mkdocs.yml still has command_prefix: "uv run",
+   which may be intentional for docs tooling, but is suspicious after the Go
+   rewrite.
+
+   consider installing zensical via mise instead of pypi

@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
@@ -51,7 +52,11 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
 
 		// Version update check (rate-limited, non-blocking).
-		stateDir := config.DefaultStateDir()
+		stateDir, err := config.DefaultStateDir()
+		if err != nil {
+			slog.Warn("Failed to determine state directory", "error", err)
+			return
+		}
 		versioncheck.Print(versioncheck.Check(version, stateDir))
 	}
 
@@ -88,11 +93,19 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 // registerCustomScriptCommands loads config and adds cobra commands for
 // each custom script. Errors are silently ignored (config may not exist).
 func registerCustomScriptCommands(parent *cobra.Command, groupID string) {
-	loader := config.NewLoader()
+	loader, err := config.NewLoader()
+	if err != nil {
+		slog.Warn("Failed to initialize config loader", "error", err)
+		return
+	}
 	gitSvc := git.NewService()
 
 	// Try to find the repo root for project config.
-	repoPath, _ := gitSvc.FindRepoRoot("")
+	repoPath, err := gitSvc.FindRepoRoot("")
+	if err != nil {
+		slog.Debug("Not loading project config for custom scripts", "error", err)
+		repoPath = ""
+	}
 
 	cfg, err := loader.Load(repoPath, nil)
 	if err != nil {
@@ -172,5 +185,35 @@ func isUnknownCommandError(err error) bool {
 		return false
 	}
 	msg := err.Error()
-	return strings.Contains(msg, "unknown command") || strings.Contains(msg, "unknown flag")
+	return strings.Contains(msg, "unknown command")
+}
+
+func cobraCompletion(shell string, root *cobra.Command) (string, error) {
+	var buf bytes.Buffer
+	switch shell {
+	case "bash":
+		if err := root.GenBashCompletion(&buf); err != nil {
+			return "", err
+		}
+		buf.WriteString(`
+if [[ $(type -t compopt) = "builtin" ]]; then
+    complete -o default -F __start_autowt awt
+else
+    complete -o default -o nospace -F __start_autowt awt
+fi
+`)
+	case "zsh":
+		if err := root.GenZshCompletion(&buf); err != nil {
+			return "", err
+		}
+		buf.WriteString("\ncompdef _autowt awt\n")
+	case "fish":
+		if err := root.GenFishCompletion(&buf, true); err != nil {
+			return "", err
+		}
+		buf.WriteString("\ncomplete --command awt --wraps autowt\n")
+	default:
+		return "", fmt.Errorf("unsupported shell: %s", shell)
+	}
+	return buf.String(), nil
 }
