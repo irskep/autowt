@@ -60,7 +60,9 @@ Confirmed release blockers
 
    docs/CHANGELOG.md updates on release I believe; it's an automated copy
 
-   Status: accepted / no change for now.
+   Status: verified / no change. mise.toml has docs:prep = "cp CHANGELOG.md
+   docs/CHANGELOG.md", and docs:serve/docs:build both depend on docs:prep.
+   Do not manually sync docs/CHANGELOG.md during this pass.
 
 Confirmed should fix
 --------------------
@@ -144,13 +146,21 @@ Nice to have
 
    agreed
 
+   Status: fixed. Both binaries now call internal/entrypoint.Main().
+
 2. Consolidate duplicate dimStyle definitions in internal/cli/ls.go and
    internal/ui/cleanup.go.
 
    agreed
+
+   Status: fixed. Shared low-emphasis styling now lives in internal/styles.
 
 3. Check docs build config later: mkdocs.yml still has command_prefix: "uv run",
    which may be intentional for docs tooling, but is suspicious after the Go
    rewrite.
 
    consider installing zensical via mise instead of pypi
+
+   Status: checked. zensical is not available in the mise tool registry
+   (`mise ls-remote zensical` reports not found). Leave current uv docs tooling
+   until there is a concrete mise-backed source for zensical.

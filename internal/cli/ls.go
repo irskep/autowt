@@ -5,14 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/model"
+	"github.com/irskep/autowt/internal/styles"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
-
-var dimStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 
 func newLsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -107,7 +105,7 @@ func formatWorktreeLine(wt model.WorktreeInfo, isCurrent bool, termWidth int) st
 	mainTag := ""
 	mainTagLen := 0
 	if wt.IsPrimary {
-		mainTag = dimStyle.Render(" (main worktree)")
+		mainTag = styles.Dim.Render(" (main worktree)")
 		mainTagLen = len(" (main worktree)")
 	}
 

@@ -6,15 +6,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/irskep/autowt/internal/model"
-)
-
-var (
-	selectedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10")) // green
-	cursorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("14")) // cyan
-	dimStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))  // gray
-	statusStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // yellow
 )
 
 // RunCleanupTUI presents an interactive list of worktrees for the user
