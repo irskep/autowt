@@ -78,17 +78,10 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
 You'll need `git` 2.5+ (anything from the last ten years).
 
-Install autowt using one of:
+Install autowt with mise:
 
 ```bash
-# go install
-go install github.com/irskep/autowt@latest
-
-# mise (in any repo's mise.toml)
-mise use go:github.com/irskep/autowt
-
-# or download a binary from GitHub Releases
-# https://github.com/irskep/autowt/releases
+mise use -g go:github.com/irskep/autowt
 ```
 
 Optionally, set up shell integration so worktree switches `cd` in your current shell:

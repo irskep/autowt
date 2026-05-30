@@ -6,6 +6,7 @@ python = "3.12"
 uv = "latest"
 jq = "latest"
 go = "1.26"
+"pipx:zensical" = { version = "0.0.43", uvx_args = "--with mkdocs-github-admonitions-plugin" }
 
 [env]
 _.python.venv = { path = ".venv" }
@@ -19,7 +20,7 @@ format = "uv run ruff format"
 "format:check" = "uv run ruff format --check"
 claude-hook-lint = "./scripts/claude-hook-lint.sh"
 sync-readme = "uv run python scripts/sync_readme.py"
-"docs:install" = "uv sync --group docs --group dev"
+"docs:install" = "uv sync --group docs --group dev && mise install pipx:zensical"
 "docs:prep" = "cp CHANGELOG.md docs/CHANGELOG.md"
 
 "go:build" = "go build -o autowt . && go build -o awt ./cmd/awt"
@@ -28,9 +29,9 @@ sync-readme = "uv run python scripts/sync_readme.py"
 "go:test" = "go test ./..."
 
 [tasks."docs:serve"]
-run = "uv run zensical serve"
+run = "zensical serve"
 depends = ["docs:install", "docs:prep"]
 
 [tasks."docs:build"]
-run = "uv run zensical build"
-depends = ["docs:prep"]
+run = "zensical build"
+depends = ["docs:install", "docs:prep"]

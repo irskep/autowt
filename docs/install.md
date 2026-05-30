@@ -1,40 +1,43 @@
 # Installing autowt
 
-Before you begin, make sure you have the following installed:
+## Requirements
 
--   **Python 3.10+**: You can check your version with `python3 --version`.
--   **Git 2.5+**: `autowt` relies on modern git worktree functionality. Check your version with `git --version`. Git 2.5 was released in 2015, so this shouldn’t be a problem.
--   **A supported terminal (recommended)**: For the best experience, use a terminal with good tab and window management, like tmux, or iTerm2 on macOS. See the [Terminal Support](terminalsupport.md) page for more details.
+Before you begin, make sure you have:
 
-### uv (preferred)
-
-```sh
-# note the 'tool' subcommand!
-uv tool install autowt
-```
-
-### Mise
-
-You can install autowt in its own virtualenv with Mise and pipx:
+-   **mise**: autowt is installed through mise's Go package backend.
+-   **Git 2.5+**: autowt relies on git worktree support.
+-   **Go**: required by mise's Go package backend. If Go is not already installed, install it with mise:
 
 ```bash
-mise use -g pipx:autowt
+mise use -g go
 ```
 
-### Pip
+## Install autowt
 
-If you have a global pip environment, you can install there.
-
-```sh
-pip install autowt
-```
-
-### uvx
-
-`uvx` lets you install and execute in a single command.
+Install autowt globally with mise:
 
 ```bash
-uvx autowt
+mise use -g go:github.com/irskep/autowt
+```
+
+Verify the installation:
+
+```bash
+autowt --version
+```
+
+## Project-scoped install
+
+If you want everyone working in a repository to use the same autowt toolchain, add it to that repository's `mise.toml` instead:
+
+```bash
+mise use go:github.com/irskep/autowt
+```
+
+Then run:
+
+```bash
+mise install
 ```
 
 ## Shell integration (optional)

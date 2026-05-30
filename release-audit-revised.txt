@@ -51,7 +51,8 @@ Confirmed release blockers
 
    We'll work on this after code changes are in
 
-   Status: deferred.
+   Status: fixed. docs/install.md and the generated README/index install snippet
+   now document mise-based install only.
 
 6. Docs changelog is stale
    Root CHANGELOG.md has a 0.6.0 - Unreleased Go rewrite entry, so it is not
@@ -161,6 +162,6 @@ Nice to have
 
    consider installing zensical via mise instead of pypi
 
-   Status: checked. zensical is not available in the mise tool registry
-   (`mise ls-remote zensical` reports not found). Leave current uv docs tooling
-   until there is a concrete mise-backed source for zensical.
+   Status: fixed. zensical is now installed through mise's pipx backend at
+   0.0.43, with mkdocs-github-admonitions-plugin included for docs builds.
+   pyproject/uv.lock no longer install zensical into the project venv.
