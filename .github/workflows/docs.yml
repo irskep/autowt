@@ -2,31 +2,11 @@ name: Documentation
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "docs/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "mkdocs.yml"
-      - "pyproject.toml"
-      - "requirements-docs.txt"
-      - ".github/**/*.yml"
-  pull_request:
-    paths:
-      - "docs/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "mkdocs.yml"
-      - "mkdocs-local.yml"
-      - "pyproject.toml"
-      - "requirements-docs.txt"
-    branches-ignore:
-      - "dependabot/**"
+  release:
+    types: [published]
 
 permissions:
   contents: read
-  pull-requests: write
   pages: write
   id-token: write
 
@@ -37,48 +17,24 @@ concurrency:
 jobs:
   documentation:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref == 'refs/heads/main' && 'github-pages' || null }}
+    environment: github-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-tags: true
 
-      - name: Setup Python and uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          python-version: "3.12"
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: |
-          uv sync --group docs --group dev
+      - name: Setup mise
+        uses: jdx/mise-action@v3
 
       - name: Build documentation
-        run: |
-          cp CHANGELOG.md docs/CHANGELOG.md
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            uv run zensical build --strict -f mkdocs-local.yml
-          else
-            uv run zensical build --strict
-          fi
+        run: mise run docs:build
 
-      - name: Upload Pages artifact (for main branch)
-        if: github.ref == 'refs/heads/main'
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: "./site"
 
-      - name: Upload PR preview artifact
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs-preview-pr-${{ github.event.number }}
-          path: "./site"
-          retention-days: 30
-
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
         id: deployment
         uses: actions/deploy-pages@v4
