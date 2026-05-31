@@ -6,6 +6,7 @@ python = "3.12"
 uv = "latest"
 jq = "latest"
 go = "1.26"
+"github:irskep/localci" = "0.2.3"
 "pipx:zensical" = { version = "0.0.43", uvx_args = "--with mkdocs-github-admonitions-plugin" }
 
 [env]
@@ -27,6 +28,26 @@ sync-readme = "uv run python scripts/sync_readme.py"
 "go:vet" = "go vet ./..."
 "go:run" = "go run ."
 "go:test" = "go test ./..."
+
+[tasks."localci:setup"]
+description = "Install dependencies for LocalCI runs"
+run = [
+  "mise install",
+  "uv sync --group docs --group dev",
+  "mise install pipx:zensical",
+]
+
+[tasks."localci:python-test"]
+description = "Run Python tests"
+run = "uv run pytest"
+
+[tasks."localci:go-test"]
+description = "Run Go tests"
+run = "go test ./..."
+
+[tasks."localci:docs-build"]
+description = "Build documentation"
+run = "mise run docs:build"
 
 [tasks."docs:serve"]
 run = "zensical serve"
