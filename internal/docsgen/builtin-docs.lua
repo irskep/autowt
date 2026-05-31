@@ -57,6 +57,7 @@ local function parse_admonition_marker(block)
   title = title:gsub("^'(.*)'$", "%1")
   title = title:gsub("^“(.*)”$", "%1")
   title = title:gsub("^‘(.*)’$", "%1")
+
   return {
     kind = kind,
     title = title,

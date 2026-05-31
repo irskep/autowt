@@ -13,7 +13,7 @@ func main() {
 	cliOutDir := flag.String("cli-out", "docs/cli", "directory for generated CLI markdown")
 	bundleOutDir := flag.String("bundle-out", "internal/docs/generated", "directory for bundled terminal docs")
 	sourceDir := flag.String("source", "docs", "directory containing narrative documentation")
-	manifestPath := flag.String("manifest", "docs/builtin.toml", "built-in documentation manifest")
+	manifestPath := flag.String("manifest", "internal/docsgen/builtin.toml", "built-in documentation manifest")
 	filterPath := flag.String("filter", "", "optional Pandoc Lua filter")
 	flag.Parse()
 
