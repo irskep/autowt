@@ -6,7 +6,7 @@ python = "3.12"
 uv = "latest"
 jq = "latest"
 go = "1.26"
-"github:irskep/localci" = "0.2.3"
+"github:irskep/localci" = "0.2.7"
 "pipx:zensical" = { version = "0.0.43", uvx_args = "--with mkdocs-github-admonitions-plugin" }
 
 [env]
@@ -52,6 +52,16 @@ mise run docs:build
 if [ -n "${LOCALCI_TASK_OUTPUT_DIR:-}" ]; then
   mkdir -p "$LOCALCI_TASK_OUTPUT_DIR/site"
   cp -R site/. "$LOCALCI_TASK_OUTPUT_DIR/site/"
+fi
+if [ -n "${LOCALCI_TASK_ARTIFACTS_FILE:-}" ]; then
+  cat >"$LOCALCI_TASK_ARTIFACTS_FILE" <<'JSON'
+{
+  "version": 1,
+  "artifacts": [
+    {"name": "docs html", "path": "site/index.html", "action": "open"}
+  ]
+}
+JSON
 fi
 '''
 
