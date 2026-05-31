@@ -1,166 +1,105 @@
-# CLI reference
+# CLI guide
 
-This page provides a comprehensive reference for all `autowt` commands, their options, and usage patterns. For a hands-on introduction, check out the [Getting Started](gettingstarted.md) guide.
+This page explains the main command-line workflows. For exact flags, aliases, and generated Cobra help, use the [Command Reference](cli/autowt.md) or run `autowt <command> --help`.
 
-## `autowt <branch-name>` / `autowt switch`
+## Command forms
 
-_(Aliases: `autowt switch <branch-name>`, `autowt sw <branch-name>`, `autowt checkout <branch-name>`, `autowt co <branch-name>`, `autowt goto <branch-name>`, `autowt go <branch-name>`)_
+`autowt` has two equivalent binary names:
 
-Switch to a worktree, or create a new one. Accepts:
+```sh
+autowt ls
+awt ls
+```
 
-- A branch name (e.g., `feature-branch`)
-- A branch name without prefix (if you've configured `branch_prefix`, you can omit it)
-- A path to an existing worktree directory
+Running `autowt` with no arguments lists worktrees. Running `autowt <branch>` is shorthand for switching to a branch or creating a worktree for it:
 
-Intelligently checks out existing branches from your default remote (i.e. `origin`), or offers to create a new one if none exists.
+```sh
+autowt
+autowt feature/my-change
+autowt switch feature/my-change
+```
 
-**Interactive Mode**: Running `autowt switch` with no arguments opens an interactive TUI.
+Use the explicit `switch` command if a branch name conflicts with a built-in command name.
 
-The `autowt <branch-name>` form is a convenient shortcut. Use the explicit `switch` command if your branch name conflicts with another `autowt` command (e.g., `autowt switch cleanup`).
+## Switch and Create
 
-<div class="autowt-clitable-wrapper"></div>
+`autowt switch [branch]` switches to an existing worktree, creates a new one, or opens an interactive picker when no branch is provided. It accepts branch names, branch names without a configured prefix, and paths to existing worktree directories.
 
-| Option                     | Description                                                                                                                                                                |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--terminal <mode>`        | Overrides the default terminal behavior. Modes include `tab`, `window`, `inplace`, `echo`, `vscode`, and `cursor`. See [Terminal Support](terminalsupport.md) for details. |
-| `--after-init <script>`    | Runs a command _after_ the `session_init` script completes. Perfect for starting a dev server.                                                                             |
-| `--ignore-same-session`    | Forces `autowt` to create a new terminal, even if a session for that worktree already exists.                                                                              |
-| `--from <branch>`          | Source branch/commit to create worktree from. Accepts any git revision: branch names, tags, commit hashes, `HEAD`, etc. Only used when creating new worktrees.             |
-| `--dir <path>`             | Directory path for the new worktree. Overrides the configured directory pattern. Supports both absolute and relative paths.                                                |
-| `--custom-script <script>` | Runs a named custom script with arguments. Scripts are defined in your configuration file. Example: `--custom-script="bugfix 123"`.                                        |
-| `-y`, `--yes`              | Automatically confirms all prompts, such as the prompt to switch to an existing terminal session.                                                                          |
+When creating a worktree, autowt checks local branches first, then remote branches, then offers to create a new branch from the repository's main branch. Use `--from` to choose a specific source revision.
 
-### Branch resolution
+Terminal behavior comes from configuration by default. Override it per command with `--terminal`, or use shell integration when you want switching to `cd` in the current shell instead of opening another terminal session.
 
-When creating a new worktree, `autowt` automatically:
+Worktree directories use `worktree.directory_pattern`. The `{branch}` template value is controlled by `worktree.branch_path_mode`: `flat` replaces branch path separators with hyphens, while `hierarchical` preserves them as nested directories.
 
-1. Fetches the latest branches from your remote
-2. Checks if the branch exists locally - if so, uses it
-3. Checks if the branch exists on your remote (e.g., `origin/branch-name`) - if so, prompts to create a local worktree tracking the remote
-4. If the branch doesn't exist anywhere, prompts to create a new branch from your repository's main branch (`main` or `master`)
+## List
 
-### Worktree directory organization
-
-By default, worktrees are created in a dedicated directory adjacent to your main project. For example, if your project is in `~/dev/my-project`, worktrees are created in `~/dev/my-project-worktrees/`.
-
-Branch names are sanitized for the filesystem - slashes become hyphens. For example, `feature/user-auth` creates a directory at `~/dev/my-project-worktrees/feature-user-auth/`.
-
-You can customize this with the `directory_pattern` setting (see [Configuration](configuration.md)), which supports template variables like `{repo_name}`, `{branch}`, `{repo_parent_dir}`, and environment variables. The `{branch}` value uses `branch_path_mode`, so branch slashes are flattened by default or preserved as subdirectories when configured. For example, to organize all worktrees in a central location: `~/.worktrees/{repo_name}/{branch}`.
-
-## `autowt ls`
-
-_(Aliases: `list`, `ll`)_
-
-Lists all worktrees for the current project, indicating the main worktree, your current location, and any active terminal sessions. Running `autowt` with no arguments is equivalent to `autowt ls`.
-
-The @ symbol indicates that there is an active terminal session for a worktree.
+`autowt ls` lists worktrees for the current repository. The main worktree appears first, the current worktree is marked, and active terminal sessions are indicated when autowt can detect them.
 
 ```txt
 > autowt ls
 
   Worktrees:
-→ ~/dev/my-project (main worktree)                         main ←
+-> ~/dev/my-project (main worktree)                         main <-
   ~/dev/my-project-worktrees/feature-new-ui @   feature-new-ui
   ~/dev/my-project-worktrees/hotfix-bug              hotfix-bug
 ```
 
-## `autowt cleanup [WORKTREES...]`
+## Cleanup
 
-_(Aliases: `cl`, `clean`, `prune`, `rm`, `remove`, `del`, `delete`)_
+`autowt cleanup` removes secondary worktrees and can also delete their local branches. With no arguments it uses the configured cleanup mode, or prompts for a default the first time you run it.
 
-Safely removes worktrees, their directories, and associated local git branches. By default, it launches an interactive TUI to let you select which worktrees to remove.
+Cleanup modes:
 
-You can optionally specify one or more worktrees to remove by passing:
+- `interactive`: choose worktrees in a TUI.
+- `merged`: select branches already merged into the main branch.
+- `remoteless`: select branches without upstream tracking.
+- `github`: use the GitHub CLI to select branches with merged or closed pull requests.
+- `all`: combine merged and remoteless cleanup.
 
-- Branch names (e.g., `autowt cleanup feature-branch`)
-- Branch names without prefix (if you've configured `branch_prefix`)
-- Paths to worktree directories (e.g., `autowt cleanup ../my-project-worktrees/feature-branch`)
+You can also pass branch names or worktree paths directly:
 
-When worktrees are specified, the command skips the interactive TUI and mode-based selection, and instead prompts for simple yes/no confirmation.
+```sh
+autowt cleanup feature/my-change
+autowt cleanup ../my-project-worktrees/feature-my-change
+```
 
-<div class="autowt-clitable-wrapper"></div>
+Use `--dry-run` to preview removals and `--force` when git should remove a worktree with local file changes.
 
-| Option          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--mode <mode>` | Sets the cleanup mode. Ignored when specific worktrees are provided. If not specified in a non-interactive environment (like CI), the command will exit. <br> • `interactive`: Opens a TUI to let you choose what to remove. <br> • `all`: Non-interactively selects all merged and remoteless branches. <br> • `merged`: Selects branches that have been merged into your main branch. <br> • `remoteless`: Selects local branches that don't have an upstream remote. <br> • `github`: Uses the GitHub CLI (`gh`) to identify branches with merged or closed pull requests. Requires `gh` to be installed. <br><br> **First-run behavior**: If you haven't configured a preferred cleanup mode, autowt will prompt you to select one on first use. Your selection is saved for future use. |
-| `--dry-run`     | Previews which worktrees and branches would be removed without actually deleting anything.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `--force`       | Force-removes worktrees even if they contain uncommitted changes or untracked files. Without this flag, git will refuse to remove worktrees that have any modified tracked files or untracked files (which is common - e.g., build artifacts, `.DS_Store`, etc.).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+## Configuration
 
-### How cleanup works
+`autowt config` opens an interactive editor for global configuration. `autowt config --show` prints resolved values from defaults, config files, environment variables, and command-line overrides.
 
-When you run cleanup, `autowt`:
+See [Configuration](configuration.md) for every setting and its precedence.
 
-1. Identifies worktrees matching the selected mode criteria
-2. Prompts for confirmation (shows list of worktrees to be removed)
-3. Runs `pre_cleanup` [Lifecycle Hooks](lifecyclehooks.md) if configured
-4. Removes the worktree directories from your filesystem
-5. Runs `post_cleanup` hooks if configured
-6. Prompts to delete the associated local git branches (can be auto-confirmed with `-y`)
+## Shell Integration
 
-Note: Worktrees with uncommitted changes are automatically skipped in non-interactive modes unless you use `--force`.
+`autowt shell-init` prints shell code for bash, zsh, or fish. When installed, switching commands can change the current shell directory directly.
 
-## `autowt config`
+```sh
+# bash or zsh
+eval "$(autowt shell-init)"
 
-_(Aliases: `configure`, `settings`, `cfg`, `conf`)_
-
-Opens an interactive TUI to configure global `autowt` settings, such as the default terminal mode. Learn more in the [Configuration](configuration.md) guide.
-
-<div class="autowt-clitable-wrapper"></div>
-
-| Option   | Description                                                                                                            |
-| -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `--show` | Display current configuration values from all sources (global and project). Useful for debugging configuration issues. |
-
-## `autowt shell-init [shell]`
-
-Generates a shell function that wraps the `autowt` binary, enabling worktree switches to `cd` in your current shell. The shell argument is optional; when omitted, it auto-detects from `$SHELL`. Supports `bash`, `zsh`, and `fish`.
-
-When shell integration is active, commands like `autowt my-branch` change your working directory in your current shell instead of opening a new terminal tab. No terminal automation (AppleScript, tmux, etc.) is required.
-
-```bash
-# Add to ~/.bashrc:
-eval "$(autowt shell-init bash)"
-
-# Add to ~/.zshrc:
-eval "$(autowt shell-init zsh)"
-
-# Add to ~/.config/fish/config.fish:
+# fish
 autowt shell-init fish | source
 ```
 
-<div class="autowt-clitable-wrapper"></div>
+Commands that do not switch worktrees, such as `ls`, `cleanup`, and `config`, continue to print normally.
 
-| Option      | Description                                                                      |
-| ----------- | -------------------------------------------------------------------------------- |
-| `--dry-run` | Generate a variant of the function that prints what would run instead of eval'ing it. Useful for verifying the protocol. |
+## Hooks
 
-Commands that don't switch worktrees (`ls`, `cleanup`, `config`, etc.) continue to work normally with their output printed as-is.
+`autowt hook <hook_name>` runs the configured global and project lifecycle hooks for the current repository and worktree. This lets other tools reuse autowt hook configuration instead of duplicating it.
 
-## `autowt hook <hook_name>`
+Hook names are `pre_create`, `post_create`, `post_create_async`, `session_init`, `pre_cleanup`, `post_cleanup`, `pre_switch`, and `post_switch`.
 
-Runs a specific lifecycle hook using the configured global and project hooks. This is useful for integrating autowt's hook configuration with other worktree management tools, so they can shell out to autowt instead of duplicating hook configuration.
+## Built-In Docs
 
-`hook_name` must be one of: `pre_create`, `post_create`, `post_create_async`, `session_init`, `pre_cleanup`, `post_cleanup`, `pre_switch`, `post_switch`.
+`autowt docs` opens the built-in documentation in a terminal man-page viewer when possible. Use `autowt docs --plain` for plain text output, or `autowt docs --roff` to print the generated roff source.
 
-The command auto-detects the repository root, worktree directory, and branch name from the current working directory. It exits with code 1 if any hook fails.
+## Global Options
 
-```bash
-# Run session_init hooks from within a worktree
-cd ~/dev/my-project-worktrees/feature-branch
-autowt hook session_init
+Global options can be used with any command:
 
-# Run post_create hooks after another tool creates a worktree
-autowt hook post_create
-```
-## Global options
-
-These options can be used with any `autowt` command.
-
-<div class="autowt-clitable-wrapper"></div>
-
-| Option         | Description                                                   |
-| -------------- | ------------------------------------------------------------- |
-| `-y`, `--yes`  | Automatically answers "yes" to all confirmation prompts.      |
-| `--debug`      | Enables verbose debug logging for troubleshooting.            |
-| `-h`, `--help` | Shows the help message for `autowt` or a specific subcommand. |
-| `--version`    | Shows the autowt version and exits.                           |
+- `-y`, `--yes`: automatically confirm prompts.
+- `--debug`: enable verbose debug logging.
+- `-h`, `--help`: show help.
+- `--version`: print the version.

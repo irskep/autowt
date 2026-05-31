@@ -67,6 +67,8 @@ Beyond `session_init` scripts, autowt supports 8 lifecycle hooks that run at spe
 
 Note that there is a command-line-only `--after-init` flag to run additional commands after init is done. This is for cases when you want to immediately start up a one-off script after the worktree has been set up. If you find yourself repeating the same `--after-init` arg, consider writing a [custom script](./configuration.md#scriptscustom).
 
+<!-- builtin-docs:skip-start -->
+
 ## Control flow diagrams
 
 ### Creating and switching to a new worktree
@@ -115,8 +117,10 @@ sequenceDiagram
     autowt->>autowt: pre_cleanup hook
     autowt->>autowt: Remove worktrees and branches
     autowt->>autowt: post_cleanup hook
-    autowt-->>User: Cleanup complete
+autowt-->>User: Cleanup complete
 ```
+
+<!-- builtin-docs:skip-end -->
 
 ## Running hooks standalone
 
@@ -131,7 +135,7 @@ autowt hook session_init
 autowt hook pre_cleanup
 ```
 
-The command auto-detects the repository root, worktree directory, and branch name from the current working directory. It runs the same global + project hook cascade as the built-in commands. See the [CLI reference](clireference.md#autowt-hook-hook_name) for details.
+The command auto-detects the repository root, worktree directory, and branch name from the current working directory. It runs the same global + project hook cascade as the built-in commands. See the [command reference](cli/autowt_hook.md) for details.
 
 ## Configuration
 

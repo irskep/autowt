@@ -20,7 +20,15 @@ var version = "dev"
 // globalOpts is populated by PersistentPreRun before any command runs.
 var globalOpts opts
 
+type rootCmdOptions struct {
+	IncludeCustomScripts bool
+}
+
 func newRootCmd() *cobra.Command {
+	return newRootCmdWithOptions(rootCmdOptions{IncludeCustomScripts: true})
+}
+
+func newRootCmdWithOptions(options rootCmdOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "autowt",
 		Short: "Git worktree manager",
@@ -79,13 +87,16 @@ Or simply run 'autowt <branch>' to switch to a branch.`,
 		newConfigCmd(),
 		newShellInitCmd(),
 		newHookCmd(),
+		newDocsCmd(),
 	} {
 		sub.GroupID = "builtin"
 		cmd.AddCommand(sub)
 	}
 
 	// Register custom scripts from config as subcommands.
-	registerCustomScriptCommands(cmd, customGroup.ID)
+	if options.IncludeCustomScripts {
+		registerCustomScriptCommands(cmd, customGroup.ID)
+	}
 
 	return cmd
 }

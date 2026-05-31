@@ -1,0 +1,1529 @@
+AUTOWT(1) autowt Manual
+autowt
+May 2026
+
+NAME
+
+autowt - git worktree manager with terminal switching and cleanup
+
+COMMAND HELP
+
+For command options, run autowt --help or autowt <command> --help.
+
+autowt: a better git worktree experience
+
+What are worktrees?
+
+Worktrees are a built-in feature of git, which are essentially free clones of a local git repo.
+History is shared and synced across all worktrees for a given repo. Creating a new worktree is
+cheap, and you can list all your worktrees with a single command. This makes them a great fit for
+doing work “in parallel,” or not worrying about having uncommitted changes before working on another
+branch.
+
+How autowt simplifies common workflows
+
+While worktrees are powerful, the built-in tooling is minimalistic. Consider what it takes to set up
+a fresh worktree in a typical workflow:
+
+1.  Make a decision about where to put the worktree
+2.  git worktree add <worktree_path> -b <branch>
+3.  Open a new terminal tab
+4.  cd <worktree path>
+5.  uv sync or npm install or whatever your dependency setup is
+6.  cp <repo_dir>/.env . to copy secrets
+
+Congrats, you’re done! Type type type, open a PR, and merge it. Now you need to clean up:
+
+1.  git worktree rm .
+2.  Close the tab
+
+On the other hand, with autowt, it looks like this:
+
+    autowt <branch>
+
+And deleting branches that have been merged or are associated with closed PRs looks like this:
+
+    autowt cleanup
+
+A lot nicer, right?
+
+Now suppose your team uses an issue tracker like Linear which can suggest branch names based on
+issue IDs. You could configure autowt to have a custom command to automatically open worktrees for
+tickets instead of passing a branch name:
+
+    autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
+
+Note:
+
+This example mentions Linear, but autowt has no opinions about which tools you call in your scripts.
+There is no special GitHub or Linear integration. That functionality comes from command line
+programs installed and configured by you.
+
+What autowt can do for you
+
+-  Worktree ergonomics
+
+  It’s not hard to learn the commands to manage worktrees, but autowt shortens the most common ones.
+  autowt can open new terminal tabs via automate-terminal (iTerm2, tmux, Ghostty, and more), or with
+  shell integration it can cd directly in your current shell.
+
+-  Deep, customizable automation
+
+  You can define scripts in .autowt.toml to run at various points, like after creating a worktree
+  but before switching to it, or before a worktree is cleaned up. Check out Lifecycle Hooks for more
+  information.
+
+-  Smart cleanup
+
+  You can configure autowt to automatically clean up worktrees whose branches have been merged, or
+  even branches which are associated with closed pull requests on GitHub.
+
+-  Friendly TUIs
+
+  autowt uses interactive terminal-based UIs where it makes sense. For example, autowt config gives
+  you an easy way to edit global settings. autowt switch lets you review your worktrees and pick
+  which one to navigate to.
+
+Getting started
+
+You’ll need git 2.5+ (anything from the last ten years).
+
+Install autowt with mise:
+
+    mise use -g go:github.com/irskep/autowt
+
+Optionally, set up shell integration so worktree switches cd in your current shell:
+
+    # bash/zsh (add to ~/.bashrc or ~/.zshrc)
+    eval "$(autowt shell-init bash)"
+
+Then, make a new worktree for a new or existing branch in your current repo:
+
+    autowt my-new-feature
+
+With shell integration, this creates the worktree and cd’s you into it. Without it, autowt opens a
+new terminal tab or window instead.
+
+Installing autowt
+
+Requirements
+
+Before you begin, make sure you have:
+
+- mise: autowt is installed through mise’s Go package backend.
+- Git 2.5+: autowt relies on git worktree support.
+- Go: required by mise’s Go package backend. If Go is not already installed, install it with mise:
+
+    mise use -g go
+
+Install autowt
+
+Install autowt globally with mise:
+
+    mise use -g go:github.com/irskep/autowt
+
+Verify the installation:
+
+    autowt --version
+
+Project-scoped install
+
+If you want everyone working in a repository to use the same autowt toolchain, add it to that
+repository’s mise.toml instead:
+
+    mise use go:github.com/irskep/autowt
+
+Then run:
+
+    mise install
+
+Shell integration (optional)
+
+By default, autowt opens new terminal tabs when you switch worktrees. If you’d prefer worktree
+switches to cd in your current shell, add shell integration to your shell config:
+
+    # bash (~/.bashrc)
+    eval "$(autowt shell-init bash)"
+
+    # zsh (~/.zshrc)
+    eval "$(autowt shell-init zsh)"
+
+    # fish (~/.config/fish/config.fish)
+    autowt shell-init fish | source
+
+See Terminal Support for details.
+
+Getting started with autowt
+
+This guide will walk you through installing autowt, setting it up for a project, and using its core
+features to streamline your development workflow.
+
+Your first worktree
+
+Let’s dive in and see autowt in action.
+
+Step 1: Create a new feature branch
+
+Navigate to the root of any git repository you’re working on. For this example, let’s say your
+project is located at ~/dev/my-project.
+
+    cd ~/dev/my-project
+
+Now, let’s create a worktree for a new feature.
+
+    autowt go new-feature
+
+Here’s what autowt does behind the scenes:
+
+1.  Fetches the latest changes from your remote repository.
+2.  Creates a new directory for your worktree at ../my-project-worktrees/new-feature/.
+3.  Creates a new git worktree for the new-feature branch. If the branch doesn’t exist, it will be
+    created from your main branch.
+4.  Navigates to the new worktree directory (either by opening a new terminal tab, or cd’ing in your
+    current shell if you’ve set up shell integration).
+
+You now have a clean, isolated environment for your new feature, without disturbing the main branch.
+
+Step 2: List your worktrees
+
+To see an overview of your worktrees, use the ls command:
+
+    autowt ls
+
+The output will look something like this, with an arrow → indicating your current directory and a @
+icon for active terminal sessions.
+
+      Worktrees:
+    → ~/dev/my-project-worktrees/new-feature @      new-feature ←
+      ~/dev/my-project (main worktree)                     main
+
+Info:
+
+autowt with no arguments is an alias for autowt ls.
+
+Tip: Interactive switching
+
+You can also use autowt switch with no arguments to open an interactive TUI that lets you:
+
+- Select from existing worktrees to switch to
+- Choose branches without worktrees (automatically creates a new worktree)
+- Create a new branch by entering its name
+
+Tip: Additional worktree setup
+
+If you want dependencies to be installed automatically when creating new worktrees, or need to copy
+over git-ignored files like .env from the main worktree, you can learn how to configure lifecycle
+hooks in the Lifecycle Hooks guide.
+
+A typical workflow
+
+Now that you have the basics down, let’s walk through a common development scenario.
+
+Juggling multiple tasks
+
+Imagine you’re working on new-feature when you get a request for an urgent bug fix. With autowt, you
+don’t need to stash your changes. Just create a new worktree for the hotfix:
+
+    autowt hotfix/urgent-bug
+
+autowt switches you to the bug fix worktree. You can now work on the fix without affecting your
+new-feature branch. Once you’re done with the bug fix, switch back to your feature or let
+autowt cleanup handle it later.
+
+If you prefer to stay in your existing terminal tab the whole time, you can set up shell
+integration:
+
+    # Add to your shell config once:
+    eval "$(autowt shell-init bash)"  # or zsh/fish
+
+    # Then just use autowt normally — it cd's in your current shell
+    autowt hotfix/urgent-bug
+    # code code code, commit, push
+    autowt new-feature
+
+Without shell integration, you can also pass --terminal=inplace for the same effect on a one-off
+basis using AppleScript or dbus to “type” into the current terminal.
+
+For special cases where you need the worktree in a specific location, you can override the default
+directory pattern with --dir:
+
+    # Place in a custom location
+    autowt urgent-fix --dir /tmp/quick-fix
+
+    # Use a relative path from current directory
+    autowt feature-demo --dir ../demo-workspace
+
+Run autowt config to configure the default terminal behavior for switching worktrees.
+
+Cleaning up
+
+Once your hotfix/urgent-bug branch is merged and no longer needed, you can clean it up.
+
+First, use the --dry-run flag to see what autowt will do:
+
+    autowt cleanup --dry-run
+
+This will show you a list of branches that are safe to remove. When you’re ready, run the command
+without the flag:
+
+    autowt cleanup
+
+On first run, autowt will ask you to select your preferred cleanup mode (interactive, merged,
+remoteless, or github if the GitHub CLI is available). Your choice will be saved for future use.
+After that, autowt will remove the worktree and, if the branch is merged, will also offer to delete
+the local git branch.
+
+If autowt cleanup doesn’t want to automatically clean up your branch, you can run
+autowt cleanup <branch-name> explicitly.
+
+CLI guide
+
+This page explains the main command-line workflows. For exact flags, aliases, and generated Cobra
+help, use the Command Reference or run autowt <command> --help.
+
+Command forms
+
+autowt has two equivalent binary names:
+
+    autowt ls
+    awt ls
+
+Running autowt with no arguments lists worktrees. Running autowt <branch> is shorthand for switching
+to a branch or creating a worktree for it:
+
+    autowt
+    autowt feature/my-change
+    autowt switch feature/my-change
+
+Use the explicit switch command if a branch name conflicts with a built-in command name.
+
+Switch and Create
+
+autowt switch [branch] switches to an existing worktree, creates a new one, or opens an interactive
+picker when no branch is provided. It accepts branch names, branch names without a configured
+prefix, and paths to existing worktree directories.
+
+When creating a worktree, autowt checks local branches first, then remote branches, then offers to
+create a new branch from the repository’s main branch. Use --from to choose a specific source
+revision.
+
+Terminal behavior comes from configuration by default. Override it per command with --terminal, or
+use shell integration when you want switching to cd in the current shell instead of opening another
+terminal session.
+
+Worktree directories use worktree.directory_pattern. The {branch} template value is controlled by
+worktree.branch_path_mode: flat replaces branch path separators with hyphens, while hierarchical
+preserves them as nested directories.
+
+List
+
+autowt ls lists worktrees for the current repository. The main worktree appears first, the current
+worktree is marked, and active terminal sessions are indicated when autowt can detect them.
+
+    > autowt ls
+
+      Worktrees:
+    -> ~/dev/my-project (main worktree)                         main <-
+      ~/dev/my-project-worktrees/feature-new-ui @   feature-new-ui
+      ~/dev/my-project-worktrees/hotfix-bug              hotfix-bug
+
+Cleanup
+
+autowt cleanup removes secondary worktrees and can also delete their local branches. With no
+arguments it uses the configured cleanup mode, or prompts for a default the first time you run it.
+
+Cleanup modes:
+
+- interactive: choose worktrees in a TUI.
+- merged: select branches already merged into the main branch.
+- remoteless: select branches without upstream tracking.
+- github: use the GitHub CLI to select branches with merged or closed pull requests.
+- all: combine merged and remoteless cleanup.
+
+You can also pass branch names or worktree paths directly:
+
+    autowt cleanup feature/my-change
+    autowt cleanup ../my-project-worktrees/feature-my-change
+
+Use --dry-run to preview removals and --force when git should remove a worktree with local file
+changes.
+
+Configuration
+
+autowt config opens an interactive editor for global configuration. autowt config --show prints
+resolved values from defaults, config files, environment variables, and command-line overrides.
+
+See Configuration for every setting and its precedence.
+
+Shell Integration
+
+autowt shell-init prints shell code for bash, zsh, or fish. When installed, switching commands can
+change the current shell directory directly.
+
+    # bash or zsh
+    eval "$(autowt shell-init)"
+
+    # fish
+    autowt shell-init fish | source
+
+Commands that do not switch worktrees, such as ls, cleanup, and config, continue to print normally.
+
+Hooks
+
+autowt hook <hook_name> runs the configured global and project lifecycle hooks for the current
+repository and worktree. This lets other tools reuse autowt hook configuration instead of
+duplicating it.
+
+Hook names are pre_create, post_create, post_create_async, session_init, pre_cleanup, post_cleanup,
+pre_switch, and post_switch.
+
+Built-In Docs
+
+autowt docs opens the built-in documentation in a terminal man-page viewer when possible. Use
+autowt docs --plain for plain text output, or autowt docs --roff to print the generated roff source.
+
+Global Options
+
+Global options can be used with any command:
+
+- -y, --yes: automatically confirm prompts.
+- --debug: enable verbose debug logging.
+- -h, --help: show help.
+- --version: print the version.
+
+Command Reference
+
+autowt
+
+Git worktree manager
+
+Synopsis
+
+Git worktree manager. Available as: autowt, awt
+
+Use subcommands like ‘ls’, ‘cleanup’, ‘config’, or ‘switch’. Or simply run ‘autowt ’ to switch to a
+branch.
+
+    autowt [flags]
+
+Options
+
+          --debug   Enable debug logging
+      -h, --help    help for autowt
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt cleanup - Remove worktrees or clean up merged/remoteless ones
+- autowt config - Configure autowt settings
+- autowt docs - Read the built-in documentation
+- autowt hook - Run a specific lifecycle hook
+- autowt ls - List all worktrees and their status
+- autowt shell-init - Generate shell integration code
+- autowt switch - Switch to or create a worktree for the specified branch
+
+autowt switch
+
+Switch to or create a worktree for the specified branch
+
+    autowt switch [branch] [flags]
+
+Options
+
+          --after-init string      Command to run after session_init script completes
+          --custom-script string   Custom script to run with arguments
+          --dir string             Directory path for the new worktree
+          --from string            Source branch/commit to create worktree from
+      -h, --help                   help for switch
+          --ignore-same-session    Always create new terminal, ignore existing sessions
+          --terminal string        How to open the worktree terminal (tab, window, inplace, echo, vscode, cursor)
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+autowt ls
+
+List all worktrees and their status
+
+    autowt ls [flags]
+
+Options
+
+      -h, --help   help for ls
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+autowt cleanup
+
+Remove worktrees or clean up merged/remoteless ones
+
+    autowt cleanup [worktrees...] [flags]
+
+Options
+
+          --dry-run       Show what would be removed without actually removing
+          --force         Force remove worktrees with modified files
+      -h, --help          help for cleanup
+          --mode string   Cleanup mode (all, remoteless, merged, interactive, github)
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+autowt config
+
+Configure autowt settings
+
+    autowt config [flags]
+
+Options
+
+      -h, --help   help for config
+          --show   Show current configuration values
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+autowt shell-init
+
+Generate shell integration code
+
+Synopsis
+
+Generate shell integration code.
+
+Detects your shell automatically from $SHELL, or accepts an explicit argument.
+
+Prints a shell function that wraps the autowt binary so that worktree switches cd in your current
+shell.
+
+Setup: bash: eval “$(autowt shell-init)"       # add to ~/.bashrc
+  zsh:  eval "$(autowt shell-init)” # add to ~/.zshrc fish: autowt shell-init | source # add to
+~/.config/fish/config.fish
+
+    autowt shell-init [bash|zsh|fish] [flags]
+
+Options
+
+          --dry-run   Print commands instead of eval'ing them
+      -h, --help      help for shell-init
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+autowt hook
+
+Run a specific lifecycle hook
+
+Synopsis
+
+Run the configured global and project hooks for the given hook type. Useful for integrating autowt’s
+hook configuration with other worktree tools.
+
+    autowt hook <hook_name> [flags]
+
+Options
+
+      -h, --help   help for hook
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+autowt docs
+
+Read the built-in documentation
+
+Synopsis
+
+Read the built-in autowt documentation in your terminal.
+
+    autowt docs [flags]
+
+Options
+
+      -h, --help    help for docs
+          --plain   print plain text instead of opening a pager
+          --roff    print roff man page source
+
+Options inherited from parent commands
+
+          --debug   Enable debug logging
+      -y, --yes     Automatically confirm all prompts
+
+SEE ALSO
+
+- autowt - Git worktree manager
+
+Configuring autowt
+
+autowt is designed to work out of the box with sensible defaults, but you can customize its behavior
+to perfectly match your workflow. This guide covers the different ways you can configure autowt,
+from global settings to project-specific rules and one-time command-line overrides.
+
+For a comprehensive example configuration file with comments explaining all options, see the
+example_config.toml in the repository.
+
+Configuration layers
+
+autowt uses a hierarchical configuration system. Settings are loaded from multiple sources, and
+later sources override earlier ones. The order of precedence is:
+
+1.  Built-in Defaults: Sensible defaults for all settings.
+2.  Global config.toml: User-wide settings that apply to all your projects.
+3.  Project .autowt.toml: Project-specific settings, defined in your repository’s root.
+4.  Environment Variables: System-wide overrides, prefixed with AUTOWT_.
+5.  Command-Line Flags: The highest priority, for on-the-fly adjustments.
+
+Configuration files
+
+Global configuration
+
+Your global settings are stored in a config.toml file in a platform-appropriate directory:
+
+- macOS: ~/Library/Application Support/autowt/config.toml
+- Linux: ~/.config/autowt/config.toml (or $XDG_CONFIG_HOME/autowt/config.toml)
+- Windows: ~/.autowt/config.toml
+
+The easiest way to manage common settings is with the autowt config command, which launches an
+interactive TUI (Text-based User Interface) for the most frequently used options. For the complete
+set of configuration options, you can edit the config file directly.
+
+Project-specific configuration
+
+For settings that should apply only to a specific project, create a .autowt.toml file in the root of
+your repository. This is the ideal place to define project-wide init scripts or worktree settings.
+
+All configuration options
+
+This section provides a comprehensive reference for all available configuration options, organized
+by section. Each option includes its TOML key, the corresponding environment variable, and any
+command-line flags.
+
+[terminal] - Terminal management
+
+Controls how autowt interacts with your terminal.
+
+  ----------------------------------------------------------------------------------------------------------------------------
+  Key          Type      Default   Description
+  ------------ --------- --------- -------------------------------------------------------------------------------------------
+  mode         string    "tab"     Determines how autowt opens worktrees. • tab: Open in a new tab (default). • window: Open
+                                   in a new window. • inplace: Switch the current terminal to the worktree directory. • echo:
+                                   Output shell commands to stdout. ENV: AUTOWT_TERMINAL_MODE CLI: --terminal <mode>
+
+  always_new   boolean   false     If true, always creates a new terminal session instead of switching to an existing one for
+                                   a worktree. ENV: AUTOWT_TERMINAL_ALWAYS_NEW CLI: --ignore-same-session
+
+  program      string    null      Force autowt to use a specific terminal program instead of auto-detecting one. Examples:
+                                   iterm2, terminal, tmux ENV: AUTOWT_TERMINAL_PROGRAM
+  ----------------------------------------------------------------------------------------------------------------------------
+
+[worktree] - Worktree management
+
+Defines how worktrees are created and managed.
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------
+  Key                 Type      Default                               Description
+  ------------------- --------- ------------------------------------- ---------------------------------------------------------------------------------------
+  directory_pattern   string    "../{repo_name}-worktrees/{branch}"   The template for creating worktree directory paths. Can use variables {repo_dir} (full
+                                                                      repo path), {repo_name} (repo directory name), {repo_parent_dir} (parent directory of
+                                                                      repo), {branch} (branch name formatted using branch_path_mode), and environment
+                                                                      variables like $HOME. Examples: "{repo_parent_dir}/worktrees/{branch}",
+                                                                      "$HOME/worktrees/{repo_name}/{branch}". This can be overridden on a per-command basis
+                                                                      using the --dir flag. ENV: AUTOWT_WORKTREE_DIRECTORY_PATTERN CLI: --dir <path>
+
+  branch_path_mode    string    "flat"                                Controls how branch names are expanded for {branch} in directory_pattern. • flat:
+                                                                      Replaces slashes with hyphens, so feature/my-thing becomes feature-my-thing. •
+                                                                      hierarchical: Preserves slashes as path separators, so feature/my-thing becomes
+                                                                      feature/my-thing. Explicit --dir paths bypass this setting. ENV:
+                                                                      AUTOWT_WORKTREE_BRANCH_PATH_MODE
+
+  auto_fetch          boolean   true                                  If true, automatically fetches from the remote before creating new worktrees. ENV:
+                                                                      AUTOWT_WORKTREE_AUTO_FETCH CLI: --no-fetch (to disable)
+
+  branch_prefix       string    null                                  Automatically prefix new branch names with a template. Can use variables {repo_name},
+                                                                      {github_username} (if gh CLI is available), and environment variables. Examples:
+                                                                      "feature/", "{github_username}/". When set, autowt my-feature creates
+                                                                      feature/my-feature. Also applies when switching: autowt my-feature switches to
+                                                                      feature/my-feature if it exists. Prevents double-prefixing if the branch name already
+                                                                      includes the prefix. ENV: AUTOWT_WORKTREE_BRANCH_PREFIX
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+[cleanup] - Cleanup behavior
+
+Configures the autowt cleanup command.
+
+  --------------------------------------------------------------------------------------------------------------------------------------
+  Key            Type     Default         Description
+  -------------- -------- --------------- ----------------------------------------------------------------------------------------------
+  default_mode   string   "interactive"   The default mode for the cleanup command. • interactive: Opens a TUI to let you choose what to
+                                          remove. • merged: Selects branches that have been merged into your main branch. • remoteless:
+                                          Selects local branches that don’t have an upstream remote. • all: Non-interactively selects
+                                          all merged and remoteless branches. • github: Uses the GitHub CLI (gh) to identify branches
+                                          with merged or closed pull requests. First run: If not configured, autowt will prompt you to
+                                          select your preferred mode on first use. If gh is available, the github option will be
+                                          offered; otherwise, a note will mention it becomes available when gh is installed. ENV:
+                                          AUTOWT_CLEANUP_DEFAULT_MODE CLI: --mode <mode>
+
+  --------------------------------------------------------------------------------------------------------------------------------------
+
+[scripts] - Lifecycle hooks and scripts
+
+See Lifecycle Hooks.
+
+[scripts.custom]
+
+Define named, reusable scripts for specialized workflows. Custom scripts can be simple command
+strings or full workflow profiles with their own lifecycle hooks and dynamic branch naming.
+
+Simple format
+
+The simplest form is a command string that runs as session_init. For simple format scripts, the
+first CLI argument is used as the branch name:
+
+    [scripts.custom]
+    # Simple: just a session_init command
+    # First argument ($1) becomes the branch name
+    bugfix = 'claude "Fix the bug described in GitHub issue $1"'
+
+Usage: awt bugfix 123 creates a branch named 123 with the session_init command.
+
+Enhanced format
+
+For more control, use a nested table to define a complete workflow profile:
+
+    [scripts.custom.ghllm]
+    # Help text for --help output
+    description = "Create worktree from GitHub issue"
+
+    # Dynamic branch name from command output
+    branch_name = "gh issue view $1 --json title --template '{{.title}}'"
+
+    # Hook inheritance (default: true)
+    inherit_hooks = true
+
+    # Any lifecycle hook can be overridden
+    pre_create = "echo 'Starting ghllm workflow'"
+    session_init = 'claude "Work on GitHub issue $1"'
+
+Custom script fields
+
+  -------------------------------------------------------------------------------------------------------------------
+  Field               Type      Default   Description
+  ------------------- --------- --------- ---------------------------------------------------------------------------
+  description         string    null      Help text shown in awt --help output.
+
+  branch_name         string    null      Shell command whose stdout becomes the branch name. Output is automatically
+                                          normalized and truncated.
+
+  inherit_hooks       boolean   true      When true, global/project hooks run before custom script hooks. When false,
+                                          only custom script hooks run.
+
+  pre_create          string    null      Runs before worktree creation (in main repo directory).
+
+  post_create         string    null      Runs after worktree creation (in worktree directory).
+
+  post_create_async   string    null      Runs after worktree creation, non-blocking.
+
+  session_init        string    null      Runs when opening a terminal in the worktree.
+
+  pre_cleanup         string    null      Runs before worktree deletion.
+
+  post_cleanup        string    null      Runs after worktree deletion (in main repo directory).
+
+  pre_switch          string    null      Runs before switching to an existing worktree.
+
+  post_switch         string    null      Runs after switching to an existing worktree.
+  -------------------------------------------------------------------------------------------------------------------
+
+Argument interpolation
+
+All string fields support $1, $2, $3, etc. placeholders that are replaced with arguments passed to
+the custom script:
+
+    # Invoke custom script directly (recommended)
+    awt ghllm 123
+
+    # Or using the legacy flag
+    awt --custom-script="ghllm 123"
+
+    # $1 is replaced with "123" in all fields
+
+Dynamic branch naming
+
+When branch_name is set, the command is executed and its stdout becomes the branch name. The output
+is automatically normalized to be a valid git ref:
+
+- Converted to lowercase
+- Spaces and underscores become dashes
+- Invalid git ref characters are removed
+- Double dots, consecutive dashes/slashes are collapsed
+
+Example transformations:
+
+  Command output           Resulting branch name
+  ------------------------ -----------------------
+  Fix the login bug        fix-the-login-bug
+  Feature: Add OAuth       feature-add-oauth
+  [BUG] Crash on startup   bug-crash-on-startup
+  feature/Add user auth    feature/add-user-auth
+
+Hook inheritance
+
+When inherit_hooks = true (the default), hooks run in this order:
+
+1.  Global config hook (if defined)
+2.  Project config hook (if defined)
+3.  Custom script hook (if defined)
+
+When inherit_hooks = false, only the custom script’s hooks run; global and project hooks are
+skipped.
+
+Example workflows
+
+GitHub issue workflow - Creates a branch named after the issue title:
+
+    [scripts.custom.ghissue]
+    branch_name = "gh issue view $1 --json title --template '{{.title}}'"
+    session_init = 'claude "Work on GitHub issue $1: $(gh issue view $1 --json title --template '\''{{.title}}'\'')"'
+
+Release workflow - Custom pre_create and session_init:
+
+    [scripts.custom.release]
+    inherit_hooks = false  # Skip normal hooks
+    pre_create = "git fetch --tags"
+    session_init = 'claude "/release"'
+
+Custom scripts are invoked directly as subcommands:
+
+    # Enhanced format (branch_name field) - issue number is an argument
+    awt ghissue 123
+
+    # Simple format - first argument is used as the branch name
+    awt release release-v2.0
+
+Resolution priority: When autowt receives an unknown command, it checks in this order:
+
+1.  Built-in commands (ls, cleanup, config, switch, and their aliases)
+2.  Custom scripts (matches against [scripts.custom] names)
+3.  Branch names (treats the command as a branch to switch to)
+
+If you have a custom script named main and want to switch to a branch named main, use
+awt switch main to force branch interpretation.
+
+[confirmations] - User interface
+
+Manage which operations require a confirmation prompt.
+
+  -----------------------------------------------------------------------------------------------------------------------
+  Key                Type      Default   Description
+  ------------------ --------- --------- --------------------------------------------------------------------------------
+  cleanup_multiple   boolean   true      Ask for confirmation before cleaning up multiple worktrees in non-interactive
+                                         mode. ENV: AUTOWT_CONFIRMATIONS_CLEANUP_MULTIPLE
+
+  force_operations   boolean   true      Ask for confirmation when using a --force flag. ENV:
+                                         AUTOWT_CONFIRMATIONS_FORCE_OPERATIONS
+  -----------------------------------------------------------------------------------------------------------------------
+
+You can skip all confirmations for a single command by using the -y or --yes flag.
+
+Lifecycle Hooks and Init Scripts
+
+autowt allows you to run custom commands at specific points during worktree operations. The
+motivating use cases are installing dependencies, copying secrets, and cleaning up resources.
+
+Example: installing dependencies and copying secrets
+
+The post_create hook runs as a subprocess after creating a new worktree but before switching to it.
+This is the right place for setup tasks like installing dependencies and copying files.
+
+Configuration
+
+Set the scripts.post_create key in your .autowt.toml file:
+
+    # .autowt.toml
+    [scripts]
+    post_create = "npm install"
+
+Copying .env files
+
+Worktrees start as clean checkouts, which means untracked files like .env are not automatically
+carried over. You can use a hook to copy these files from your main worktree.
+
+autowt provides environment variables that make this easier, including AUTOWT_MAIN_REPO_DIR which
+points to the main repository directory.
+
+    # .autowt.toml
+    [scripts]
+    post_create = """
+    npm install
+    if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
+      cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
+    fi
+    """
+
+Installing things in the background
+
+If your dependency installation step takes a long time, you might wish to use post_create_async
+instead. That way, you can get an interactive terminal without waiting for everything to finish.
+
+    # .autowt.toml
+    [scripts]
+    post_create_async = """
+    npm install
+    if [ -f "$AUTOWT_MAIN_REPO_DIR/.env" ]; then
+      cp "$AUTOWT_MAIN_REPO_DIR/.env" .;
+    fi
+    """
+
+Quick reference
+
+Beyond session_init scripts, autowt supports 8 lifecycle hooks that run at specific points during
+worktree operations:
+
+  ---------------------------------------------------------------------------------------------------
+  Hook                      When it runs                                    Execution Context
+  ------------------------- ----------------------------------------------- -------------------------
+  pre_create                Before creating worktree                        Workdir: main
+                                                                            repoTerminal: original
+
+  post_create               After creating worktree, before terminal switch Workdir:
+                                                                            worktreeTerminal:
+                                                                            original
+
+  post_create_async         After terminal switch (or before                Workdir:
+                            session_init/--after-init in ECHO mode)         worktreeTerminal:
+                                                                            original
+
+  session_init              In new terminal session after switching to      Workdir:
+                            worktree                                        worktreeTerminal: new
+
+  pre_cleanup               Before cleaning up worktrees                    Workdir:
+                                                                            worktreeTerminal:
+                                                                            original
+
+  post_cleanup              After worktrees are removed                     Workdir: main
+                                                                            repoTerminal: original
+
+  pre_switch                Before switching worktrees                      Workdir:
+                                                                            worktreeTerminal:
+                                                                            original
+
+  post_switch               After switching worktrees                       Workdir:
+                                                                            worktreeTerminal:
+                                                                            original
+  ---------------------------------------------------------------------------------------------------
+
+Note that there is a command-line-only --after-init flag to run additional commands after init is
+done. This is for cases when you want to immediately start up a one-off script after the worktree
+has been set up. If you find yourself repeating the same --after-init arg, consider writing a custom
+script.
+
+Running hooks standalone
+
+If you use another worktree tool but want to reuse autowt’s hook configuration, you can run
+individual hooks with autowt hook <hook_name>:
+
+    # After your tool creates a worktree, cd into it and run:
+    autowt hook post_create
+    autowt hook session_init
+
+    # Before your tool deletes a worktree:
+    autowt hook pre_cleanup
+
+The command auto-detects the repository root, worktree directory, and branch name from the current
+working directory. It runs the same global + project hook cascade as the built-in commands. See the
+command reference for details.
+
+Configuration
+
+Project-level and global hooks run independently and do not override each other.
+
+Project-level configuration
+
+Configure hooks in your project’s .autowt.toml file:
+
+    # .autowt.toml
+    [scripts]
+    pre_create = "./scripts/validate-branch.sh"
+    post_create = "npm install && cp .env.example .env"
+    session_init = "source .env && npm run dev"
+    pre_cleanup = "./scripts/release-ports.sh"
+    post_cleanup = "./scripts/cleanup-volumes.sh"
+    pre_switch = "pkill -f 'npm run dev'"
+    post_switch = "npm run dev &"
+
+Global configuration
+
+Configure hooks globally in ~/.config/autowt/config.toml (Linux) or
+~/Library/Application Support/autowt/config.toml (macOS):
+
+    # Global config
+    [scripts]
+    pre_create = "echo 'Preparing to create worktree...'"
+    pre_cleanup = "echo 'Cleaning up worktree...'"
+    post_cleanup = "echo 'Worktree cleanup complete'"
+
+Environment variables and arguments
+
+All hooks receive the following environment variables:
+
+- AUTOWT_WORKTREE_DIR: Path to the worktree directory (always set, even if directory doesn’t exist
+  yet or has been deleted)
+- AUTOWT_MAIN_REPO_DIR: Path to the main repository directory
+- AUTOWT_BRANCH_NAME: Name of the branch
+- AUTOWT_HOOK_TYPE: Type of hook being executed
+
+Working directory behavior: Most hooks run with the worktree directory as their working directory.
+However, pre_create and post_cleanup hooks run with the main repository directory as their working
+directory, since the worktree doesn’t exist yet (pre_create) or has been deleted (post_cleanup).
+
+Example script
+
+    # Using environment variables
+    echo "Hook type: $AUTOWT_HOOK_TYPE"
+    echo "Worktree: $AUTOWT_WORKTREE_DIR"
+    echo "Branch: $AUTOWT_BRANCH_NAME"
+
+    cd "$AUTOWT_WORKTREE_DIR"
+    # Do work here...
+
+    # Multi-line scripts work naturally
+    for file in *.txt; do
+        echo "Processing $file"
+    done
+
+Hooks are executing using the system shell
+
+Hook scripts are executed by passing the script text directly to the system shell (/bin/sh on Unix
+systems) rather than creating a temporary file. This is equivalent to running
+/bin/sh -c "your_script_here".
+
+This execution model means:
+
+- Multi-line scripts work naturally—the shell handles newlines and command separation
+- All shell features are available—variables, conditionals, loops, pipes, redirections, etc.
+- Shebangs are ignored—since no file is created, #!/bin/bash lines are treated as comments
+- Cross-platform behavior is tricky—PowerShell and bash are quite different! GitHub issues and pull
+  requests on this topic are welcome.
+
+    [scripts]
+    # This works - shell script commands
+    post_create = """
+    echo "Setting up worktree"
+    npm install
+    mkdir -p logs
+    """
+
+    # This works - calls external script file (shebang will work here)
+    post_create = "./setup-script.py"
+
+    # This doesn't work - shebang is ignored, shell tries to run Python code
+    post_create = """#!/usr/bin/env python3
+    import sys  # Shell doesn't understand this!
+    """
+
+If you need to use a different programming language, create a separate script file and call it from
+your hook. The external file can use shebangs normally.
+
+Note: Why does it work like this?
+
+Inline hook strings are executed as sh -c <script> in the hook’s configured working directory. This
+is why shell syntax, multi-line scripts, and shebang comments behave the way they do. On systems
+without sh, call an external script file instead so the operating system can use that file’s
+interpreter association.
+
+Complete reference
+
+pre_create
+
+Timing: Before worktree creation begins
+Execution Context: Subprocess in main repository directory
+Use cases: Pre-flight validation, resource availability checks, branch name validation
+
+The pre_create hook runs in the main repository directory (not the worktree directory, which doesn’t
+exist yet). However, the AUTOWT_WORKTREE_DIR environment variable is still set to the path where the
+worktree will be created.
+
+The pre_create hook can prevent worktree creation by exiting with a non-zero status. If this hook
+fails, autowt will completely abort worktree creation before the worktree is created.
+
+    [scripts]
+    pre_create = """
+    # Validate branch naming convention
+    if ! echo "$AUTOWT_BRANCH_NAME" | grep -q '^feature/\|^bugfix/\|^hotfix/'; then
+      echo "Error: Branch must start with feature/, bugfix/, or hotfix/"
+      exit 1
+    fi
+    """
+
+post_create
+
+Timing: After worktree creation, before terminal switch
+Execution Context: Subprocess in worktree directory
+Use cases: File operations, git setup, dependency installation, configuration copying
+
+The post_create hook can prevent terminal switching by exiting with a non-zero status. If this hook
+fails, autowt will abort the operation (the worktree will exist but the terminal won’t switch to
+it).
+
+    [scripts]
+    post_create = """
+    npm install
+    cp .env.example .env
+    """
+
+The post_create hook runs as a subprocess after the worktree is created but before switching to the
+terminal session. It’s ideal for:
+
+- Installing dependencies that don’t require shell interaction
+- Setting up configuration files
+- Running git commands
+- File operations that don’t need shell environment
+
+post_create_async
+
+Timing: After terminal switch (TAB/WINDOW modes) or before –after-init (ECHO/INPLACE modes)
+Execution Context: Original terminal where autowt was invoked Use cases: Expensive dependency
+installations that don’t block terminal interactivity
+
+The post_create_async hook is designed for expensive operations like npm install, poetry install, or
+bundle install that can run while the user is already working in the new terminal.
+
+    [scripts]
+    post_create_async = """
+    npm install
+    npm run build
+    """
+
+Execution behavior varies by terminal mode:
+
+- TAB/WINDOW/VSCODE/CURSOR modes: Runs in the original terminal after the new terminal tab/window
+  opens. The user can immediately start working in the new terminal while dependencies install in
+  the background. The autowt process waits for completion before exiting.
+
+- ECHO/INPLACE modes: Runs before --after-init since no actual terminal switch occurs. Ensures
+  expensive operations complete before any after-init commands run.
+
+Failure handling: Unlike pre_create and post_create, failures in this hook show a warning but don’t
+abort the operation. Since the hook may run asynchronously, failures might not be detectable until
+after the user is already working.
+
+When to use: Use post_create_async for operations that:
+
+- Are expensive but not critical for immediate work
+- Don’t produce output the user needs to see right away
+- Can safely run while the user starts working (installing dependencies, building assets, etc.)
+
+When to use post_create instead: Use the synchronous post_create hook for operations that:
+
+- Must complete before the user can work (copying config files, setting permissions)
+- Are fast and shouldn’t delay terminal switching
+- Produce errors that should prevent terminal switching
+
+session_init
+
+Timing: In terminal session after switching to worktree
+Execution Context: Terminal session (pasted/typed into terminal)
+Use cases: Virtual environment activation, shell configuration
+
+    [scripts]
+    session_init = """
+    source .env
+    conda activate myproject
+    export DEV_MODE=true
+    """
+
+The session_init hook is special—it’s the only hook that runs inside the new terminal session. While
+other lifecycle hooks run inside the initial autowt create process, session_init scripts are
+literally pasted/typed into the terminal using terminal automation (i.e. AppleScript). This allows
+session_init scripts to: activate virtual environments or start interactive processes.
+
+pre_cleanup
+
+Timing: Before any cleanup operations begin
+Use cases: Resource cleanup
+
+    [scripts]
+    pre_cleanup = """
+    # Release allocated ports
+    ./scripts/release-ports.sh $AUTOWT_BRANCH_NAME
+    """
+
+post_cleanup
+
+Timing: After worktrees and branches are removed Execution Context: Subprocess in main repository
+directory Use cases: Volume cleanup, global state updates
+
+The post_cleanup hook runs in the main repository directory (not the worktree directory, which has
+been deleted). However, the AUTOWT_WORKTREE_DIR environment variable is still set to the path where
+the worktree was located.
+
+    [scripts]
+    post_cleanup = """
+    # Clean up docker volumes
+    docker volume rm ${AUTOWT_BRANCH_NAME}_db_data 2>/dev/null || true
+    """
+
+pre_switch
+
+Timing: Before switching away from current worktree
+Use cases: Stop services, save state
+
+    [scripts]
+    pre_switch = """
+    # Stop development server
+    pkill -f "npm run dev" || true
+
+    # Save current state
+    ./scripts/save-session-state.sh
+    """
+
+post_switch
+
+Timing: After switching to new worktree
+Use cases: Start services, restore state
+
+    [scripts]
+    post_switch = """
+    # Start development server in background
+    nohup npm run dev > dev.log 2>&1 &
+
+    # Restore session state
+    ./scripts/restore-session-state.sh
+    """
+
+Terminal support
+
+autowt automates your terminal by default
+
+autowt’s intended user experience is that it will open terminal tabs on your behalf. It uses
+automate-terminal to accomplish this, so check that project out to find out if your terminal is
+supported.
+
+What to do if your terminal isn’t supported or you don’t want this behavior
+
+Add this to your .autowt.toml or set it at the user level with autowt config:
+
+    [terminal]
+    mode = 'echo'
+
+This will cause autowt to print commands to the console instead of having your terminal run them
+automatically. You can then manually run the printed commands to navigate to the worktree.
+
+Shell integration (alternative to terminal automation)
+
+Instead of opening new tabs or windows, you can have autowt change directories directly in your
+current shell. This is useful if your terminal isn’t supported by automate-terminal, or if you
+prefer staying in one session.
+
+Add the appropriate line to your shell config:
+
+    # ~/.bashrc
+    eval "$(autowt shell-init bash)"
+
+    # ~/.zshrc
+    eval "$(autowt shell-init zsh)"
+
+    # ~/.config/fish/config.fish
+    autowt shell-init fish | source
+
+The shell argument can be omitted if $SHELL matches your config file (i.e., your login shell is the
+same as the shell you’re configuring). When in doubt, pass it explicitly.
+
+Once configured, running autowt my-branch will cd into the worktree in your current shell instead of
+opening a new tab or window. No terminal automation (AppleScript, tmux, etc.) is required, so this
+works in any terminal.
+
+Commands that don’t switch worktrees (ls, cleanup, config, etc.) continue to work normally.
+
+To preview what the shell function would do without actually changing directories:
+
+    eval "$(autowt shell-init --dry-run)"
+    autowt my-branch  # prints the cd command instead of running it
+
+Troubleshooting
+
+Tip: “Getting Help” Before filing an issue, please run your command with the --debug flag to get the full output, which is very helpful for diagnosing problems.
+
+    autowt --debug <command-that-is-failing>
+
+Common issues
+
+Terminal control on macOS
+
+Symptom: autowt doesn’t open a new terminal tab/window, or it fails to switch to an existing session
+on macOS.
+
+This is almost always a permissions issue. autowt uses AppleScript to control your terminal, which
+requires you to grant access.
+
+Solution:
+
+1.  Open System Settings.
+2.  Navigate to Privacy & Security.
+3.  Grant your terminal application (e.g., iTerm.app, Terminal.app) permissions for both
+    Accessibility and Automation.
+
+Branch Names from GitHub Issues
+
+Use the GitHub CLI (gh) to turn an issue number into a branch name. autowt’s branch_name field runs
+the command, captures stdout, and normalizes it into a valid Git ref (lowercase, dashes, no spaces).
+
+Example .autowt.toml
+
+    [scripts.custom.ghissue]
+    description = "Create a branch that matches the GitHub issue title"
+    branch_name = "gh issue view $1 --json number,title --template '{{.number}}-{{.title}}'"
+
+Now autowt ghissue 1234 asks GitHub for issue #1234, builds a string like 1234-improve-login, and
+creates a worktree on that branch. All other lifecycle hooks (such as session_init) continue to run
+the same as when you pass a plain branch name.
+
+Branch Names from Linear
+
+Linear already suggests the branch slug it wants to see when you open a pull request. The linearis
+CLI exposes that suggestion as the branchName field on every issues read response, so you can hand
+it directly to autowt and get automatic ticket association when the PR opens.
+
+Example .autowt.toml
+
+    [scripts.custom.linear]
+    description = "Create a branch from Linear's suggested slug"
+    branch_name = "linearis issues read $1 | jq -r '.branchName // empty'"
+
+branchName already includes the team key, issue number, and slug scrubbed for Git usage. When you
+run autowt linear ABC-123, the command above:
+
+1.  Calls linearis issues read ABC-123
+2.  Extracts .branchName with jq
+3.  Hands that exact string to autowt, so the worktree is created on Linear’s suggested branch
+
+Because Linear watches for that branch name, any PR pushed from the branch automatically links back
+to the ticket.
+
+Auto-Starting Coding Agents
+
+Suppose you want to make it as easy as possible to have an agent like Claude Code start working on a
+prompt in its own worktree. You could do this:
+
+    [scripts.custom]
+    claude = 'claude "$1"'
+
+    # the above is equivalent to:
+    [scripts.custom.claude]
+    session_init = 'claude "$1"'
+
+And now you can start it up in a fresh worktree with ease:
+
+    autowt claude 'Add a tutorial'
+
+This will create a fresh worktree in a new terminal on a branch called add-a-tutorial (or
+yourbranchprefix/add-a-tutorial, if you have a branch prefix configured) and launch claude with the
+argument "Add a tutorial".
+
+Integrating coding agents with issue trackers
+
+If you trust a coding agent to take the first shot at solving an issue, you can set up autowt to
+automate plugging it into your issue tracker.
+
+    [scripts.custom.fix]
+    description = "Have Claude Code fix a GitHub issue and open a PR"
+    session_init = 'claude "Work on GitHub issue $1. Commit when finished and open a PR. Use the gh command line tool to interact with GitHub."'
+    branch_name = "gh issue view $1 --json number,title --template '{{.number}}-{{.title}}'"
+
+Copying Untracked Files Like .env
+
+You can configure autowt to copy important untracked files from your main worktree into all new
+worktrees using either the post_create or the post_create_async hook. Common files that need to be
+copied like this include .env, .pem files for SSL certificates, and .claude directories if you don’t
+check those into git.
+
+The features of autowt that make this easy are the post_create/post_create_async hooks which run
+scripts at worktree creation time, and the $AUTOWT_MAIN_REPO_DIR env var, which is available in
+scripts for use cases just like this one.
+
+post_create will do the copy before opening the new terminal:
+
+    [scripts]
+    post_create = "cp $AUTOWT_MAIN_REPO_DIR/.env .env"
+
+post_create_async will do the copy after opening the new terminal, which can be good for expensive
+operations:
+
+    [scripts]
+    post_create_async = "cp $AUTOWT_MAIN_REPO_DIR/.env .env"
+
+But for copying untracked files, usually you want post_create, not post_create_async.
+
+Multiple files
+
+Use cp -r, or rsync:
+
+    [scripts]
+    post_create = "cp -r $AUTOWT_MAIN_REPO_DIR/.claude .claude"
+
+Assigning Unique Ports
+
+Each worktree gets a unique port written to .env, avoiding conflicts when running multiple dev
+servers.
+
+Calculate port from branch name
+
+Hash the branch name and map it to a port range:
+
+    BASE_PORT=3000
+    PORT_RANGE=1000
+    HASH=$(echo "$AUTOWT_BRANCH_NAME" | md5sum | cut -c1-4)
+    OFFSET=$((16#$HASH % $PORT_RANGE))
+    PORT=$((BASE_PORT + OFFSET))
+
+This gives ports between 3000-3999 based on the branch name.
+
+Write to .env in post_create
+
+    # .autowt.toml
+    [scripts]
+    post_create = """
+    BASE_PORT=3000
+    PORT_RANGE=1000
+    HASH=$(echo "$AUTOWT_BRANCH_NAME" | md5sum | cut -c1-4)
+    OFFSET=$((16#$HASH % $PORT_RANGE))
+    PORT=$((BASE_PORT + OFFSET))
+    echo "PORT=$PORT" >> .env
+    """
+
+Complete config
+
+    # .autowt.toml
+    [scripts]
+    post_create = """
+    BASE_PORT=3000
+    PORT_RANGE=1000
+    HASH=$(echo "$AUTOWT_BRANCH_NAME" | md5sum | cut -c1-4)
+    OFFSET=$((16#$HASH % $PORT_RANGE))
+    PORT=$((BASE_PORT + OFFSET))
+    echo "PORT=$PORT" >> .env
+    """
+
+Try it out
+
+Create a worktree and start a server. This example uses Python’s built-in static file server.
+
+    autowt my-feature
+    source .env
+    echo "Server running on port $PORT"
+    python3 -m http.server $PORT
+
+Each worktree will get a consistent port based on its branch name.
+
+Starting and Stopping Docker Containers
+
+This example will show how to start and stop a container for each worktree. Postgres is used to
+demonstrate, but it could be anything.
+
+Start container in post_create
+
+Use the branch name to create a unique container name and port. The port calculation is covered in
+more depth in Assigning a Unique Port.
+
+    CONTAINER_NAME="pg-$AUTOWT_BRANCH_NAME"
+    BASE_PORT=5432
+    PORT_RANGE=1000
+    HASH=$(echo "$AUTOWT_BRANCH_NAME" | md5sum | cut -c1-4)
+    OFFSET=$((16#$HASH % $PORT_RANGE))
+    PORT=$((BASE_PORT + OFFSET))
+
+    docker run -d \
+      --name "$CONTAINER_NAME" \
+      -e POSTGRES_PASSWORD=postgres \
+      -p "$PORT:5432" \
+      postgres:16
+
+    echo "DATABASE_URL=postgres://postgres:postgres@localhost:$PORT/postgres" >> .env
+
+Stop container in pre_cleanup
+
+    CONTAINER_NAME="pg-$AUTOWT_BRANCH_NAME"
+    docker stop "$CONTAINER_NAME" 2>/dev/null || true
+    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+
+Complete config
+
+    # .autowt.toml
+    [scripts]
+    post_create = """
+    CONTAINER_NAME="pg-$AUTOWT_BRANCH_NAME"
+    BASE_PORT=5432
+    PORT_RANGE=1000
+    HASH=$(echo "$AUTOWT_BRANCH_NAME" | md5sum | cut -c1-4)
+    OFFSET=$((16#$HASH % $PORT_RANGE))
+    PORT=$((BASE_PORT + OFFSET))
+
+    docker run -d \
+      --name "$CONTAINER_NAME" \
+      -e POSTGRES_PASSWORD=postgres \
+      -p "$PORT:5432" \
+      postgres:16
+
+    echo "DATABASE_URL=postgres://postgres:postgres@localhost:$PORT/postgres" >> .env
+    """
+
+    pre_cleanup = """
+    CONTAINER_NAME="pg-$AUTOWT_BRANCH_NAME"
+    docker stop "$CONTAINER_NAME" 2>/dev/null || true
+    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    """
+
+Try it out
+
+    # Create worktree - container starts automatically
+    autowt my-feature
+
+    # Verify container is running
+    docker ps | grep pg-my-feature
+
+    # Connect to database
+    source .env
+    psql "$DATABASE_URL"
+
+    # Cleanup - container stops and removes
+    autowt cleanup my-feature
+
+    # Verify container is gone
+    docker ps -a | grep pg-my-feature  # should return nothing

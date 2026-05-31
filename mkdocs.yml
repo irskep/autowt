@@ -11,7 +11,8 @@ nav:
     - Getting Started: gettingstarted.md
     - Changelog: CHANGELOG.md
     - Reference:
-          - CLI Reference: clireference.md
+          - CLI Guide: clireference.md
+          - Command Reference: cli/autowt.md
           - Configuration: configuration.md
           - Hooks and Scripts: lifecyclehooks.md
           - Terminal Support: terminalsupport.md

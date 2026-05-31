@@ -8,6 +8,7 @@ jq = "latest"
 go = "1.26"
 "github:irskep/localci" = "0.2.7"
 "pipx:zensical" = { version = "0.0.43", uvx_args = "--with mkdocs-github-admonitions-plugin" }
+pandoc = "3.9.0.2"
 
 [env]
 _.python.venv = { path = ".venv" }
@@ -23,6 +24,7 @@ claude-hook-lint = "./scripts/claude-hook-lint.sh"
 sync-readme = "uv run python scripts/sync_readme.py"
 "docs:install" = "uv sync --group docs --group dev && mise install pipx:zensical"
 "docs:prep" = "cp CHANGELOG.md docs/CHANGELOG.md"
+"docs:generate" = "go run ./cmd/autowt-docs --cli-out docs/cli --bundle-out internal/docs/generated --source docs --manifest docs/builtin.toml --filter docs/pandoc/builtin-docs.lua"
 
 "go:build" = "go build -o autowt . && go build -o awt ./cmd/awt"
 "go:vet" = "go vet ./..."
@@ -67,8 +69,8 @@ fi
 
 [tasks."docs:serve"]
 run = "zensical serve"
-depends = ["docs:install", "docs:prep"]
+depends = ["docs:install", "docs:prep", "docs:generate"]
 
 [tasks."docs:build"]
 run = "zensical build"
-depends = ["docs:install", "docs:prep"]
+depends = ["docs:install", "docs:prep", "docs:generate"]

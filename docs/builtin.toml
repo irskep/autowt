@@ -1,0 +1,30 @@
+title = "AUTOWT(1) autowt Manual"
+author = "autowt"
+date = "May 2026"
+name = "autowt - git worktree manager with terminal switching and cleanup"
+command_help = "For command options, run `autowt --help` or `autowt <command> --help`."
+
+pages = [
+  "index.md",
+  "install.md",
+  "gettingstarted.md",
+  "clireference.md",
+  "cli/autowt.md",
+  "cli/autowt_switch.md",
+  "cli/autowt_ls.md",
+  "cli/autowt_cleanup.md",
+  "cli/autowt_config.md",
+  "cli/autowt_shell-init.md",
+  "cli/autowt_hook.md",
+  "cli/autowt_docs.md",
+  "configuration.md",
+  "lifecyclehooks.md",
+  "terminalsupport.md",
+  "troubleshooting.md",
+  "cookbook/github.md",
+  "cookbook/linear.md",
+  "cookbook/agents.md",
+  "cookbook/untracked.md",
+  "cookbook/uniqueports.md",
+  "cookbook/docker.md",
+]
