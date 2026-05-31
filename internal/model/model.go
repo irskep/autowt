@@ -30,6 +30,24 @@ const (
 	CleanupModeGitHub      CleanupMode = "github"
 )
 
+// BranchPathMode controls how branch names are converted into worktree paths.
+type BranchPathMode string
+
+const (
+	BranchPathModeFlat         BranchPathMode = "flat"
+	BranchPathModeHierarchical BranchPathMode = "hierarchical"
+)
+
+// IsValid reports whether mode is a supported branch path mode.
+func (m BranchPathMode) IsValid() bool {
+	switch m {
+	case BranchPathModeFlat, BranchPathModeHierarchical:
+		return true
+	default:
+		return false
+	}
+}
+
 // WorktreeInfo describes a single git worktree.
 type WorktreeInfo struct {
 	Branch    string

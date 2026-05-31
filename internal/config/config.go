@@ -25,6 +25,7 @@ type WorktreeConfig struct {
 	DirectoryPattern string
 	AutoFetch        bool
 	BranchPrefix     string // optional: prefix template for new branches
+	BranchPathMode   model.BranchPathMode
 }
 
 // CleanupConfig controls default cleanup behavior.
@@ -74,6 +75,7 @@ func DefaultConfig() Config {
 		Worktree: WorktreeConfig{
 			DirectoryPattern: "../{repo_name}-worktrees/{branch}",
 			AutoFetch:        true,
+			BranchPathMode:   model.BranchPathModeFlat,
 		},
 		Cleanup: CleanupConfig{
 			DefaultMode: model.CleanupModeInteractive,

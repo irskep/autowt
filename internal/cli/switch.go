@@ -447,13 +447,16 @@ func generateWorktreePath(repoPath, branchName, customDir string, cfg config.Con
 		repoName = repoName[:len(repoName)-4]
 	}
 
-	safeBranch := branch.Sanitize(branchName)
+	branchPath, err := branch.PathFragment(branchName, cfg.Worktree.BranchPathMode)
+	if err != nil {
+		return "", err
+	}
 
 	pattern := cfg.Worktree.DirectoryPattern
 	pattern = strings.ReplaceAll(pattern, "{repo_dir}", mainRepoPath)
 	pattern = strings.ReplaceAll(pattern, "{repo_name}", repoName)
 	pattern = strings.ReplaceAll(pattern, "{repo_parent_dir}", filepath.Dir(mainRepoPath))
-	pattern = strings.ReplaceAll(pattern, "{branch}", safeBranch)
+	pattern = strings.ReplaceAll(pattern, "{branch}", branchPath)
 	pattern = os.ExpandEnv(pattern)
 
 	if filepath.IsAbs(pattern) {

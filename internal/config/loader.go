@@ -60,6 +60,10 @@ func (l *Loader) Load(projectDir string, cliOverrides map[string]any) (Config, e
 		applyCLIOverrides(&cfg, cliOverrides)
 	}
 
+	if err := validateConfig(cfg); err != nil {
+		return Config{}, err
+	}
+
 	return cfg, nil
 }
 
@@ -70,6 +74,9 @@ func (l *Loader) LoadGlobalOnly() (Config, error) {
 		applyTOMLFile(&cfg, tf, md)
 	} else if !os.IsNotExist(err) {
 		slog.Warn("Failed to load global config", "path", l.GlobalConfigFile, "error", err)
+	}
+	if err := validateConfig(cfg); err != nil {
+		return Config{}, err
 	}
 	return cfg, nil
 }
@@ -175,6 +182,7 @@ type tomlWorktree struct {
 	DirectoryPattern string `toml:"directory_pattern"`
 	AutoFetch        *bool  `toml:"auto_fetch"`
 	BranchPrefix     string `toml:"branch_prefix"`
+	BranchPathMode   string `toml:"branch_path_mode"`
 }
 
 type tomlCleanup struct {
@@ -233,6 +241,9 @@ func applyTOMLFile(cfg *Config, tf tomlFile, md toml.MetaData) {
 	}
 	if tf.Worktree.BranchPrefix != "" {
 		cfg.Worktree.BranchPrefix = tf.Worktree.BranchPrefix
+	}
+	if tf.Worktree.BranchPathMode != "" {
+		cfg.Worktree.BranchPathMode = model.BranchPathMode(tf.Worktree.BranchPathMode)
 	}
 
 	if tf.Cleanup.DefaultMode != "" {
@@ -332,6 +343,7 @@ func applyEnvVars(cfg *Config) {
 		"AUTOWT_WORKTREE_DIRECTORY_PATTERN":     func(v string) { cfg.Worktree.DirectoryPattern = v },
 		"AUTOWT_WORKTREE_AUTO_FETCH":            func(v string) { cfg.Worktree.AutoFetch = parseBool(v) },
 		"AUTOWT_WORKTREE_BRANCH_PREFIX":         func(v string) { cfg.Worktree.BranchPrefix = v },
+		"AUTOWT_WORKTREE_BRANCH_PATH_MODE":      func(v string) { cfg.Worktree.BranchPathMode = model.BranchPathMode(v) },
 		"AUTOWT_CLEANUP_DEFAULT_MODE":           func(v string) { cfg.Cleanup.DefaultMode = model.CleanupMode(v) },
 		"AUTOWT_SCRIPTS_SESSION_INIT":           func(v string) { cfg.Scripts.SessionInit = v },
 		"AUTOWT_SCRIPTS_PRE_CREATE":             func(v string) { cfg.Scripts.PreCreate = v },
@@ -350,6 +362,17 @@ func applyEnvVars(cfg *Config) {
 			apply(val)
 		}
 	}
+}
+
+func validateConfig(cfg Config) error {
+	if !cfg.Worktree.BranchPathMode.IsValid() {
+		return fmt.Errorf("invalid worktree.branch_path_mode %q: must be one of %q or %q",
+			cfg.Worktree.BranchPathMode,
+			model.BranchPathModeFlat,
+			model.BranchPathModeHierarchical,
+		)
+	}
+	return nil
 }
 
 func parseBool(s string) bool {
@@ -382,6 +405,7 @@ func configToTOML(cfg Config) map[string]any {
 		"worktree": map[string]any{
 			"directory_pattern": cfg.Worktree.DirectoryPattern,
 			"auto_fetch":        cfg.Worktree.AutoFetch,
+			"branch_path_mode":  string(cfg.Worktree.BranchPathMode),
 		},
 		"cleanup": map[string]any{
 			"default_mode": string(cfg.Cleanup.DefaultMode),

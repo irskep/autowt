@@ -45,7 +45,7 @@ By default, worktrees are created in a dedicated directory adjacent to your main
 
 Branch names are sanitized for the filesystem - slashes become hyphens. For example, `feature/user-auth` creates a directory at `~/dev/my-project-worktrees/feature-user-auth/`.
 
-You can customize this with the `directory_pattern` setting (see [Configuration](configuration.md)), which supports template variables like `{repo_name}`, `{branch}`, `{repo_parent_dir}`, and environment variables. For example, to organize all worktrees in a central location: `~/.worktrees/{repo_name}/{branch}`.
+You can customize this with the `directory_pattern` setting (see [Configuration](configuration.md)), which supports template variables like `{repo_name}`, `{branch}`, `{repo_parent_dir}`, and environment variables. The `{branch}` value uses `branch_path_mode`, so branch slashes are flattened by default or preserved as subdirectories when configured. For example, to organize all worktrees in a central location: `~/.worktrees/{repo_name}/{branch}`.
 
 ## `autowt ls`
 

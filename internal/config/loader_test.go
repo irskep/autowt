@@ -25,6 +25,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Worktree.DirectoryPattern != "../{repo_name}-worktrees/{branch}" {
 		t.Errorf("default directory pattern = %q", cfg.Worktree.DirectoryPattern)
 	}
+	if cfg.Worktree.BranchPathMode != model.BranchPathModeFlat {
+		t.Errorf("default branch path mode = %q, want flat", cfg.Worktree.BranchPathMode)
+	}
 	if cfg.Cleanup.DefaultMode != model.CleanupModeInteractive {
 		t.Errorf("default cleanup mode = %q, want interactive", cfg.Cleanup.DefaultMode)
 	}
@@ -41,6 +44,7 @@ always_new = true
 
 [worktree]
 branch_prefix = "alice/"
+branch_path_mode = "hierarchical"
 
 [cleanup]
 default_mode = "merged"
@@ -63,6 +67,9 @@ default_mode = "merged"
 	}
 	if cfg.Worktree.BranchPrefix != "alice/" {
 		t.Errorf("branch_prefix = %q, want alice/", cfg.Worktree.BranchPrefix)
+	}
+	if cfg.Worktree.BranchPathMode != model.BranchPathModeHierarchical {
+		t.Errorf("branch_path_mode = %q, want hierarchical", cfg.Worktree.BranchPathMode)
 	}
 	if cfg.Cleanup.DefaultMode != model.CleanupModeMerged {
 		t.Errorf("cleanup mode = %q, want merged", cfg.Cleanup.DefaultMode)
@@ -111,6 +118,7 @@ mode = "tab"
 `), 0o644)
 
 	t.Setenv("AUTOWT_TERMINAL_MODE", "window")
+	t.Setenv("AUTOWT_WORKTREE_BRANCH_PATH_MODE", "hierarchical")
 
 	loader := &Loader{AppDir: dir, GlobalConfigFile: cfgFile}
 	cfg, err := loader.Load("", nil)
@@ -120,6 +128,24 @@ mode = "tab"
 
 	if cfg.Terminal.Mode != model.TerminalModeWindow {
 		t.Errorf("terminal mode = %q, want window (from env)", cfg.Terminal.Mode)
+	}
+	if cfg.Worktree.BranchPathMode != model.BranchPathModeHierarchical {
+		t.Errorf("branch_path_mode = %q, want hierarchical (from env)", cfg.Worktree.BranchPathMode)
+	}
+}
+
+func TestLoadInvalidBranchPathMode(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile := filepath.Join(dir, "config.toml")
+	os.WriteFile(cfgFile, []byte(`
+[worktree]
+branch_path_mode = "sideways"
+`), 0o644)
+
+	loader := &Loader{AppDir: dir, GlobalConfigFile: cfgFile}
+	_, err := loader.Load("", nil)
+	if err == nil {
+		t.Fatal("Load() error = nil, want invalid branch_path_mode error")
 	}
 }
 
@@ -189,5 +215,25 @@ func TestSaveAndLoadCleanupMode(t *testing.T) {
 	}
 	if cfg.Cleanup.DefaultMode != model.CleanupModeGitHub {
 		t.Errorf("cleanup mode = %q, want github", cfg.Cleanup.DefaultMode)
+	}
+}
+
+func TestSaveConfigIncludesBranchPathMode(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile := filepath.Join(dir, "config.toml")
+	loader := &Loader{AppDir: dir, GlobalConfigFile: cfgFile}
+
+	cfg := DefaultConfig()
+	cfg.Worktree.BranchPathMode = model.BranchPathModeHierarchical
+	if err := loader.SaveConfig(cfg); err != nil {
+		t.Fatalf("SaveConfig() error: %v", err)
+	}
+
+	loaded, err := loader.Load("", nil)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if loaded.Worktree.BranchPathMode != model.BranchPathModeHierarchical {
+		t.Errorf("branch_path_mode = %q, want hierarchical", loaded.Worktree.BranchPathMode)
 	}
 }
