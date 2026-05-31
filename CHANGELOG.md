@@ -6,12 +6,28 @@
 
 Complete rewrite in Go. All features from the Python version are preserved. The CLI interface, configuration files, and hook system are fully compatible.
 
+### Added
+
+- `autowt shell-init` installs shell integration for aliases, hooks, and completion setup.
+- Shell completion now includes branch names that are already checked out in worktrees.
+- `autowt hook <hook_name>` runs a configured lifecycle hook directly.
+- `worktree.branch_path_mode` controls how slash-containing branch names map to worktree paths:
+  - `flat` keeps the existing behavior by replacing path separators with hyphens.
+  - `hierarchical` preserves path separators for nested worktree directories.
+
 ### Changed
 
 - autowt is now distributed as a static binary instead of a Python package. Install via `go install`, `mise`, or download from GitHub Releases.
 - Interactive TUIs rebuilt with bubbletea (replacing Textual)
 - Terminal automation now uses automate-terminal as a Go library (no subprocess overhead)
-- Version update notifications now check GitHub Releases instead of PyPI
+- Version update notifications now check GitHub Releases instead of PyPI and link to the releases page instead of guessing an upgrade command.
+- `autowt config` now supports inline text editing for string fields.
+
+### Fixed
+
+- User-facing output is consistently styled again after the Go rewrite.
+- Dry-run hook messages, zero-removal cleanup summaries, and multiline paste warnings now match the intended CLI behavior.
+- The built-in `gh pr list` helper runs from the correct directory.
 
 ### Removed
 
