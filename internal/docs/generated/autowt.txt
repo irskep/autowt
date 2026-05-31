@@ -90,7 +90,7 @@ You’ll need git 2.5+ (anything from the last ten years).
 
 Install autowt with mise:
 
-    mise use -g go:github.com/irskep/autowt
+    mise use -g github:irskep/autowt
 
 Optionally, set up shell integration so worktree switches cd in your current shell:
 
@@ -110,17 +110,14 @@ Requirements
 
 Before you begin, make sure you have:
 
-- mise: autowt is installed through mise’s Go package backend.
+- mise: autowt is installed as a release binary through mise’s GitHub backend.
 - Git 2.5+: autowt relies on git worktree support.
-- Go: required by mise’s Go package backend. If Go is not already installed, install it with mise:
-
-    mise use -g go
 
 Install autowt
 
-Install autowt globally with mise:
+Install the autowt release binary globally with mise:
 
-    mise use -g go:github.com/irskep/autowt
+    mise use -g github:irskep/autowt
 
 Verify the installation:
 
@@ -131,7 +128,7 @@ Project-scoped install
 If you want everyone working in a repository to use the same autowt toolchain, add it to that
 repository’s mise.toml instead:
 
-    mise use go:github.com/irskep/autowt
+    mise use github:irskep/autowt
 
 Then run:
 

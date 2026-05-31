@@ -81,7 +81,7 @@ You'll need `git` 2.5+ (anything from the last ten years).
 Install autowt with mise:
 
 ```bash
-mise use -g go:github.com/irskep/autowt
+mise use -g github:irskep/autowt
 ```
 
 Optionally, set up shell integration so worktree switches `cd` in your current shell:

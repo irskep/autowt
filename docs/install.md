@@ -4,20 +4,15 @@
 
 Before you begin, make sure you have:
 
--   **mise**: autowt is installed through mise's Go package backend.
+-   **mise**: autowt is installed as a release binary through mise's GitHub backend.
 -   **Git 2.5+**: autowt relies on git worktree support.
--   **Go**: required by mise's Go package backend. If Go is not already installed, install it with mise:
-
-```bash
-mise use -g go
-```
 
 ## Install autowt
 
-Install autowt globally with mise:
+Install the autowt release binary globally with mise:
 
 ```bash
-mise use -g go:github.com/irskep/autowt
+mise use -g github:irskep/autowt
 ```
 
 Verify the installation:
@@ -31,7 +26,7 @@ autowt --version
 If you want everyone working in a repository to use the same autowt toolchain, add it to that repository's `mise.toml` instead:
 
 ```bash
-mise use go:github.com/irskep/autowt
+mise use github:irskep/autowt
 ```
 
 Then run:

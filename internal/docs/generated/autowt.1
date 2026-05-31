@@ -124,7 +124,7 @@ You\(cqll need \f[CR]git\f[R] 2.5+ (anything from the last ten years).
 Install autowt with mise:
 .IP
 .EX
-mise use \-g go:github.com/irskep/autowt
+mise use \-g github:irskep/autowt
 .EE
 .PP
 Optionally, set up shell integration so worktree switches \f[CR]cd\f[R]
@@ -149,22 +149,15 @@ Without it, autowt opens a new terminal tab or window instead.
 .SS Requirements
 Before you begin, make sure you have:
 .IP \(bu 2
-\f[B]mise\f[R]: autowt is installed through mise\(cqs Go package
-backend.
+\f[B]mise\f[R]: autowt is installed as a release binary through
+mise\(cqs GitHub backend.
 .IP \(bu 2
 \f[B]Git 2.5+\f[R]: autowt relies on git worktree support.
-.IP \(bu 2
-\f[B]Go\f[R]: required by mise\(cqs Go package backend.
-If Go is not already installed, install it with mise:
-.IP
-.EX
-mise use \-g go
-.EE
 .SS Install autowt
-Install autowt globally with mise:
+Install the autowt release binary globally with mise:
 .IP
 .EX
-mise use \-g go:github.com/irskep/autowt
+mise use \-g github:irskep/autowt
 .EE
 .PP
 Verify the installation:
@@ -177,7 +170,7 @@ If you want everyone working in a repository to use the same autowt
 toolchain, add it to that repository\(cqs \f[CR]mise.toml\f[R] instead:
 .IP
 .EX
-mise use go:github.com/irskep/autowt
+mise use github:irskep/autowt
 .EE
 .PP
 Then run:

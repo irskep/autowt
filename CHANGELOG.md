@@ -17,7 +17,7 @@ Complete rewrite in Go. All features from the Python version are preserved. The 
 
 ### Changed
 
-- autowt is now distributed as a static binary instead of a Python package. Install via `go install`, `mise`, or download from GitHub Releases.
+- autowt is now distributed as a static binary instead of a Python package. Install with mise.
 - Interactive TUIs rebuilt with bubbletea (replacing Textual)
 - Terminal automation now uses automate-terminal as a Go library (no subprocess overhead)
 - Version update notifications now check GitHub Releases instead of PyPI and link to the releases page instead of guessing an upgrade command.
@@ -32,7 +32,7 @@ Complete rewrite in Go. All features from the Python version are preserved. The 
 ### Removed
 
 - Python runtime dependency
-- `pip install autowt` installation method (use `go install` or binary download instead)
+- `pip install autowt` installation method (use mise instead)
 
 ## 0.5.11 - 2026-04-22
 
