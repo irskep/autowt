@@ -34,7 +34,7 @@ func GenerateMarkdownDocs(outDir string) error {
 		}
 		return ""
 	}, func(link string) string {
-		return "../" + strings.TrimSuffix(link, ".md") + "/"
+		return link
 	}); err != nil {
 		return err
 	}

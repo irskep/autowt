@@ -25,11 +25,11 @@ autowt [flags]
 
 ### SEE ALSO
 
-* [autowt cleanup](../autowt_cleanup/)	 - Remove worktrees or clean up merged/remoteless ones
-* [autowt config](../autowt_config/)	 - Configure autowt settings
-* [autowt docs](../autowt_docs/)	 - Read the built-in documentation
-* [autowt hook](../autowt_hook/)	 - Run a specific lifecycle hook
-* [autowt ls](../autowt_ls/)	 - List all worktrees and their status
-* [autowt shell-init](../autowt_shell-init/)	 - Generate shell integration code
-* [autowt switch](../autowt_switch/)	 - Switch to or create a worktree for the specified branch
+* [autowt cleanup](autowt_cleanup.md)	 - Remove worktrees or clean up merged/remoteless ones
+* [autowt config](autowt_config.md)	 - Configure autowt settings
+* [autowt docs](autowt_docs.md)	 - Read the built-in documentation
+* [autowt hook](autowt_hook.md)	 - Run a specific lifecycle hook
+* [autowt ls](autowt_ls.md)	 - List all worktrees and their status
+* [autowt shell-init](autowt_shell-init.md)	 - Generate shell integration code
+* [autowt switch](autowt_switch.md)	 - Switch to or create a worktree for the specified branch
 

@@ -24,5 +24,5 @@ autowt cleanup [worktrees...] [flags]
 
 ### SEE ALSO
 
-* [autowt](../autowt/)	 - Git worktree manager
+* [autowt](autowt.md)	 - Git worktree manager
 
