@@ -47,7 +47,13 @@ run = "go test ./..."
 
 [tasks."localci:docs-build"]
 description = "Build documentation"
-run = "mise run docs:build"
+run = '''
+mise run docs:build
+if [ -n "${LOCALCI_TASK_OUTPUT_DIR:-}" ]; then
+  mkdir -p "$LOCALCI_TASK_OUTPUT_DIR/site"
+  cp -R site/. "$LOCALCI_TASK_OUTPUT_DIR/site/"
+fi
+'''
 
 [tasks."docs:serve"]
 run = "zensical serve"
