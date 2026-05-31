@@ -1,7 +1,3 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "autowt"
 version = "0.6.0.dev2"
@@ -25,22 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Version Control",
     "Topic :: System :: Shells",
 ]
-dependencies = [
-    "click>=8.0.0",
-    "click-aliases>=1.0.0",
-    "textual>=0.50.0",
-    "toml>=0.10.0",
-    "rich>=13.0.0",
-    "automate-terminal>=0.1.10",
-]
-
-
-[project.scripts]
-autowt = "autowt.cli:main"
-awt = "autowt.cli:main"
-
-[tool.hatch.metadata]
-allow-direct-references = true
+dependencies = []
 
 [tool.ruff]
 line-length = 88
@@ -58,17 +39,25 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 norecursedirs = ["scratch"]
+pythonpath = ["src"]
+
+[tool.uv]
+package = false
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.1",
-    "ruff>=0.12.3",
+    "automate-terminal>=0.1.10",
+    "click>=8.0.0",
+    "click-aliases>=1.0.0",
     "cimonitor>=0.1.5",
-    "pytest-cov>=6.2.1",
-    "pre-commit>=3.0.0",
-    "pytest-asyncio>=1.1.0",
-]
-docs = [
-    "pymdown-extensions>=10.3.1",
     "mkdocs-github-admonitions-plugin",
+    "pre-commit>=3.0.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "pymdown-extensions>=10.3.1",
+    "rich>=13.0.0",
+    "ruff>=0.12.3",
+    "textual>=0.50.0",
+    "toml>=0.10.0",
 ]

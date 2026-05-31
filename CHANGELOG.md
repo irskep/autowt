@@ -32,7 +32,7 @@ Complete rewrite in Go. All features from the Python version are preserved. The 
 ### Removed
 
 - Python runtime dependency
-- `pip install autowt` installation method (use mise instead)
+- Python package installation method (use mise instead)
 
 ## 0.5.11 - 2026-04-22
 

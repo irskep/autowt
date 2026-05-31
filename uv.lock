@@ -14,52 +14,44 @@ wheels = [
 [[package]]
 name = "autowt"
 version = "0.6.0.dev2"
-source = { editable = "." }
-dependencies = [
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
     { name = "automate-terminal" },
+    { name = "cimonitor" },
     { name = "click" },
     { name = "click-aliases" },
+    { name = "mkdocs-github-admonitions-plugin" },
+    { name = "pre-commit" },
+    { name = "pymdown-extensions" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "rich" },
+    { name = "ruff" },
     { name = "textual" },
     { name = "toml" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "cimonitor" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-]
-docs = [
-    { name = "mkdocs-github-admonitions-plugin" },
-    { name = "pymdown-extensions" },
-]
-
 [package.metadata]
-requires-dist = [
-    { name = "automate-terminal", specifier = ">=0.1.10" },
-    { name = "click", specifier = ">=8.0.0" },
-    { name = "click-aliases", specifier = ">=1.0.0" },
-    { name = "rich", specifier = ">=13.0.0" },
-    { name = "textual", specifier = ">=0.50.0" },
-    { name = "toml", specifier = ">=0.10.0" },
-]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "automate-terminal", specifier = ">=0.1.10" },
     { name = "cimonitor", specifier = ">=0.1.5" },
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "click-aliases", specifier = ">=1.0.0" },
+    { name = "mkdocs-github-admonitions-plugin" },
     { name = "pre-commit", specifier = ">=3.0.0" },
+    { name = "pymdown-extensions", specifier = ">=10.3.1" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-asyncio", specifier = ">=1.1.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "rich", specifier = ">=13.0.0" },
     { name = "ruff", specifier = ">=0.12.3" },
-]
-docs = [
-    { name = "mkdocs-github-admonitions-plugin" },
-    { name = "pymdown-extensions", specifier = ">=10.3.1" },
+    { name = "textual", specifier = ">=0.50.0" },
+    { name = "toml", specifier = ">=0.10.0" },
 ]
 
 [[package]]

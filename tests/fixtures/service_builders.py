@@ -336,7 +336,7 @@ class MockVersionCheckService:
     def _detect_installation_method(self) -> Any:
         """Mock installation method detection."""
         InstallationMethod = namedtuple("InstallationMethod", ["name", "command"])
-        return InstallationMethod("pip", "pip install --upgrade autowt")
+        return InstallationMethod("mise", "mise use -g github:irskep/autowt")
 
 
 class MockServices:

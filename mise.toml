@@ -15,14 +15,14 @@ _.python.venv = { path = ".venv" }
 _.file = ".env"
 
 [tasks]
-install = "uv sync"
+install = "uv sync --no-install-project"
 test = "uv run pytest"
 lint = "uv run ruff check"
 format = "uv run ruff format"
 "format:check" = "uv run ruff format --check"
 claude-hook-lint = "./scripts/claude-hook-lint.sh"
 sync-readme = "uv run python scripts/sync_readme.py"
-"docs:install" = "uv sync --group docs --group dev && mise install pipx:zensical"
+"docs:install" = "uv sync --no-install-project && mise install pipx:zensical"
 "docs:prep" = "cp CHANGELOG.md docs/CHANGELOG.md"
 "docs:generate" = "go run ./cmd/autowt-docs --cli-out docs/cli --bundle-out internal/docs/generated --source docs --manifest internal/docsgen/builtin.toml --filter internal/docsgen/builtin-docs.lua"
 
@@ -35,7 +35,7 @@ sync-readme = "uv run python scripts/sync_readme.py"
 description = "Install dependencies for LocalCI runs"
 run = [
   "mise install",
-  "uv sync --group docs --group dev",
+  "uv sync --no-install-project",
   "mise install pipx:zensical",
 ]
 

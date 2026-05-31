@@ -44,8 +44,8 @@ class TestTerminalServiceInitScripts:
             (None, "cd /test/worktree"),
             ("setup.sh", "cd /test/worktree; setup.sh"),
             (
-                "mise install && uv sync --extra=dev",
-                "cd /test/worktree; mise install && uv sync --extra=dev",
+                "mise install && uv sync --no-install-project",
+                "cd /test/worktree; mise install && uv sync --no-install-project",
             ),
         ],
     )
