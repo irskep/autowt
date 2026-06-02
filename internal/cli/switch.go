@@ -106,16 +106,7 @@ func runInteractiveSwitch() error {
 		return err
 	}
 
-	console.Info("Fetching branches...")
-	a.Git.FetchBranches(repoPath)
-
-	// Get all local branches.
-	allBranches, err := a.Git.ListLocalBranches(repoPath)
-	if err != nil {
-		return fmt.Errorf("list local branches: %w", err)
-	}
-
-	result, err := ui.RunSwitchTUI(worktrees, allBranches)
+	result, err := ui.RunSwitchTUI(worktrees)
 	if err != nil {
 		return err
 	}
@@ -124,8 +115,7 @@ func runInteractiveSwitch() error {
 	}
 
 	return runSwitch(switchOpts{
-		Branch:      result.Branch,
-		FromDynamic: result.IsNew,
+		Branch: result.Branch,
 	})
 }
 

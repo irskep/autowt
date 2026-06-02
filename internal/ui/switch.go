@@ -5,45 +5,17 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/irskep/autowt/internal/model"
 )
 
 // SwitchResult is what RunSwitchTUI returns.
 type SwitchResult struct {
 	Branch string
-	IsNew  bool
 }
 
-// RunSwitchTUI presents worktrees and branches for the user to select.
-// Returns the selected branch name and whether it's a new branch.
-func RunSwitchTUI(worktrees []model.WorktreeInfo, allBranches []string) (*SwitchResult, error) {
-	var items []switchItem
-
-	// Existing worktrees first.
-	for _, wt := range worktrees {
-		items = append(items, switchItem{
-			label:      wt.Branch,
-			isWorktree: true,
-			path:       wt.DisplayPath(),
-		})
-	}
-
-	// Add branches that don't have worktrees yet.
-	wtBranches := make(map[string]bool)
-	for _, wt := range worktrees {
-		wtBranches[wt.Branch] = true
-	}
-	for _, b := range allBranches {
-		if !wtBranches[b] {
-			items = append(items, switchItem{
-				label: b,
-				isNew: true,
-			})
-		}
-	}
-
-	m := switchModel{items: items}
+// RunSwitchTUI presents existing worktrees for the user to select.
+func RunSwitchTUI(worktrees []model.WorktreeInfo) (*SwitchResult, error) {
+	m := switchModel{items: switchItemsForWorktrees(worktrees)}
 	p := tea.NewProgram(m)
 	final, err := p.Run()
 	if err != nil {
@@ -58,14 +30,24 @@ func RunSwitchTUI(worktrees []model.WorktreeInfo, allBranches []string) (*Switch
 	selected := fm.items[fm.cursor]
 	return &SwitchResult{
 		Branch: selected.label,
-		IsNew:  selected.isNew,
 	}, nil
+}
+
+func switchItemsForWorktrees(worktrees []model.WorktreeInfo) []switchItem {
+	items := make([]switchItem, 0, len(worktrees))
+	for _, wt := range worktrees {
+		items = append(items, switchItem{
+			label:      wt.Branch,
+			isWorktree: true,
+			path:       wt.DisplayPath(),
+		})
+	}
+	return items
 }
 
 type switchItem struct {
 	label      string
 	isWorktree bool
-	isNew      bool
 	path       string
 }
 
@@ -104,7 +86,7 @@ func (m switchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m switchModel) View() string {
 	var b strings.Builder
 
-	b.WriteString("Select a worktree or branch:\n")
+	b.WriteString("Select a worktree:\n")
 	b.WriteString(dimStyle.Render("  enter: select  q: cancel"))
 	b.WriteString("\n\n")
 
@@ -118,8 +100,6 @@ func (m switchModel) View() string {
 		if item.isWorktree {
 			pathInfo := dimStyle.Render(item.path)
 			label = fmt.Sprintf("%s  %s", label, pathInfo)
-		} else if item.isNew {
-			label += " " + lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render("(new worktree)")
 		}
 
 		b.WriteString(cursor + label + "\n")

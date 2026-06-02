@@ -258,13 +258,7 @@ Info:
 Tip: Interactive switching
 .PP
 You can also use \f[CR]autowt switch\f[R] with no arguments to open an
-interactive TUI that lets you:
-.IP \(bu 2
-Select from existing worktrees to switch to
-.IP \(bu 2
-Choose branches without worktrees (automatically creates a new worktree)
-.IP \(bu 2
-Create a new branch by entering its name
+interactive TUI for selecting an existing worktree.
 .PP
 Tip: Additional worktree setup
 .PP
@@ -374,11 +368,12 @@ autowt switch feature/my\-change
 Use the explicit \f[CR]switch\f[R] command if a branch name conflicts
 with a built\-in command name.
 .SS Switch and Create
-\f[CR]autowt switch [branch]\f[R] switches to an existing worktree,
-creates a new one, or opens an interactive picker when no branch is
-provided.
+\f[CR]autowt switch [branch]\f[R] switches to an existing worktree or
+creates a new one.
 It accepts branch names, branch names without a configured prefix, and
 paths to existing worktree directories.
+With no branch argument, it opens an interactive picker for existing
+worktrees.
 .PP
 When creating a worktree, autowt checks local branches first, then
 remote branches, then offers to create a new branch from the

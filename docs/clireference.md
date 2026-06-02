@@ -23,7 +23,7 @@ Use the explicit `switch` command if a branch name conflicts with a built-in com
 
 ## Switch and Create
 
-`autowt switch [branch]` switches to an existing worktree, creates a new one, or opens an interactive picker when no branch is provided. It accepts branch names, branch names without a configured prefix, and paths to existing worktree directories.
+`autowt switch [branch]` switches to an existing worktree or creates a new one. It accepts branch names, branch names without a configured prefix, and paths to existing worktree directories. With no branch argument, it opens an interactive picker for existing worktrees.
 
 When creating a worktree, autowt checks local branches first, then remote branches, then offers to create a new branch from the repository's main branch. Use `--from` to choose a specific source revision.
 

@@ -200,11 +200,8 @@ autowt with no arguments is an alias for autowt ls.
 
 Tip: Interactive switching
 
-You can also use autowt switch with no arguments to open an interactive TUI that lets you:
-
-- Select from existing worktrees to switch to
-- Choose branches without worktrees (automatically creates a new worktree)
-- Create a new branch by entering its name
+You can also use autowt switch with no arguments to open an interactive TUI for selecting an
+existing worktree.
 
 Tip: Additional worktree setup
 
@@ -296,9 +293,9 @@ Use the explicit switch command if a branch name conflicts with a built-in comma
 
 Switch and Create
 
-autowt switch [branch] switches to an existing worktree, creates a new one, or opens an interactive
-picker when no branch is provided. It accepts branch names, branch names without a configured
-prefix, and paths to existing worktree directories.
+autowt switch [branch] switches to an existing worktree or creates a new one. It accepts branch
+names, branch names without a configured prefix, and paths to existing worktree directories. With no
+branch argument, it opens an interactive picker for existing worktrees.
 
 When creating a worktree, autowt checks local branches first, then remote branches, then offers to
 create a new branch from the repository’s main branch. Use --from to choose a specific source

@@ -51,11 +51,7 @@ The output will look something like this, with an arrow `→` indicating your cu
 
 !!! tip "Interactive switching"
 
-    You can also use `autowt switch` with no arguments to open an interactive TUI that lets you:
-
-    - Select from existing worktrees to switch to
-    - Choose branches without worktrees (automatically creates a new worktree)
-    - Create a new branch by entering its name
+    You can also use `autowt switch` with no arguments to open an interactive TUI for selecting an existing worktree.
 
 !!! tip "Additional worktree setup"
 
