@@ -4,12 +4,14 @@ This page explains the main command-line workflows. For exact flags, aliases, an
 
 ## Command forms
 
-`autowt` has two equivalent binary names:
+Homebrew installs two equivalent binary names:
 
 ```sh
 autowt ls
 awt ls
 ```
+
+The mise install path provides `autowt`; install shell integration if you want the shorter `awt` command with mise.
 
 Running `autowt` with no arguments lists worktrees. Running `autowt <branch>` is shorthand for switching to a branch or creating a worktree for it:
 

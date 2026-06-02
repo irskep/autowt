@@ -4,26 +4,29 @@
 
 Before you begin, make sure you have:
 
--   **mise**: autowt is installed as a release binary through mise's GitHub backend.
 -   **Git 2.5+**: autowt relies on git worktree support.
 
 ## Install autowt
 
-Install the autowt release binary globally with mise:
+Homebrew is the recommended installation method for most users:
 
 ```bash
-mise use -g github:irskep/autowt
+brew tap irskep/tap
+brew install autowt
 ```
 
 Verify the installation:
 
 ```bash
 autowt --version
+awt --version
 ```
 
-## Project-scoped install
+Homebrew installs both `autowt` and `awt`.
 
-If you want everyone working in a repository to use the same autowt toolchain, add it to that repository's `mise.toml` instead:
+## Organization-managed install with mise
+
+If you want everyone working in a repository to use the same autowt toolchain, install autowt through mise's GitHub backend:
 
 ```bash
 mise use github:irskep/autowt
@@ -34,6 +37,14 @@ Then run:
 ```bash
 mise install
 ```
+
+You can also install it globally with mise:
+
+```bash
+mise use -g github:irskep/autowt
+```
+
+The mise install path provides `autowt`. If you want the shorter `awt` command with mise, install shell integration; it defines `awt` as an alias or function.
 
 ## Shell integration (optional)
 

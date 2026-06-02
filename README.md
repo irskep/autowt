@@ -62,10 +62,11 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
 You'll need `git` 2.5+ (anything from the last ten years).
 
-Install autowt with mise:
+Install autowt with Homebrew:
 
 ```bash
-mise use -g github:irskep/autowt
+brew tap irskep/tap
+brew install autowt
 ```
 
 Optionally, set up shell integration so worktree switches `cd` in your current shell:

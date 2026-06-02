@@ -12,9 +12,14 @@ autowt 0.5.x takes at least 200ms to do anything. Most of that time is spent imp
 
 Because 0.5.x’s TUIs were written against a Python-only framework, the TUIs needed to change, so now they are written in the [charmbracelet](https://github.com/charmbracelet) family of libraries. They are more minimalistic, but more intuitive.
 
-As a side effect of the Go rewrite, autowt can no longer provide an automatic `awt` alias unless you use the shell integration (see below).
+Installing autowt via PyPI is no longer possible, since it is not a Python package. The canonical install method is now Homebrew:
 
-Installing autowt via PyPI is no longer possible, since it is not a Python package. Use [mise](https://mise.en.dev) instead.
+```sh
+brew tap irskep/tap
+brew install autowt
+```
+
+The Homebrew package installs both `autowt` and `awt`.
 
 Please [report any regressions](https://github.com/irskep/autowt/issues).
 
@@ -23,8 +28,6 @@ Please [report any regressions](https://github.com/irskep/autowt/issues).
 Command line programs that change your working directory typically do it via a shell integration: wrapping themselves in a function which can `cd` on your behalf. I’ve avoided adding this to autowt because I felt terminal automation was a better user experience, and a shell integration added complexity I wasn’t ready to think about. But I finally found the time to design a robust solution, and as of 0.6.x you can use autowt purely using the shell integration, without terminal automation.
 
 Because autowt can be invoked from so many different environments, you might still be surprised by the limitations. For example, using the shell integration from within VSCode won’t help you very much, since your VSCode workspace itself defines which project you are “in.” VSCode users should continue to use terminal automation to automate opening and switching to VSCode windows. On the other hand, terminal-first users who prefer to create their own new tab and then switch to a worktree afterward will find the shell integration more natural.
-
-Even if you don’t plan to use the shell integration, you should still install it, because it aliases `autowt` to `awt`.
 
 - `~/.bashrc`: `eval "$(autowt shell-init)"`
 - `~/.zshrc`: `eval "$(autowt shell-init)"`

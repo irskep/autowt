@@ -121,10 +121,11 @@ one to navigate to.
 .SS Getting started
 You\(cqll need \f[CR]git\f[R] 2.5+ (anything from the last ten years).
 .PP
-Install autowt with mise:
+Install autowt with Homebrew:
 .IP
 .EX
-mise use \-g github:irskep/autowt
+brew tap irskep/tap
+brew install autowt
 .EE
 .PP
 Optionally, set up shell integration so worktree switches \f[CR]cd\f[R]
@@ -149,25 +150,26 @@ Without it, autowt opens a new terminal tab or window instead.
 .SS Requirements
 Before you begin, make sure you have:
 .IP \(bu 2
-\f[B]mise\f[R]: autowt is installed as a release binary through
-mise\(cqs GitHub backend.
-.IP \(bu 2
 \f[B]Git 2.5+\f[R]: autowt relies on git worktree support.
 .SS Install autowt
-Install the autowt release binary globally with mise:
+Homebrew is the recommended installation method for most users:
 .IP
 .EX
-mise use \-g github:irskep/autowt
+brew tap irskep/tap
+brew install autowt
 .EE
 .PP
 Verify the installation:
 .IP
 .EX
 autowt \-\-version
+awt \-\-version
 .EE
-.SS Project\-scoped install
+.PP
+Homebrew installs both \f[CR]autowt\f[R] and \f[CR]awt\f[R].
+.SS Organization\-managed install with mise
 If you want everyone working in a repository to use the same autowt
-toolchain, add it to that repository\(cqs \f[CR]mise.toml\f[R] instead:
+toolchain, install autowt through mise\(cqs GitHub backend:
 .IP
 .EX
 mise use github:irskep/autowt
@@ -178,6 +180,16 @@ Then run:
 .EX
 mise install
 .EE
+.PP
+You can also install it globally with mise:
+.IP
+.EX
+mise use \-g github:irskep/autowt
+.EE
+.PP
+The mise install path provides \f[CR]autowt\f[R].
+If you want the shorter \f[CR]awt\f[R] command with mise, install shell
+integration; it defines \f[CR]awt\f[R] as an alias or function.
 .SS Shell integration (optional)
 By default, autowt opens new terminal tabs when you switch worktrees.
 If you\(cqd prefer worktree switches to \f[CR]cd\f[R] in your current
@@ -348,12 +360,15 @@ This page explains the main command\-line workflows.
 For exact flags, aliases, and generated Cobra help, use the Command
 Reference or run \f[CR]autowt <command> \-\-help\f[R].
 .SS Command forms
-\f[CR]autowt\f[R] has two equivalent binary names:
+Homebrew installs two equivalent binary names:
 .IP
 .EX
 autowt ls
 awt ls
 .EE
+.PP
+The mise install path provides \f[CR]autowt\f[R]; install shell
+integration if you want the shorter \f[CR]awt\f[R] command with mise.
 .PP
 Running \f[CR]autowt\f[R] with no arguments lists worktrees.
 Running \f[CR]autowt <branch>\f[R] is shorthand for switching to a
@@ -1765,6 +1780,10 @@ Instead of opening new tabs or windows, you can have \f[CR]autowt\f[R]
 change directories directly in your current shell.
 This is useful if your terminal isn\(cqt supported by
 \f[CR]automate\-terminal\f[R], or if you prefer staying in one session.
+.PP
+For mise installs, shell integration also defines the shorter
+\f[CR]awt\f[R] command.
+Homebrew installs both \f[CR]autowt\f[R] and \f[CR]awt\f[R] directly.
 .PP
 Add the appropriate line to your shell config:
 .IP

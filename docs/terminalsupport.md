@@ -19,6 +19,8 @@ This will cause autowt to print commands to the console instead of having your t
 
 Instead of opening new tabs or windows, you can have `autowt` change directories directly in your current shell. This is useful if your terminal isn't supported by `automate-terminal`, or if you prefer staying in one session.
 
+For mise installs, shell integration also defines the shorter `awt` command. Homebrew installs both `autowt` and `awt` directly.
+
 Add the appropriate line to your shell config:
 
 ```bash
