@@ -107,11 +107,9 @@ new terminal tab or window instead.
 
 Installing autowt
 
-Requirements
+Note:
 
-Before you begin, make sure you have:
-
-- Git 2.5+: autowt relies on git worktree support.
+Before you begin, make sure you have at least git 2.5.
 
 Install autowt
 
