@@ -22,10 +22,10 @@ type TerminalConfig struct {
 
 // WorktreeConfig controls worktree directory layout and behavior.
 type WorktreeConfig struct {
-	DirectoryPattern string
-	AutoFetch        bool
-	BranchPrefix     string // optional: prefix template for new branches
-	BranchPathMode   model.BranchPathMode
+	DirectoryPattern           string
+	FlattenWorktreeDirectories bool
+	AutoFetch                  bool
+	BranchPrefix               string // optional: prefix template for new branches
 }
 
 // CleanupConfig controls default cleanup behavior.
@@ -73,9 +73,9 @@ func DefaultConfig() Config {
 			AlwaysNew: false,
 		},
 		Worktree: WorktreeConfig{
-			DirectoryPattern: "../{repo_name}-worktrees/{branch}",
-			AutoFetch:        true,
-			BranchPathMode:   model.BranchPathModeFlat,
+			DirectoryPattern:           "../{repo_name}-worktrees/{branch}",
+			FlattenWorktreeDirectories: true,
+			AutoFetch:                  true,
 		},
 		Cleanup: CleanupConfig{
 			DefaultMode: model.CleanupModeInteractive,

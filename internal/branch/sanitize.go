@@ -2,25 +2,18 @@
 package branch
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"unicode"
-
-	"github.com/irskep/autowt/internal/model"
 )
 
 // PathFragment converts a branch name into a safe filesystem path fragment
-// according to the configured branch path mode.
-func PathFragment(branch string, mode model.BranchPathMode) (string, error) {
-	switch mode {
-	case model.BranchPathModeHierarchical:
-		return sanitizeHierarchical(branch), nil
-	case model.BranchPathModeFlat:
-		return sanitizeFlat(branch), nil
-	default:
-		return "", fmt.Errorf("invalid branch path mode %q", mode)
+// according to the configured directory flattening behavior.
+func PathFragment(branch string, flattenDirectories bool) string {
+	if flattenDirectories {
+		return sanitizeFlat(branch)
 	}
+	return sanitizeHierarchical(branch)
 }
 
 func sanitizeFlat(branch string) string {

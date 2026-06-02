@@ -32,6 +32,16 @@ var AllTypes = []string{
 	PreCleanup, PostCleanup, PreSwitch, PostSwitch,
 }
 
+// IsValidType reports whether hookType is one of the supported hook type names.
+func IsValidType(hookType string) bool {
+	for _, valid := range AllTypes {
+		if hookType == valid {
+			return true
+		}
+	}
+	return false
+}
+
 // Runner executes lifecycle hooks with proper environment variables.
 type Runner struct {
 	Timeout time.Duration // per-hook timeout; defaults to 60s

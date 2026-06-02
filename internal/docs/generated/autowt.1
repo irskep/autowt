@@ -387,9 +387,9 @@ shell instead of opening another terminal session.
 .PP
 Worktree directories use \f[CR]worktree.directory_pattern\f[R].
 The \f[CR]{branch}\f[R] template value is controlled by
-\f[CR]worktree.branch_path_mode\f[R]: \f[CR]flat\f[R] replaces branch
-path separators with hyphens, while \f[CR]hierarchical\f[R] preserves
-them as nested directories.
+\f[CR]worktree.flatten_worktree_directories\f[R]: \f[CR]true\f[R]
+replaces branch path separators with hyphens, while \f[CR]false\f[R]
+preserves them as nested directories.
 .SS List
 \f[CR]autowt ls\f[R] lists worktrees for the current repository.
 The main worktree appears first, the current worktree is marked, and
@@ -643,6 +643,9 @@ Run a specific lifecycle hook
 Run the configured global and project hooks for the given hook type.
 Useful for integrating autowt\(cqs hook configuration with other
 worktree tools.
+.PP
+Available hooks: pre_create post_create post_create_async session_init
+pre_cleanup post_cleanup pre_switch post_switch
 .IP
 .EX
 autowt hook <hook_name> [flags]
@@ -808,7 +811,7 @@ Defines how worktrees are created and managed.
 .PP
 .TS
 tab(@);
-lw(2.4n) lw(0.9n) lw(4.6n) lw(62.1n).
+lw(3.7n) lw(0.9n) lw(4.6n) lw(60.8n).
 T{
 Key
 T}@T{
@@ -831,7 +834,7 @@ Can use variables \f[CR]{repo_dir}\f[R] (full repo path),
 \f[CR]{repo_name}\f[R] (repo directory name),
 \f[CR]{repo_parent_dir}\f[R] (parent directory of repo),
 \f[CR]{branch}\f[R] (branch name formatted using
-\f[CR]branch_path_mode\f[R]), and environment variables like
+\f[CR]flatten_worktree_directories\f[R]), and environment variables like
 \f[CR]$HOME\f[R].
 Examples: \f[CR]\(dq{repo_parent_dir}/worktrees/{branch}\(dq\f[R],
 \f[CR]\(dq$HOME/worktrees/{repo_name}/{branch}\(dq\f[R].
@@ -841,20 +844,20 @@ This can be overridden on a per\-command basis using the
 \f[B]CLI\f[R]: \f[CR]\-\-dir <path>\f[R]
 T}
 T{
-\f[CR]branch_path_mode\f[R]
+\f[CR]flatten_worktree_directories\f[R]
 T}@T{
-string
+boolean
 T}@T{
-\f[CR]\(dqflat\(dq\f[R]
+\f[CR]true\f[R]
 T}@T{
 Controls how branch names are expanded for \f[CR]{branch}\f[R] in
 \f[CR]directory_pattern\f[R].
-\ • \f[CR]flat\f[R]: Replaces slashes with hyphens, so
+When \f[CR]true\f[R], slashes are replaced with hyphens, so
 \f[CR]feature/my\-thing\f[R] becomes \f[CR]feature\-my\-thing\f[R].
-\ • \f[CR]hierarchical\f[R]: Preserves slashes as path separators, so
+When \f[CR]false\f[R], slashes are preserved as path separators, so
 \f[CR]feature/my\-thing\f[R] becomes \f[CR]feature/my\-thing\f[R].
-\ Explicit \f[CR]\-\-dir\f[R] paths bypass this setting.
-\ \f[B]ENV\f[R]: \f[CR]AUTOWT_WORKTREE_BRANCH_PATH_MODE\f[R]
+Explicit \f[CR]\-\-dir\f[R] paths bypass this setting.
+\ \f[B]ENV\f[R]: \f[CR]AUTOWT_WORKTREE_FLATTEN_WORKTREE_DIRECTORIES\f[R]
 T}
 T{
 \f[CR]auto_fetch\f[R]

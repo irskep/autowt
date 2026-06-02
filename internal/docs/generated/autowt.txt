@@ -306,8 +306,8 @@ use shell integration when you want switching to cd in the current shell instead
 terminal session.
 
 Worktree directories use worktree.directory_pattern. The {branch} template value is controlled by
-worktree.branch_path_mode: flat replaces branch path separators with hyphens, while hierarchical
-preserves them as nested directories.
+worktree.flatten_worktree_directories: true replaces branch path separators with hyphens, while
+false preserves them as nested directories.
 
 List
 
@@ -544,6 +544,9 @@ Synopsis
 Run the configured global and project hooks for the given hook type. Useful for integrating autowt’s
 hook configuration with other worktree tools.
 
+Available hooks: pre_create post_create post_create_async session_init pre_cleanup post_cleanup
+pre_switch post_switch
+
     autowt hook <hook_name> [flags]
 
 Options
@@ -651,32 +654,33 @@ Controls how autowt interacts with your terminal.
 
 Defines how worktrees are created and managed.
 
-  -----------------------------------------------------------------------------------------------------------------------------------------------------------
-  Key                 Type      Default                               Description
-  ------------------- --------- ------------------------------------- ---------------------------------------------------------------------------------------
-  directory_pattern   string    "../{repo_name}-worktrees/{branch}"   The template for creating worktree directory paths. Can use variables {repo_dir} (full
-                                                                      repo path), {repo_name} (repo directory name), {repo_parent_dir} (parent directory of
-                                                                      repo), {branch} (branch name formatted using branch_path_mode), and environment
-                                                                      variables like $HOME. Examples: "{repo_parent_dir}/worktrees/{branch}",
-                                                                      "$HOME/worktrees/{repo_name}/{branch}". This can be overridden on a per-command basis
-                                                                      using the --dir flag. ENV: AUTOWT_WORKTREE_DIRECTORY_PATTERN CLI: --dir <path>
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Key                            Type      Default                               Description
+  ------------------------------ --------- ------------------------------------- -------------------------------------------------------------------------------------
+  directory_pattern              string    "../{repo_name}-worktrees/{branch}"   The template for creating worktree directory paths. Can use variables {repo_dir}
+                                                                                 (full repo path), {repo_name} (repo directory name), {repo_parent_dir} (parent
+                                                                                 directory of repo), {branch} (branch name formatted using
+                                                                                 flatten_worktree_directories), and environment variables like $HOME. Examples:
+                                                                                 "{repo_parent_dir}/worktrees/{branch}", "$HOME/worktrees/{repo_name}/{branch}". This
+                                                                                 can be overridden on a per-command basis using the --dir flag. ENV:
+                                                                                 AUTOWT_WORKTREE_DIRECTORY_PATTERN CLI: --dir <path>
 
-  branch_path_mode    string    "flat"                                Controls how branch names are expanded for {branch} in directory_pattern. • flat:
-                                                                      Replaces slashes with hyphens, so feature/my-thing becomes feature-my-thing. •
-                                                                      hierarchical: Preserves slashes as path separators, so feature/my-thing becomes
-                                                                      feature/my-thing. Explicit --dir paths bypass this setting. ENV:
-                                                                      AUTOWT_WORKTREE_BRANCH_PATH_MODE
+  flatten_worktree_directories   boolean   true                                  Controls how branch names are expanded for {branch} in directory_pattern. When true,
+                                                                                 slashes are replaced with hyphens, so feature/my-thing becomes feature-my-thing. When
+                                                                                 false, slashes are preserved as path separators, so feature/my-thing becomes
+                                                                                 feature/my-thing. Explicit --dir paths bypass this setting. ENV:
+                                                                                 AUTOWT_WORKTREE_FLATTEN_WORKTREE_DIRECTORIES
 
-  auto_fetch          boolean   true                                  If true, automatically fetches from the remote before creating new worktrees. ENV:
-                                                                      AUTOWT_WORKTREE_AUTO_FETCH CLI: --no-fetch (to disable)
+  auto_fetch                     boolean   true                                  If true, automatically fetches from the remote before creating new worktrees. ENV:
+                                                                                 AUTOWT_WORKTREE_AUTO_FETCH CLI: --no-fetch (to disable)
 
-  branch_prefix       string    null                                  Automatically prefix new branch names with a template. Can use variables {repo_name},
-                                                                      {github_username} (if gh CLI is available), and environment variables. Examples:
-                                                                      "feature/", "{github_username}/". When set, autowt my-feature creates
-                                                                      feature/my-feature. Also applies when switching: autowt my-feature switches to
-                                                                      feature/my-feature if it exists. Prevents double-prefixing if the branch name already
-                                                                      includes the prefix. ENV: AUTOWT_WORKTREE_BRANCH_PREFIX
-  -----------------------------------------------------------------------------------------------------------------------------------------------------------
+  branch_prefix                  string    null                                  Automatically prefix new branch names with a template. Can use variables {repo_name},
+                                                                                 {github_username} (if gh CLI is available), and environment variables. Examples:
+                                                                                 "feature/", "{github_username}/". When set, autowt my-feature creates
+                                                                                 feature/my-feature. Also applies when switching: autowt my-feature switches to
+                                                                                 feature/my-feature if it exists. Prevents double-prefixing if the branch name already
+                                                                                 includes the prefix. ENV: AUTOWT_WORKTREE_BRANCH_PREFIX
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 [cleanup] - Cleanup behavior
 

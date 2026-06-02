@@ -437,10 +437,7 @@ func generateWorktreePath(repoPath, branchName, customDir string, cfg config.Con
 		repoName = repoName[:len(repoName)-4]
 	}
 
-	branchPath, err := branch.PathFragment(branchName, cfg.Worktree.BranchPathMode)
-	if err != nil {
-		return "", err
-	}
+	branchPath := branch.PathFragment(branchName, cfg.Worktree.FlattenWorktreeDirectories)
 
 	pattern := cfg.Worktree.DirectoryPattern
 	pattern = strings.ReplaceAll(pattern, "{repo_dir}", mainRepoPath)

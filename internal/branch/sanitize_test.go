@@ -3,11 +3,9 @@ package branch
 import (
 	"path/filepath"
 	"testing"
-
-	"github.com/irskep/autowt/internal/model"
 )
 
-func TestPathFragmentFlat(t *testing.T) {
+func TestPathFragmentFlattensDirectories(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
@@ -29,18 +27,15 @@ func TestPathFragmentFlat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			got, err := PathFragment(tt.input, model.BranchPathModeFlat)
-			if err != nil {
-				t.Fatalf("PathFragment(%q, flat) error: %v", tt.input, err)
-			}
+			got := PathFragment(tt.input, true)
 			if got != tt.want {
-				t.Errorf("PathFragment(%q, flat) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("PathFragment(%q, true) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestPathFragmentHierarchical(t *testing.T) {
+func TestPathFragmentPreserveDirectories(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
@@ -62,20 +57,10 @@ func TestPathFragmentHierarchical(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			got, err := PathFragment(tt.input, model.BranchPathModeHierarchical)
-			if err != nil {
-				t.Fatalf("PathFragment(%q, hierarchical) error: %v", tt.input, err)
-			}
+			got := PathFragment(tt.input, false)
 			if got != tt.want {
-				t.Errorf("PathFragment(%q, hierarchical) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("PathFragment(%q, false) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestPathFragmentUnknownModeErrors(t *testing.T) {
-	_, err := PathFragment("feature/my-branch", model.BranchPathMode("unknown"))
-	if err == nil {
-		t.Fatal("PathFragment() error = nil, want invalid mode error")
 	}
 }

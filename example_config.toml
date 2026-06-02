@@ -48,13 +48,12 @@ always_new = false
 # ENV: AUTOWT_WORKTREE_DIRECTORY_PATTERN="../{repo_name}-worktrees/{branch}"
 directory_pattern = "../{repo_name}-worktrees/{branch}"
 
-# Controls how branch names are expanded for {branch} in directory_pattern
-# Options:
-#   flat         - feature/my-thing -> feature-my-thing
-#   hierarchical - feature/my-thing -> feature/my-thing
-# Default: "flat"
-# ENV: AUTOWT_WORKTREE_BRANCH_PATH_MODE=hierarchical
-branch_path_mode = "flat"
+# Controls how branch names are expanded for {branch} in directory_pattern.
+# true:  feature/my-thing -> feature-my-thing
+# false: feature/my-thing -> feature/my-thing
+# Default: true
+# ENV: AUTOWT_WORKTREE_FLATTEN_WORKTREE_DIRECTORIES=false
+flatten_worktree_directories = true
 
 # Automatically fetch from remote before creating new worktrees
 # CLI: --no-fetch (to disable)

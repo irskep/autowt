@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/irskep/autowt/internal/console"
 	"github.com/irskep/autowt/internal/hooks"
@@ -13,11 +14,17 @@ func newHookCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hook <hook_name>",
 		Short: "Run a specific lifecycle hook",
-		Long: `Run the configured global and project hooks for the given hook type.
-Useful for integrating autowt's hook configuration with other worktree tools.`,
+		Long: fmt.Sprintf(`Run the configured global and project hooks for the given hook type.
+Useful for integrating autowt's hook configuration with other worktree tools.
+
+Available hooks:
+  %s`, strings.Join(hooks.AllTypes, "\n  ")),
 		Args:      cobra.ExactArgs(1),
 		ValidArgs: hooks.AllTypes,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !hooks.IsValidType(args[0]) {
+				return fmt.Errorf("unknown hook %q; expected one of: %s", args[0], strings.Join(hooks.AllTypes, ", "))
+			}
 			return runHook(args[0])
 		},
 	}

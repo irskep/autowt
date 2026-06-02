@@ -29,7 +29,7 @@ When creating a worktree, autowt checks local branches first, then remote branch
 
 Terminal behavior comes from configuration by default. Override it per command with `--terminal`, or use shell integration when you want switching to `cd` in the current shell instead of opening another terminal session.
 
-Worktree directories use `worktree.directory_pattern`. The `{branch}` template value is controlled by `worktree.branch_path_mode`: `flat` replaces branch path separators with hyphens, while `hierarchical` preserves them as nested directories.
+Worktree directories use `worktree.directory_pattern`. The `{branch}` template value is controlled by `worktree.flatten_worktree_directories`: `true` replaces branch path separators with hyphens, while `false` preserves them as nested directories.
 
 ## List
 

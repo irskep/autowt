@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/irskep/autowt/internal/config"
-	"github.com/irskep/autowt/internal/model"
 )
 
 func TestGenerateWorktreePathDefaultFlattensBranchSlashes(t *testing.T) {
@@ -23,10 +22,10 @@ func TestGenerateWorktreePathDefaultFlattensBranchSlashes(t *testing.T) {
 	}
 }
 
-func TestGenerateWorktreePathHierarchicalPreservesBranchSlashes(t *testing.T) {
+func TestGenerateWorktreePathPreservesBranchSlashesWhenFlattenWorktreeDirectoriesIsFalse(t *testing.T) {
 	repoPath := filepath.Join(t.TempDir(), "repo")
 	cfg := config.DefaultConfig()
-	cfg.Worktree.BranchPathMode = model.BranchPathModeHierarchical
+	cfg.Worktree.FlattenWorktreeDirectories = false
 
 	got, err := generateWorktreePath(repoPath, "feature/my-branch", "", cfg, nil)
 	if err != nil {
@@ -39,9 +38,9 @@ func TestGenerateWorktreePathHierarchicalPreservesBranchSlashes(t *testing.T) {
 	}
 }
 
-func TestGenerateWorktreePathCustomDirBypassesBranchPathMode(t *testing.T) {
+func TestGenerateWorktreePathCustomDirBypassesFlattenWorktreeDirectories(t *testing.T) {
 	cfg := config.DefaultConfig()
-	cfg.Worktree.BranchPathMode = model.BranchPathModeHierarchical
+	cfg.Worktree.FlattenWorktreeDirectories = false
 	customDir := filepath.Join(t.TempDir(), "literal-feature-my-branch")
 
 	got, err := generateWorktreePath("/repo", "feature/my-branch", customDir, cfg, nil)

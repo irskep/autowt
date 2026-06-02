@@ -51,17 +51,15 @@ type configModel struct {
 func buildConfigFields(cfg config.Config) []configField {
 	terminalModes := []string{"tab", "window", "inplace", "echo", "vscode", "cursor"}
 	cleanupModes := []string{"interactive", "merged", "remoteless", "all", "github"}
-	branchPathModes := []string{"flat", "hierarchical"}
 
 	termIdx := indexOf(terminalModes, string(cfg.Terminal.Mode))
 	cleanIdx := indexOf(cleanupModes, string(cfg.Cleanup.DefaultMode))
-	branchPathIdx := indexOf(branchPathModes, string(cfg.Worktree.BranchPathMode))
 
 	return []configField{
 		{label: "Terminal mode", value: string(cfg.Terminal.Mode), options: terminalModes, optIndex: termIdx},
 		{label: "Always new session", value: boolStr(cfg.Terminal.AlwaysNew), options: []string{"false", "true"}, optIndex: boolIdx(cfg.Terminal.AlwaysNew)},
 		{label: "Directory pattern", value: cfg.Worktree.DirectoryPattern, editable: true},
-		{label: "Branch path mode", value: string(cfg.Worktree.BranchPathMode), options: branchPathModes, optIndex: branchPathIdx},
+		{label: "Flatten worktree directories", value: boolStr(cfg.Worktree.FlattenWorktreeDirectories), options: []string{"false", "true"}, optIndex: boolIdx(cfg.Worktree.FlattenWorktreeDirectories)},
 		{label: "Auto fetch", value: boolStr(cfg.Worktree.AutoFetch), options: []string{"false", "true"}, optIndex: boolIdx(cfg.Worktree.AutoFetch)},
 		{label: "Branch prefix", value: cfg.Worktree.BranchPrefix, editable: true},
 		{label: "Default cleanup mode", value: string(cfg.Cleanup.DefaultMode), options: cleanupModes, optIndex: cleanIdx},
@@ -72,7 +70,7 @@ func applyFieldsToConfig(cfg config.Config, fields []configField) config.Config 
 	cfg.Terminal.Mode = model.TerminalMode(fields[0].value)
 	cfg.Terminal.AlwaysNew = fields[1].value == "true"
 	cfg.Worktree.DirectoryPattern = fields[2].value
-	cfg.Worktree.BranchPathMode = model.BranchPathMode(fields[3].value)
+	cfg.Worktree.FlattenWorktreeDirectories = fields[3].value == "true"
 	cfg.Worktree.AutoFetch = fields[4].value == "true"
 	cfg.Worktree.BranchPrefix = fields[5].value
 	cfg.Cleanup.DefaultMode = model.CleanupMode(fields[6].value)

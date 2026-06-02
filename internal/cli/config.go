@@ -49,7 +49,7 @@ func showConfig() error {
 		console.Plain(fmt.Sprintf("Terminal program:    %s", cfg.Terminal.Program))
 	}
 	console.Plain(fmt.Sprintf("Directory pattern:   %s", cfg.Worktree.DirectoryPattern))
-	console.Plain(fmt.Sprintf("Branch path mode:    %s", cfg.Worktree.BranchPathMode))
+	console.Plain(fmt.Sprintf("Flatten worktree dirs: %v", cfg.Worktree.FlattenWorktreeDirectories))
 	console.Plain(fmt.Sprintf("Auto fetch:          %v", cfg.Worktree.AutoFetch))
 	if cfg.Worktree.BranchPrefix != "" {
 		console.Plain(fmt.Sprintf("Branch prefix:       %s", cfg.Worktree.BranchPrefix))
