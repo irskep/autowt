@@ -10,6 +10,7 @@ Installing with Homebrew will install `autowt` and its alias `awt`.
 
 ```bash
 brew tap irskep/tap
+brew trust irskep/tap
 brew install autowt
 ```
 

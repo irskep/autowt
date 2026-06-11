@@ -82,6 +82,7 @@ Install autowt with Homebrew:
 
 ```bash
 brew tap irskep/tap
+brew trust irskep/tap
 brew install autowt
 ```
 

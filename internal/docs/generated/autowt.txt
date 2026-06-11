@@ -91,6 +91,7 @@ You’ll need git 2.5+ (anything from the last ten years).
 Install autowt with Homebrew:
 
     brew tap irskep/tap
+    brew trust irskep/tap
     brew install autowt
 
 Optionally, set up shell integration so worktree switches cd in your current shell:
@@ -116,6 +117,7 @@ Install autowt
 Homebrew is the recommended installation method for most users:
 
     brew tap irskep/tap
+    brew trust irskep/tap
     brew install autowt
 
 Verify the installation:

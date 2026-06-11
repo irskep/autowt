@@ -2,7 +2,7 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.6.0 - Unreleased
+## 0.6.0 - 2026-06-11
 
 Because it’s such a significant release, rather than the usual added/changed/fixed/remove format, 0.6.0 has artisinally hand-crafted release notes.
 
@@ -16,6 +16,7 @@ Installing autowt via PyPI is no longer possible, since it is not a Python packa
 
 ```sh
 brew tap irskep/tap
+brew trust irskep/tap
 brew install autowt
 ```
 
