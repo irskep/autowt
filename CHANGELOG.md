@@ -2,6 +2,8 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.6.1 - Unreleased
+
 ## 0.6.0 - 2026-06-11
 
 Because it’s such a significant release, rather than the usual added/changed/fixed/remove format, 0.6.0 has artisinally hand-crafted release notes.
