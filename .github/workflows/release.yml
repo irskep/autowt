@@ -41,12 +41,30 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Extract release notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v version="$VERSION" '
+            $0 ~ "^## " version " - " { in_section=1; next }
+            in_section && /^## / { exit }
+            in_section {
+              if (!started && $0 == "") next
+              started=1
+              print
+            }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog section found for $VERSION" >&2
+            exit 1
+          fi
+
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          FLAGS="--title $GITHUB_REF_NAME --generate-notes"
+          FLAGS=(--title "$GITHUB_REF_NAME" --notes-file release-notes.md)
           if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then
-            FLAGS="$FLAGS --prerelease"
+            FLAGS+=(--prerelease)
           fi
-          gh release create "$GITHUB_REF_NAME" $FLAGS dist/*
+          gh release create "$GITHUB_REF_NAME" "${FLAGS[@]}" dist/*
