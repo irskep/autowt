@@ -108,42 +108,36 @@ new terminal tab or window instead.
 
 Installing autowt
 
-Note:
-
 Before you begin, make sure you have at least git 2.5.
 
-Install autowt
+With brew
 
-Homebrew is the recommended installation method for most users:
+Installing with Homebrew will install autowt and its alias awt.
 
     brew tap irskep/tap
     brew trust irskep/tap
     brew install autowt
 
-Verify the installation:
+With mise
 
-    autowt --version
-    awt --version
+The mise install path provides autowt. If you want the shorter awt command with mise, install shell
+integration; it defines awt as an alias or function.
 
-Homebrew installs both autowt and awt.
-
-Organization-managed install with mise
+For a repo
 
 If you want everyone working in a repository to use the same autowt toolchain, install autowt
 through mise’s GitHub backend:
 
-    mise use github:irskep/autowt
+    [tools]
+    "github:irskep/autowt" = "0.6.0"
 
 Then run:
 
     mise install
 
-You can also install it globally with mise:
+For yourself, globally
 
     mise use -g github:irskep/autowt
-
-The mise install path provides autowt. If you want the shorter awt command with mise, install shell
-integration; it defines awt as an alias or function.
 
 Shell integration (optional)
 
@@ -165,6 +159,12 @@ Getting started with autowt
 
 This guide will walk you through installing autowt, setting it up for a project, and using its core
 features to streamline your development workflow.
+
+Install autowt with Homebrew:
+
+    brew tap irskep/tap
+    brew trust irskep/tap
+    brew install autowt
 
 Your first worktree
 
@@ -289,6 +289,10 @@ help, use the Command Reference or run autowt <command> --help.
 Command forms
 
 Homebrew installs two equivalent binary names:
+
+    brew tap irskep/tap
+    brew trust irskep/tap
+    brew install autowt
 
     autowt ls
     awt ls
@@ -1266,6 +1270,10 @@ prefer staying in one session.
 
 For mise installs, shell integration also defines the shorter awt command. Homebrew installs both
 autowt and awt directly.
+
+    brew tap irskep/tap
+    brew trust irskep/tap
+    brew install autowt
 
 Add the appropriate line to your shell config:
 

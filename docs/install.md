@@ -1,8 +1,6 @@
 # Installing autowt
 
-!!! note
-
-    Before you begin, make sure you have at least git 2.5.
+Before you begin, make sure you have at least git 2.5.
 
 ## With brew
 
@@ -22,7 +20,7 @@ The mise install path provides `autowt`. If you want the shorter `awt` command w
 
 If you want everyone working in a repository to use the same autowt toolchain, install autowt through mise's GitHub backend:
 
-```toml title="mise.toml"
+```toml
 [tools]
 "github:irskep/autowt" = "0.6.0"
 ```

@@ -7,6 +7,12 @@ This page explains the main command-line workflows. For exact flags, aliases, an
 Homebrew installs two equivalent binary names:
 
 ```sh
+brew tap irskep/tap
+brew trust irskep/tap
+brew install autowt
+```
+
+```sh
 autowt ls
 awt ls
 ```

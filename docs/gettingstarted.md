@@ -2,6 +2,14 @@
 
 This guide will walk you through installing `autowt`, setting it up for a project, and using its core features to streamline your development workflow.
 
+Install autowt with Homebrew:
+
+```bash
+brew tap irskep/tap
+brew trust irskep/tap
+brew install autowt
+```
+
 ## Your first worktree
 
 Let's dive in and see `autowt` in action.

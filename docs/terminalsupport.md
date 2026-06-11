@@ -21,6 +21,12 @@ Instead of opening new tabs or windows, you can have `autowt` change directories
 
 For mise installs, shell integration also defines the shorter `awt` command. Homebrew installs both `autowt` and `awt` directly.
 
+```bash
+brew tap irskep/tap
+brew trust irskep/tap
+brew install autowt
+```
+
 Add the appropriate line to your shell config:
 
 ```bash

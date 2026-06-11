@@ -148,32 +148,27 @@ With shell integration, this creates the worktree and \f[CR]cd\f[R]\(cqs
 you into it.
 Without it, autowt opens a new terminal tab or window instead.
 .SH Installing autowt
-Note:
-.PP
 Before you begin, make sure you have at least git 2.5.
-.SS Install autowt
-Homebrew is the recommended installation method for most users:
+.SS With brew
+Installing with Homebrew will install \f[CR]autowt\f[R] and its alias
+\f[CR]awt\f[R].
 .IP
 .EX
 brew tap irskep/tap
 brew trust irskep/tap
 brew install autowt
 .EE
-.PP
-Verify the installation:
-.IP
-.EX
-autowt \-\-version
-awt \-\-version
-.EE
-.PP
-Homebrew installs both \f[CR]autowt\f[R] and \f[CR]awt\f[R].
-.SS Organization\-managed install with mise
+.SS With mise
+The mise install path provides \f[CR]autowt\f[R].
+If you want the shorter \f[CR]awt\f[R] command with mise, install shell
+integration; it defines \f[CR]awt\f[R] as an alias or function.
+.SS For a repo
 If you want everyone working in a repository to use the same autowt
 toolchain, install autowt through mise\(cqs GitHub backend:
 .IP
 .EX
-mise use github:irskep/autowt
+\f[B][tools]\f[R]
+\(dqgithub:irskep/autowt\(dq = \(dq0.6.0\(dq
 .EE
 .PP
 Then run:
@@ -181,16 +176,11 @@ Then run:
 .EX
 mise install
 .EE
-.PP
-You can also install it globally with mise:
+.SS For yourself, globally
 .IP
 .EX
 mise use \-g github:irskep/autowt
 .EE
-.PP
-The mise install path provides \f[CR]autowt\f[R].
-If you want the shorter \f[CR]awt\f[R] command with mise, install shell
-integration; it defines \f[CR]awt\f[R] as an alias or function.
 .SS Shell integration (optional)
 By default, autowt opens new terminal tabs when you switch worktrees.
 If you\(cqd prefer worktree switches to \f[CR]cd\f[R] in your current
@@ -212,6 +202,14 @@ See Terminal Support for details.
 This guide will walk you through installing \f[CR]autowt\f[R], setting
 it up for a project, and using its core features to streamline your
 development workflow.
+.PP
+Install autowt with Homebrew:
+.IP
+.EX
+brew tap irskep/tap
+brew trust irskep/tap
+brew install autowt
+.EE
 .SS Your first worktree
 Let\(cqs dive in and see \f[CR]autowt\f[R] in action.
 .SS Step 1: Create a new feature branch
@@ -362,6 +360,12 @@ For exact flags, aliases, and generated Cobra help, use the Command
 Reference or run \f[CR]autowt <command> \-\-help\f[R].
 .SS Command forms
 Homebrew installs two equivalent binary names:
+.IP
+.EX
+brew tap irskep/tap
+brew trust irskep/tap
+brew install autowt
+.EE
 .IP
 .EX
 autowt ls
@@ -1785,6 +1789,12 @@ This is useful if your terminal isn\(cqt supported by
 For mise installs, shell integration also defines the shorter
 \f[CR]awt\f[R] command.
 Homebrew installs both \f[CR]autowt\f[R] and \f[CR]awt\f[R] directly.
+.IP
+.EX
+brew tap irskep/tap
+brew trust irskep/tap
+brew install autowt
+.EE
 .PP
 Add the appropriate line to your shell config:
 .IP
