@@ -29,7 +29,7 @@ func TestDefaultConfigDirResolution(t *testing.T) {
 		want   string
 	}{
 		{
-			name:   "darwin honors XDG_CONFIG_HOME when set",
+			name:   "darwin uses XDG_CONFIG_HOME when set",
 			goos:   "darwin",
 			getenv: env(map[string]string{"XDG_CONFIG_HOME": "/custom/xdg"}),
 			exists: noFiles,
@@ -57,11 +57,11 @@ func TestDefaultConfigDirResolution(t *testing.T) {
 			want:   appSupport,
 		},
 		{
-			name:   "darwin defaults to ~/.config when neither location has a config",
+			name:   "darwin defaults to Application Support when neither location has a config",
 			goos:   "darwin",
 			getenv: env(nil),
 			exists: noFiles,
-			want:   xdgDefault,
+			want:   appSupport,
 		},
 		{
 			name:   "darwin uses ~/.config when both locations have configs",
@@ -74,7 +74,7 @@ func TestDefaultConfigDirResolution(t *testing.T) {
 			want: xdgDefault,
 		},
 		{
-			name:   "linux honors XDG_CONFIG_HOME when set",
+			name:   "linux uses XDG_CONFIG_HOME when set",
 			goos:   "linux",
 			getenv: env(map[string]string{"XDG_CONFIG_HOME": "/custom/xdg"}),
 			exists: noFiles,
@@ -88,7 +88,7 @@ func TestDefaultConfigDirResolution(t *testing.T) {
 			want:   xdgDefault,
 		},
 		{
-			name:   "windows honors XDG_CONFIG_HOME when set",
+			name:   "windows uses XDG_CONFIG_HOME when set",
 			goos:   "windows",
 			getenv: env(map[string]string{"XDG_CONFIG_HOME": "/custom/xdg"}),
 			exists: noFiles,

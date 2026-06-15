@@ -29,11 +29,13 @@ func defaultConfigDir(goos string, getenv func(string) string, homeDir func() (s
 
 	switch goos {
 	case "darwin":
-		// Use ~/.config unless an existing config file is present at the
-		// previous Application Support location.
-		primary := filepath.Join(home, ".config", "autowt")
-		fallback := filepath.Join(home, "Library", "Application Support", "autowt")
-		return selectConfigDir(primary, fallback, fileExists), nil
+		// Use an existing ~/.config config file, otherwise use Application
+		// Support as the macOS default.
+		xdgDefault := filepath.Join(home, ".config", "autowt")
+		if fileExists(filepath.Join(xdgDefault, "config.toml")) {
+			return xdgDefault, nil
+		}
+		return filepath.Join(home, "Library", "Application Support", "autowt"), nil
 	case "windows":
 		// Use %LOCALAPPDATA% unless an existing config file is present at
 		// the previous ~/.autowt location.

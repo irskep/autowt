@@ -20,13 +20,13 @@ For a comprehensive example configuration file with comments explaining all opti
 
 Your global settings are stored in a `config.toml` file in a per-platform directory:
 
--   **macOS**: `~/.config/autowt/config.toml`
+-   **macOS**: `~/Library/Application Support/autowt/config.toml`
 -   **Linux**: `~/.config/autowt/config.toml`
 -   **Windows**: `%LOCALAPPDATA%\autowt\config.toml`
 
 !!! note
 
-    If `$XDG_CONFIG_HOME` is set, autowt uses `$XDG_CONFIG_HOME/autowt/config.toml` on every platform. A config file at the previous default location is still used when the location above is empty, so upgrades keep working: `~/Library/Application Support/autowt/config.toml` on macOS, and `~/.autowt/config.toml` on Windows.
+    If `$XDG_CONFIG_HOME` is set, autowt uses `$XDG_CONFIG_HOME/autowt/config.toml` on every platform. On macOS, autowt also uses `~/.config/autowt/config.toml` when that file already exists. On Windows, a config file at the previous default location (`~/.autowt/config.toml`) is still used when `%LOCALAPPDATA%\autowt\config.toml` does not exist.
 
 The easiest way to manage common settings is with the `autowt config` command, which launches an interactive TUI (Text-based User Interface) for the most frequently used options. For the complete set of configuration options, you can edit the config file directly.
 

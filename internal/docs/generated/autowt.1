@@ -746,7 +746,8 @@ adjustments.
 Your global settings are stored in a \f[CR]config.toml\f[R] file in a
 per\-platform directory:
 .IP \(bu 2
-\f[B]macOS\f[R]: \f[CR]\(ti/.config/autowt/config.toml\f[R]
+\f[B]macOS\f[R]:
+\f[CR]\(ti/Library/Application Support/autowt/config.toml\f[R]
 .IP \(bu 2
 \f[B]Linux\f[R]: \f[CR]\(ti/.config/autowt/config.toml\f[R]
 .IP \(bu 2
@@ -756,10 +757,11 @@ Note:
 .PP
 If \f[CR]$XDG_CONFIG_HOME\f[R] is set, autowt uses
 \f[CR]$XDG_CONFIG_HOME/autowt/config.toml\f[R] on every platform.
-A config file at the previous default location is still used when the
-location above is empty, so upgrades keep working:
-\f[CR]\(ti/Library/Application Support/autowt/config.toml\f[R] on macOS,
-and \f[CR]\(ti/.autowt/config.toml\f[R] on Windows.
+On macOS, autowt also uses \f[CR]\(ti/.config/autowt/config.toml\f[R]
+when that file already exists.
+On Windows, a config file at the previous default location
+(\f[CR]\(ti/.autowt/config.toml\f[R]) is still used when
+\f[CR]%LOCALAPPDATA%\(rsautowt\(rsconfig.toml\f[R] does not exist.
 .PP
 The easiest way to manage common settings is with the
 \f[CR]autowt config\f[R] command, which launches an interactive TUI
