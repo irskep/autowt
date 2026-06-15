@@ -60,10 +60,10 @@ func preferModern(modern, legacy string, fileExists func(string) bool) string {
 	return modern
 }
 
-// fileExists reports whether path refers to an existing file or directory.
+// fileExists reports whether path refers to an existing file (not a directory).
 func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
+	fi, err := os.Stat(path)
+	return err == nil && !fi.IsDir()
 }
 
 // DefaultStateDir returns the OS-specific state directory for autowt.

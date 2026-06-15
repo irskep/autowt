@@ -159,7 +159,7 @@ post_switch = "npm run dev &"
 
 ### Global configuration
 
-Configure hooks globally in `~/.config/autowt/config.toml` (see [Configuration](configuration.md#global-configuration) for the exact path on each platform):
+Configure hooks globally in your global `config.toml` (see [Configuration](configuration.md#global-configuration) for its location on each platform):
 
 ```toml
 # Global config

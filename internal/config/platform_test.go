@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -166,5 +167,30 @@ func TestDefaultConfigDirReturnsAutowtPath(t *testing.T) {
 	}
 	if filepath.Base(got) != "autowt" {
 		t.Errorf("DefaultConfigDir() = %q, want a path ending in 'autowt'", got)
+	}
+}
+
+func TestFileExists(t *testing.T) {
+	dir := t.TempDir()
+
+	file := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !fileExists(file) {
+		t.Errorf("fileExists(%q) = false, want true for a regular file", file)
+	}
+
+	// A directory named config.toml must not be mistaken for a config file.
+	dirNamedConfig := filepath.Join(dir, "sub", "config.toml")
+	if err := os.MkdirAll(dirNamedConfig, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if fileExists(dirNamedConfig) {
+		t.Errorf("fileExists(%q) = true, want false for a directory", dirNamedConfig)
+	}
+
+	if fileExists(filepath.Join(dir, "absent.toml")) {
+		t.Error("fileExists() = true for a nonexistent path, want false")
 	}
 }
