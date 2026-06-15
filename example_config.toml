@@ -2,7 +2,7 @@
 # 
 # This is a comprehensive example of all configuration options for autowt.
 # Configuration is loaded from multiple sources in this order:
-#   1. Global config: ~/.config/autowt/config.toml (Linux) or ~/Library/Application Support/autowt/config.toml (macOS)
+#   1. Global config: ~/.config/autowt/config.toml (macOS/Linux) or %LOCALAPPDATA%\autowt\config.toml (Windows)
 #   2. Project config: autowt.toml or .autowt.toml in project root
 #   3. Environment variables: AUTOWT_* prefix
 #   4. Command line flags

@@ -16,8 +16,8 @@ func DefaultConfigDir() (string, error) {
 // target OS, environment lookup, home directory, and a file-existence probe)
 // are injected so every platform branch can be exercised on any host.
 func defaultConfigDir(goos string, getenv func(string) string, homeDir func() (string, error), fileExists func(string) bool) (string, error) {
-	// XDG_CONFIG_HOME is an explicit opt-in honored on every platform; absent
-	//   it, each OS falls back to its native default below.
+	// XDG_CONFIG_HOME is an explicit opt-in used on every platform.
+	// When unset, each OS uses its default below.
 	if xdg := getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return filepath.Join(xdg, "autowt"), nil
 	}
@@ -29,35 +29,34 @@ func defaultConfigDir(goos string, getenv func(string) string, homeDir func() (s
 
 	switch goos {
 	case "darwin":
-		// Modern macOS config lives under ~/.config; a config in the legacy
-		//   Application Support directory is still honored.
-		modern := filepath.Join(home, ".config", "autowt")
-		legacy := filepath.Join(home, "Library", "Application Support", "autowt")
-		return preferModern(modern, legacy, fileExists), nil
+		// Use ~/.config unless an existing config file is present at the
+		// previous Application Support location.
+		primary := filepath.Join(home, ".config", "autowt")
+		fallback := filepath.Join(home, "Library", "Application Support", "autowt")
+		return selectConfigDir(primary, fallback, fileExists), nil
 	case "windows":
-		// Modern Windows config lives under %LOCALAPPDATA%; a config in the
-		//   legacy ~/.autowt directory is still honored.
+		// Use %LOCALAPPDATA% unless an existing config file is present at
+		// the previous ~/.autowt location.
 		localAppData := getenv("LOCALAPPDATA")
 		if localAppData == "" {
 			localAppData = filepath.Join(home, "AppData", "Local")
 		}
-		modern := filepath.Join(localAppData, "autowt")
-		legacy := filepath.Join(home, ".autowt")
-		return preferModern(modern, legacy, fileExists), nil
+		primary := filepath.Join(localAppData, "autowt")
+		fallback := filepath.Join(home, ".autowt")
+		return selectConfigDir(primary, fallback, fileExists), nil
 	default: // linux and others
 		return filepath.Join(home, ".config", "autowt"), nil
 	}
 }
 
-// preferModern returns the modern config directory unless a config.toml exists
-// only at the legacy location, in which case legacy is kept for backward
-// compatibility.
-func preferModern(modern, legacy string, fileExists func(string) bool) string {
-	if !fileExists(filepath.Join(modern, "config.toml")) &&
-		fileExists(filepath.Join(legacy, "config.toml")) {
-		return legacy
+// selectConfigDir returns the primary config directory unless a config.toml
+// exists only at the fallback location.
+func selectConfigDir(primary, fallback string, fileExists func(string) bool) string {
+	if !fileExists(filepath.Join(primary, "config.toml")) &&
+		fileExists(filepath.Join(fallback, "config.toml")) {
+		return fallback
 	}
-	return modern
+	return primary
 }
 
 // fileExists reports whether path refers to an existing file (not a directory).
