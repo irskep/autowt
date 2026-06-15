@@ -7,6 +7,11 @@
 ### Changed
 
 - Added Homebrew install instructions to more documentation pages.
+- The global config location now reads `$XDG_CONFIG_HOME` when set on every platform and uses `%LOCALAPPDATA%\autowt` by default on Windows (fixes #127, #128).
+    - `$XDG_CONFIG_HOME` is now used on every platform when set, including macOS and Windows.
+    - On macOS, `~/.config/autowt/config.toml` is used when that file already exists; otherwise the default remains `~/Library/Application Support/autowt`.
+    - On Windows, the default is now `%LOCALAPPDATA%\autowt` instead of `~/.autowt`.
+    - Windows config files at the previous default location are still used when the updated default location is empty, so upgrades keep working without moving anything.
 
 ## 0.6.0 - 2026-06-11
 
