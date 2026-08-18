@@ -12,7 +12,7 @@ autowt cleanup [worktrees...] [flags]
       --dry-run       Show what would be removed without actually removing
       --force         Force remove worktrees with modified files
   -h, --help          help for cleanup
-      --mode string   Cleanup mode (all, remoteless, merged, interactive, github)
+      --mode string   Cleanup mode (interactive, merged, remoteless, all, github, gitlab)
 ```
 
 ### Options inherited from parent commands

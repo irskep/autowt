@@ -61,7 +61,8 @@ Cleanup modes:
 - `interactive`: choose worktrees in a TUI.
 - `merged`: select branches already merged into the main branch.
 - `remoteless`: select branches without upstream tracking.
-- `github`: use the GitHub CLI to select branches with merged or closed pull requests.
+- `github`: use the GitHub CLI (`gh`) to select branches with merged or closed pull requests.
+- `gitlab`: use the GitLab CLI (`glab`) to select branches with merged or closed merge requests.
 - `all`: combine merged and remoteless cleanup.
 
 You can also pass branch names or worktree paths directly:

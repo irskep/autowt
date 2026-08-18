@@ -64,7 +64,7 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
     ***
 
-    You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches which are associated with closed pull requests on GitHub.
+    You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches whose GitHub pull request or GitLab merge request is closed.
 
 -   **:lucide-square-terminal: Friendly TUIs**
 

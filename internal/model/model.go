@@ -28,7 +28,27 @@ const (
 	CleanupModeMerged      CleanupMode = "merged"
 	CleanupModeInteractive CleanupMode = "interactive"
 	CleanupModeGitHub      CleanupMode = "github"
+	CleanupModeGitLab      CleanupMode = "gitlab"
 )
+
+// AllCleanupModes lists every cleanup mode, in the order autowt presents them.
+var AllCleanupModes = []CleanupMode{
+	CleanupModeInteractive,
+	CleanupModeMerged,
+	CleanupModeRemoteless,
+	CleanupModeAll,
+	CleanupModeGitHub,
+	CleanupModeGitLab,
+}
+
+// CleanupModeNames returns every cleanup mode as a string slice.
+func CleanupModeNames() []string {
+	names := make([]string, 0, len(AllCleanupModes))
+	for _, mode := range AllCleanupModes {
+		names = append(names, string(mode))
+	}
+	return names
+}
 
 // WorktreeInfo describes a single git worktree.
 type WorktreeInfo struct {
