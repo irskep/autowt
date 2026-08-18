@@ -5,7 +5,6 @@ import (
 
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/git"
-	"github.com/irskep/autowt/internal/github"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/prompt"
 	"github.com/irskep/autowt/internal/terminal"
@@ -22,7 +21,6 @@ type opts struct {
 type app struct {
 	Opts     opts
 	Git      *git.Service
-	GitHub   *github.Service
 	Terminal *terminal.Service
 	Hooks    *hooks.Runner
 	Config   *config.Loader
@@ -48,7 +46,6 @@ func newApp() (*app, error) {
 	return &app{
 		Opts:     o,
 		Git:      git.NewService(),
-		GitHub:   github.NewService(),
 		Terminal: ts,
 		Hooks:    hooks.NewRunner(),
 		Config:   loader,

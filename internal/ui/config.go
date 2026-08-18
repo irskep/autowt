@@ -50,7 +50,7 @@ type configModel struct {
 
 func buildConfigFields(cfg config.Config) []configField {
 	terminalModes := []string{"tab", "window", "inplace", "echo", "vscode", "cursor"}
-	cleanupModes := []string{"interactive", "merged", "remoteless", "all", "github"}
+	cleanupModes := model.CleanupModeNames()
 
 	termIdx := indexOf(terminalModes, string(cfg.Terminal.Mode))
 	cleanIdx := indexOf(cleanupModes, string(cfg.Cleanup.DefaultMode))

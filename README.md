@@ -55,7 +55,7 @@ autowt linear ABC-1234 # opens yourname/abc-1234-title-of-the-ticket or whatever
 
 - **Worktree ergonomics**: It's not hard to learn the commands to manage worktrees, but autowt shortens the most common ones. autowt can open new terminal tabs via [automate-terminal](https://github.com/irskep/automate-terminal) (iTerm2, tmux, Ghostty, and more), or with [shell integration](terminalsupport.md#shell-integration-alternative-to-terminal-automation) it can `cd` directly in your current shell.
 - **Deep, customizable automation**: You can define scripts in `.autowt.toml` to run at various points, like after creating a worktree but before switching to it, or before a worktree is cleaned up. Check out [Lifecycle Hooks](https://steveasleep.com/autowt/lifecyclehooks/) for more information.
-- **Smart cleanup**: You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches which are associated with closed pull requests on GitHub.
+- **Smart cleanup**: You can configure autowt to automatically clean up worktrees whose branches have been merged, or even branches whose GitHub pull request or GitLab merge request is closed.
 - **Friendly TUIs**: autowt uses interactive terminal-based UIs where it makes sense. For example, `autowt config` gives you an easy way to edit global settings. `autowt switch` lets you review your worktrees and pick which one to navigate to.
 
 ## Getting started

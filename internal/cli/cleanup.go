@@ -7,6 +7,7 @@ import (
 
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/console"
+	"github.com/irskep/autowt/internal/forge"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
@@ -31,7 +32,7 @@ func newCleanupCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flagMode, "mode", "", "Cleanup mode (all, remoteless, merged, interactive, github)")
+	cmd.Flags().StringVar(&flagMode, "mode", "", fmt.Sprintf("Cleanup mode (%s)", strings.Join(model.CleanupModeNames(), ", ")))
 	cmd.Flags().BoolVar(&flagDryRun, "dry-run", false, "Show what would be removed without actually removing")
 	cmd.Flags().BoolVar(&flagForce, "force", false, "Force remove worktrees with modified files")
 
@@ -60,17 +61,19 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 	if modeStr == "" && len(worktreeArgs) == 0 {
 		isTTY := term.IsTerminal(int(os.Stdin.Fd()))
 		if !isTTY {
-			return fmt.Errorf("no TTY detected. Please specify --mode explicitly when running in scripts or CI. Available modes: all, remoteless, merged, interactive, github")
+			return fmt.Errorf("no TTY detected. Please specify --mode explicitly when running in scripts or CI. Available modes: %s", strings.Join(model.CleanupModeNames(), ", "))
 		}
 
 		if !a.Config.HasUserConfiguredCleanupMode() {
 			// First-run prompt.
+			forgeProvider := forgeForRepo(repoPath)
 			console.Section("Select your default cleanup mode:")
 			console.Plain("  1. interactive - Choose which worktrees to remove")
 			console.Plain("  2. merged      - Remove branches merged into main")
 			console.Plain("  3. remoteless  - Remove branches without remote tracking")
-			if a.GitHub.IsAvailable() {
-				console.Plain("  4. github      - Remove branches with merged/closed PRs")
+			if forgeProvider != nil {
+				console.Plain(fmt.Sprintf("  4. %-11s - Remove branches with merged or closed %ss",
+					forgeProvider.CleanupMode(), forgeProvider.RequestNoun()))
 			}
 			fmt.Fprint(os.Stderr, "Choice [1]: ")
 			var choice string
@@ -81,7 +84,11 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 			case "3":
 				mode = model.CleanupModeRemoteless
 			case "4":
-				mode = model.CleanupModeGitHub
+				if forgeProvider != nil {
+					mode = forgeProvider.CleanupMode()
+				} else {
+					mode = model.CleanupModeInteractive
+				}
 			default:
 				mode = model.CleanupModeInteractive
 			}
@@ -95,9 +102,18 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 		}
 	}
 
-	// GitHub mode: check gh availability early.
-	if mode == model.CleanupModeGitHub && !a.GitHub.IsAvailable() {
-		return fmt.Errorf("GitHub cleanup requires the 'gh' CLI tool. Install it from: https://cli.github.com/")
+	// Forge modes need their CLI, so check for it before doing any work.
+	forgeProvider, isForgeMode := forge.ForCleanupMode(mode)
+	if isForgeMode {
+		if !forgeProvider.Available() {
+			return forge.MissingCLIError(forgeProvider)
+		}
+		if detected, ok := forge.Detect(repoPath); ok && detected.CleanupMode() != mode {
+			console.Warningf(
+				"The origin remote looks like %s, but cleanup mode is '%s'. Try --mode %s.",
+				detected.Name(), mode, detected.CleanupMode(),
+			)
+		}
 	}
 
 	// Fetch branches.
@@ -138,10 +154,10 @@ func runCleanup(modeStr string, dryRun, force bool, worktreeArgs []string) error
 
 	// Analyze branches.
 	var statuses []model.BranchStatus
-	if mode == model.CleanupModeGitHub {
-		statuses, err = a.GitHub.AnalyzeBranchesForCleanup(repoPath, secondary, func(path string) bool {
-			return a.Git.HasUncommittedChanges(path)
-		})
+	if isForgeMode {
+		statuses, err = forge.AnalyzeBranchesForCleanup(
+			forgeProvider, repoPath, secondary, a.Git.HasUncommittedChanges,
+		)
 		if err != nil {
 			return err
 		}
@@ -308,29 +324,8 @@ func executeCleanup(a *app, toCleanup []model.BranchStatus, mode model.CleanupMo
 }
 
 func displayBranchStatus(mode model.CleanupMode, statuses []model.BranchStatus) {
-	if mode == model.CleanupModeGitHub {
-		var merged, open []string
-		for _, bs := range statuses {
-			if bs.IsMerged {
-				merged = append(merged, bs.Branch)
-			} else {
-				open = append(open, bs.Branch)
-			}
-		}
-		if len(merged) > 0 {
-			console.Info("Branches with merged or closed PRs:")
-			for _, b := range merged {
-				console.Plain(fmt.Sprintf("- %s", b))
-			}
-			console.Plain("")
-		}
-		if len(open) > 0 {
-			console.Info("Branches with open or no PRs (will be kept):")
-			for _, b := range open {
-				console.Plain(fmt.Sprintf("- %s", b))
-			}
-			console.Plain("")
-		}
+	if provider, ok := forge.ForCleanupMode(mode); ok {
+		displayForgeBranchStatus(provider, statuses)
 		return
 	}
 
@@ -369,6 +364,52 @@ func displayBranchStatus(mode model.CleanupMode, statuses []model.BranchStatus) 
 	}
 }
 
+// displayForgeBranchStatus reports which branches have a finished pull or
+// merge request, and which ones autowt will keep.
+func displayForgeBranchStatus(provider forge.Provider, statuses []model.BranchStatus) {
+	var merged, open []string
+	for _, bs := range statuses {
+		if bs.IsMerged {
+			merged = append(merged, bs.Branch)
+		} else {
+			open = append(open, bs.Branch)
+		}
+	}
+	noun := provider.RequestNoun()
+	if len(merged) > 0 {
+		console.Infof("Branches with merged or closed %ss:", noun)
+		for _, b := range merged {
+			console.Plain(fmt.Sprintf("- %s", b))
+		}
+		console.Plain("")
+	}
+	if len(open) > 0 {
+		console.Infof("Branches with open or no %ss (will be kept):", noun)
+		for _, b := range open {
+			console.Plain(fmt.Sprintf("- %s", b))
+		}
+		console.Plain("")
+	}
+}
+
+// forgeForRepo returns the forge to offer for a repository: the one hosting
+// its origin remote, or, when the remote is unrecognized, whichever forge CLI
+// is installed. Returns nil when there is nothing usable.
+func forgeForRepo(repoPath string) forge.Provider {
+	if provider, ok := forge.Detect(repoPath); ok {
+		if provider.Available() {
+			return provider
+		}
+		return nil
+	}
+	for _, provider := range forge.Providers() {
+		if provider.Available() {
+			return provider
+		}
+	}
+	return nil
+}
+
 func filterWorktreesByArgs(worktrees []model.WorktreeInfo, args []string) []model.WorktreeInfo {
 	argSet := make(map[string]bool)
 	for _, a := range args {
@@ -400,7 +441,7 @@ func selectBranchesForCleanup(mode model.CleanupMode, statuses []model.BranchSta
 			filterByCondition(statuses, func(bs model.BranchStatus) bool { return bs.IsIdentical }),
 			filterByCondition(statuses, func(bs model.BranchStatus) bool { return bs.IsMerged })...,
 		)))
-	case model.CleanupModeGitHub:
+	case model.CleanupModeGitHub, model.CleanupModeGitLab:
 		return filterClean(filterByCondition(statuses, func(bs model.BranchStatus) bool { return bs.IsMerged }))
 	case model.CleanupModeInteractive:
 		return interactiveSelection(statuses)

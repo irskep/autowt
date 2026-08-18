@@ -12,6 +12,7 @@ import (
 	"github.com/irskep/autowt/internal/branch"
 	"github.com/irskep/autowt/internal/config"
 	"github.com/irskep/autowt/internal/console"
+	"github.com/irskep/autowt/internal/forge"
 	"github.com/irskep/autowt/internal/hooks"
 	"github.com/irskep/autowt/internal/model"
 	"github.com/irskep/autowt/internal/prompt"
@@ -489,12 +490,19 @@ func resolveCanonicalBranch(a *app, cfg config.Config, branchName string, worktr
 		return branchName
 	}
 
-	// Build template context and apply prefix.
+	// Build template context and apply prefix. Usernames cost a network call,
+	// so only look them up when the prefix asks for one.
 	context := map[string]string{
 		"repo_name": filepath.Base(repoPath),
 	}
-	if username := a.GitHub.GetUsername(); username != "" {
-		context["github_username"] = username
+	for _, provider := range forge.Providers() {
+		variable := provider.UsernameVar()
+		if !strings.Contains(prefix, "{"+variable+"}") {
+			continue
+		}
+		if username := provider.Username(); username != "" {
+			context[variable] = username
+		}
 	}
 
 	prefixed := branch.ApplyPrefix(branchName, prefix, context)

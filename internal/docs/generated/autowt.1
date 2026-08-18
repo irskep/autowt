@@ -105,8 +105,8 @@ Check out Lifecycle Hooks for more information.
 .RS 2
 .PP
 You can configure autowt to automatically clean up worktrees whose
-branches have been merged, or even branches which are associated with
-closed pull requests on GitHub.
+branches have been merged, or even branches whose GitHub pull request or
+GitLab merge request is closed.
 .RE
 .IP \(bu 2
 \f[B] Friendly TUIs\f[R]
@@ -437,8 +437,11 @@ Cleanup modes:
 .IP \(bu 2
 \f[CR]remoteless\f[R]: select branches without upstream tracking.
 .IP \(bu 2
-\f[CR]github\f[R]: use the GitHub CLI to select branches with merged or
-closed pull requests.
+\f[CR]github\f[R]: use the GitHub CLI (\f[CR]gh\f[R]) to select branches
+with merged or closed pull requests.
+.IP \(bu 2
+\f[CR]gitlab\f[R]: use the GitLab CLI (\f[CR]glab\f[R]) to select
+branches with merged or closed merge requests.
 .IP \(bu 2
 \f[CR]all\f[R]: combine merged and remoteless cleanup.
 .PP
@@ -591,7 +594,7 @@ autowt cleanup [worktrees...] [flags]
       \-\-dry\-run       Show what would be removed without actually removing
       \-\-force         Force remove worktrees with modified files
   \-h, \-\-help          help for cleanup
-      \-\-mode string   Cleanup mode (all, remoteless, merged, interactive, github)
+      \-\-mode string   Cleanup mode (interactive, merged, remoteless, all, github, gitlab)
 .EE
 .SS Options inherited from parent commands
 .IP
@@ -909,9 +912,11 @@ T}@T{
 T}@T{
 Automatically prefix new branch names with a template.
 Can use variables \f[CR]{repo_name}\f[R], \f[CR]{github_username}\f[R]
-(if \f[CR]gh\f[R] CLI is available), and environment variables.
+(if \f[CR]gh\f[R] CLI is available), \f[CR]{gitlab_username}\f[R] (if
+\f[CR]glab\f[R] CLI is available), and environment variables.
 Examples: \f[CR]\(dqfeature/\(dq\f[R],
-\f[CR]\(dq{github_username}/\(dq\f[R].
+\f[CR]\(dq{github_username}/\(dq\f[R],
+\f[CR]\(dq{gitlab_username}/\(dq\f[R].
 When set, \f[CR]autowt my\-feature\f[R] creates
 \f[CR]feature/my\-feature\f[R].
 Also applies when switching: \f[CR]autowt my\-feature\f[R] switches to
@@ -955,11 +960,13 @@ upstream remote.
 branches.
 \ • \f[CR]github\f[R]: Uses the GitHub CLI (\f[CR]gh\f[R]) to identify
 branches with merged or closed pull requests.
+\ • \f[CR]gitlab\f[R]: Uses the GitLab CLI (\f[CR]glab\f[R]) to identify
+branches with merged or closed merge requests.
 \ \f[B]First run\f[R]: If not configured, autowt will prompt you to
 select your preferred mode on first use.
-If \f[CR]gh\f[R] is available, the \f[CR]github\f[R] option will be
-offered; otherwise, a note will mention it becomes available when
-\f[CR]gh\f[R] is installed.
+autowt looks at the \f[CR]origin\f[R] remote and offers
+\f[CR]github\f[R] or \f[CR]gitlab\f[R] when that service\(cqs CLI is
+installed.
 \ \f[B]ENV\f[R]: \f[CR]AUTOWT_CLEANUP_DEFAULT_MODE\f[R]  \f[B]CLI\f[R]:
 \f[CR]\-\-mode <mode>\f[R]
 T}

@@ -76,7 +76,7 @@ What autowt can do for you
 -  Smart cleanup
 
   You can configure autowt to automatically clean up worktrees whose branches have been merged, or
-  even branches which are associated with closed pull requests on GitHub.
+  even branches whose GitHub pull request or GitLab merge request is closed.
 
 -  Friendly TUIs
 
@@ -349,7 +349,8 @@ Cleanup modes:
 - interactive: choose worktrees in a TUI.
 - merged: select branches already merged into the main branch.
 - remoteless: select branches without upstream tracking.
-- github: use the GitHub CLI to select branches with merged or closed pull requests.
+- github: use the GitHub CLI (gh) to select branches with merged or closed pull requests.
+- gitlab: use the GitLab CLI (glab) to select branches with merged or closed merge requests.
 - all: combine merged and remoteless cleanup.
 
 You can also pass branch names or worktree paths directly:
@@ -489,7 +490,7 @@ Options
           --dry-run       Show what would be removed without actually removing
           --force         Force remove worktrees with modified files
       -h, --help          help for cleanup
-          --mode string   Cleanup mode (all, remoteless, merged, interactive, github)
+          --mode string   Cleanup mode (interactive, merged, remoteless, all, github, gitlab)
 
 Options inherited from parent commands
 
@@ -700,11 +701,12 @@ Defines how worktrees are created and managed.
                                                                                  AUTOWT_WORKTREE_AUTO_FETCH CLI: --no-fetch (to disable)
 
   branch_prefix                  string    null                                  Automatically prefix new branch names with a template. Can use variables {repo_name},
-                                                                                 {github_username} (if gh CLI is available), and environment variables. Examples:
-                                                                                 "feature/", "{github_username}/". When set, autowt my-feature creates
-                                                                                 feature/my-feature. Also applies when switching: autowt my-feature switches to
-                                                                                 feature/my-feature if it exists. Prevents double-prefixing if the branch name already
-                                                                                 includes the prefix. ENV: AUTOWT_WORKTREE_BRANCH_PREFIX
+                                                                                 {github_username} (if gh CLI is available), {gitlab_username} (if glab CLI is
+                                                                                 available), and environment variables. Examples: "feature/", "{github_username}/",
+                                                                                 "{gitlab_username}/". When set, autowt my-feature creates feature/my-feature. Also
+                                                                                 applies when switching: autowt my-feature switches to feature/my-feature if it
+                                                                                 exists. Prevents double-prefixing if the branch name already includes the prefix.
+                                                                                 ENV: AUTOWT_WORKTREE_BRANCH_PREFIX
   --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 [cleanup] - Cleanup behavior
@@ -718,10 +720,11 @@ Configures the autowt cleanup command.
                                           remove. • merged: Selects branches that have been merged into your main branch. • remoteless:
                                           Selects local branches that don’t have an upstream remote. • all: Non-interactively selects
                                           all merged and remoteless branches. • github: Uses the GitHub CLI (gh) to identify branches
-                                          with merged or closed pull requests. First run: If not configured, autowt will prompt you to
-                                          select your preferred mode on first use. If gh is available, the github option will be
-                                          offered; otherwise, a note will mention it becomes available when gh is installed. ENV:
-                                          AUTOWT_CLEANUP_DEFAULT_MODE CLI: --mode <mode>
+                                          with merged or closed pull requests. • gitlab: Uses the GitLab CLI (glab) to identify branches
+                                          with merged or closed merge requests. First run: If not configured, autowt will prompt you to
+                                          select your preferred mode on first use. autowt looks at the origin remote and offers github
+                                          or gitlab when that service’s CLI is installed. ENV: AUTOWT_CLEANUP_DEFAULT_MODE CLI:
+                                          --mode <mode>
 
   --------------------------------------------------------------------------------------------------------------------------------------
 

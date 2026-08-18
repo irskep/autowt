@@ -4,6 +4,14 @@
 
 ## 0.6.1 - Unreleased
 
+### Added
+
+- GitLab support wherever autowt already understood GitHub.
+    - `autowt cleanup --mode gitlab` uses the `glab` CLI to find branches whose merge request is merged or closed.
+    - `worktree.branch_prefix` accepts `{gitlab_username}`, filled in from `glab`.
+    - The first-run cleanup prompt reads the `origin` remote, so GitLab repositories are offered `gitlab` and GitHub repositories are offered `github`.
+    - Cleanup warns when the mode you asked for does not match the service hosting `origin`.
+
 ### Changed
 
 - Added Homebrew install instructions to more documentation pages.
