@@ -504,6 +504,13 @@ func resolveCanonicalBranch(a *app, cfg config.Config, branchName string, worktr
 			context[variable] = username
 		}
 	}
+	if strings.Contains(prefix, "{"+forge.GenericUsernameVar+"}") {
+		if provider := forgeForRepo(repoPath); provider != nil {
+			if username := provider.Username(); username != "" {
+				context[forge.GenericUsernameVar] = username
+			}
+		}
+	}
 
 	prefixed := branch.ApplyPrefix(branchName, prefix, context)
 	if prefixed == branchName {

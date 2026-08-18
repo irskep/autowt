@@ -25,6 +25,13 @@ func TestApplyPrefix(t *testing.T) {
 			want:     "alice/my-branch",
 		},
 		{
+			name:     "forge username variable",
+			branch:   "my-branch",
+			template: "{forge_username}/",
+			context:  map[string]string{"forge_username": "alice"},
+			want:     "alice/my-branch",
+		},
+		{
 			name:     "no double prefix",
 			branch:   "feature/my-branch",
 			template: "feature/",

@@ -61,10 +61,12 @@ flatten_worktree_directories = true
 auto_fetch = true
 
 # Automatically prefix new branch names with a template
-# Variables: {repo_name}, {github_username} (if gh CLI is available),
-#            {gitlab_username} (if glab CLI is available)
+# Variables: {repo_name}, {forge_username} (your username on whichever of
+#            GitHub or GitLab hosts the repo), {github_username} (if gh CLI is
+#            available), {gitlab_username} (if glab CLI is available)
 # Examples:
 #   branch_prefix = "feature/"           # Simple prefix
+#   branch_prefix = "{forge_username}/"  # Use GitHub or GitLab username
 #   branch_prefix = "{github_username}/" # Use GitHub username
 #   branch_prefix = "{gitlab_username}/" # Use GitLab username
 # When set, "autowt my-feature" creates "feature/my-feature" or "alice/my-feature"

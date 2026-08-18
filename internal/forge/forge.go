@@ -10,6 +10,10 @@ import (
 	"github.com/irskep/autowt/internal/model"
 )
 
+// GenericUsernameVar is the branch prefix template variable that resolves to
+// the username on whichever forge hosts the repository.
+const GenericUsernameVar = "forge_username"
+
 // Provider describes one code-hosting service and the CLI that talks to it.
 type Provider interface {
 	// Name is the human-readable service name, like "GitHub".

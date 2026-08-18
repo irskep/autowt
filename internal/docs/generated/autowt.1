@@ -911,12 +911,13 @@ T}@T{
 \f[CR]null\f[R]
 T}@T{
 Automatically prefix new branch names with a template.
-Can use variables \f[CR]{repo_name}\f[R], \f[CR]{github_username}\f[R]
-(if \f[CR]gh\f[R] CLI is available), \f[CR]{gitlab_username}\f[R] (if
-\f[CR]glab\f[R] CLI is available), and environment variables.
+Can use variables \f[CR]{repo_name}\f[R], \f[CR]{forge_username}\f[R]
+(your username on whichever of GitHub or GitLab hosts the repository),
+\f[CR]{github_username}\f[R] (if \f[CR]gh\f[R] CLI is available),
+\f[CR]{gitlab_username}\f[R] (if \f[CR]glab\f[R] CLI is available), and
+environment variables.
 Examples: \f[CR]\(dqfeature/\(dq\f[R],
-\f[CR]\(dq{github_username}/\(dq\f[R],
-\f[CR]\(dq{gitlab_username}/\(dq\f[R].
+\f[CR]\(dq{forge_username}/\(dq\f[R].
 When set, \f[CR]autowt my\-feature\f[R] creates
 \f[CR]feature/my\-feature\f[R].
 Also applies when switching: \f[CR]autowt my\-feature\f[R] switches to

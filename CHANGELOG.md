@@ -9,6 +9,7 @@
 - GitLab support wherever autowt already understood GitHub.
     - `autowt cleanup --mode gitlab` uses the `glab` CLI to find branches whose merge request is merged or closed.
     - `worktree.branch_prefix` accepts `{gitlab_username}`, filled in from `glab`.
+    - `worktree.branch_prefix` also accepts `{forge_username}`, which resolves to your username on whichever service hosts the `origin` remote.
     - The first-run cleanup prompt reads the `origin` remote, so GitLab repositories are offered `gitlab` and GitHub repositories are offered `github`.
     - Cleanup warns when the mode you asked for does not match the service hosting `origin`.
 
