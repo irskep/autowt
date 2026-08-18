@@ -2,6 +2,8 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.6.2 - Unreleased
+
 ## 0.6.1 - 2026-08-18
 
 ### Added
