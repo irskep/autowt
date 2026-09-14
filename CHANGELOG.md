@@ -4,6 +4,15 @@
 
 ## 0.6.2 - Unreleased
 
+### Fixed
+
+- Shell integration no longer overrides your terminal mode.
+    - It now sets the default mode to `inplace` instead of forcing every switch to `cd` in the current shell, so `mode = 'tab'` in your config gets you tabs again.
+    - `--terminal` works under shell integration. It used to be ignored.
+    - `inplace` uses the shell integration file when it is available, which is more reliable than typing into the terminal via AppleScript or dbus.
+    - `echo` prints the command instead of silently running it.
+    - Shells without the integration installed are unaffected; the default is still `tab`.
+
 ## 0.6.1 - 2026-08-18
 
 ### Added

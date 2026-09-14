@@ -15,6 +15,11 @@ import (
 type Loader struct {
 	AppDir           string
 	GlobalConfigFile string
+
+	// ShellIntegration reports whether the calling shell has autowt's shell
+	// integration active. A shell that can cd itself defaults to inplace
+	// instead of tab; explicitly configured modes still win.
+	ShellIntegration bool
 }
 
 // NewLoader creates a Loader with the default OS-specific config directory.
@@ -32,7 +37,7 @@ func NewLoader() (*Loader, error) {
 // Load reads configuration with cascading precedence:
 // defaults -> global file -> project file -> env vars -> CLI overrides.
 func (l *Loader) Load(projectDir string, cliOverrides map[string]any) (Config, error) {
-	cfg := DefaultConfig()
+	cfg := l.baseConfig()
 
 	// Global config.
 	if tf, md, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
@@ -69,7 +74,7 @@ func (l *Loader) Load(projectDir string, cliOverrides map[string]any) (Config, e
 
 // LoadGlobalOnly loads only the global config (no project, env, or CLI overrides).
 func (l *Loader) LoadGlobalOnly() (Config, error) {
-	cfg := DefaultConfig()
+	cfg := l.baseConfig()
 	if tf, md, err := l.loadTOMLFile(l.GlobalConfigFile); err == nil {
 		applyTOMLFile(&cfg, tf, md)
 	} else if !os.IsNotExist(err) {
@@ -79,6 +84,15 @@ func (l *Loader) LoadGlobalOnly() (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+// baseConfig returns the defaults this loader cascades on top of.
+func (l *Loader) baseConfig() Config {
+	cfg := DefaultConfig()
+	if l.ShellIntegration {
+		cfg.Terminal.Mode = model.TerminalModeInplace
+	}
+	return cfg
 }
 
 // LoadProjectHookConfig loads only the project hook definitions.
