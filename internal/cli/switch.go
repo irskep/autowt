@@ -242,17 +242,15 @@ func runSwitch(opts switchOpts) error {
 	canonicalBranch := resolveCanonicalBranch(a, cfg, opts.Branch, worktrees, repoPath)
 	opts.Branch = canonicalBranch
 
-	// Determine terminal mode.
+	// Determine terminal mode. Shell integration shifts the default mode to
+	// inplace inside the config loader, so it never overrides an explicit choice.
 	termMode := cfg.Terminal.Mode
-	if a.Opts.ShellIntegrationFile != "" {
-		termMode = model.TerminalModeEcho
-	} else if opts.Terminal != "" {
+	if opts.Terminal != "" {
 		termMode = model.TerminalMode(opts.Terminal)
 	}
 
-	// Suppress styled output in echo mode (but not shell integration,
-	// where stdout is a real TTY and the cd command goes to a file).
-	if termMode == model.TerminalModeEcho && a.Opts.ShellIntegrationFile == "" {
+	// Echo mode exists to hand back a command line, so keep the rest quiet.
+	if termMode == model.TerminalModeEcho {
 		console.Suppressed = true
 		defer func() { console.Suppressed = false }()
 	}

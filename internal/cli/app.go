@@ -33,6 +33,7 @@ func newApp() (*app, error) {
 	if err != nil {
 		return nil, fmt.Errorf("initialize config: %w", err)
 	}
+	loader.ShellIntegration = o.ShellIntegrationFile != ""
 
 	ts := terminal.NewService()
 	ts.ConfirmSessionSwitch = func(branchName string) bool {

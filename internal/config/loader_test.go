@@ -222,3 +222,72 @@ func TestSaveConfigIncludesFlattenWorktreeDirectories(t *testing.T) {
 		t.Error("flatten_worktree_directories = true, want false")
 	}
 }
+
+func TestShellIntegrationDefaultsToInplace(t *testing.T) {
+	loader := &Loader{
+		AppDir:           t.TempDir(),
+		GlobalConfigFile: filepath.Join(t.TempDir(), "nonexistent.toml"),
+		ShellIntegration: true,
+	}
+
+	cfg, err := loader.Load("", nil)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.Terminal.Mode != model.TerminalModeInplace {
+		t.Errorf("terminal mode = %q, want inplace", cfg.Terminal.Mode)
+	}
+}
+
+func TestShellIntegrationDoesNotOverrideConfiguredMode(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile := filepath.Join(dir, "config.toml")
+	os.WriteFile(cfgFile, []byte(`
+[terminal]
+mode = "tab"
+`), 0o644)
+
+	loader := &Loader{AppDir: dir, GlobalConfigFile: cfgFile, ShellIntegration: true}
+
+	cfg, err := loader.Load("", nil)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Terminal.Mode != model.TerminalModeTab {
+		t.Errorf("terminal mode = %q, want tab (from config file)", cfg.Terminal.Mode)
+	}
+
+	cfg, err = loader.LoadGlobalOnly()
+	if err != nil {
+		t.Fatalf("LoadGlobalOnly() error: %v", err)
+	}
+	if cfg.Terminal.Mode != model.TerminalModeTab {
+		t.Errorf("global-only terminal mode = %q, want tab (from config file)", cfg.Terminal.Mode)
+	}
+}
+
+func TestShellIntegrationDoesNotOverrideEnvOrCLI(t *testing.T) {
+	loader := &Loader{
+		AppDir:           t.TempDir(),
+		GlobalConfigFile: filepath.Join(t.TempDir(), "nonexistent.toml"),
+		ShellIntegration: true,
+	}
+
+	t.Setenv("AUTOWT_TERMINAL_MODE", "window")
+	cfg, err := loader.Load("", nil)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Terminal.Mode != model.TerminalModeWindow {
+		t.Errorf("terminal mode = %q, want window (from env)", cfg.Terminal.Mode)
+	}
+
+	cfg, err = loader.Load("", map[string]any{"terminal_mode": "tab"})
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Terminal.Mode != model.TerminalModeTab {
+		t.Errorf("terminal mode = %q, want tab (from CLI)", cfg.Terminal.Mode)
+	}
+}

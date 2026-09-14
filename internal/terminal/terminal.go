@@ -56,9 +56,9 @@ func (s *Service) SwitchToWorktree(o SwitchOpts) error {
 
 	switch mode {
 	case model.TerminalModeEcho:
-		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
+		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit)
 	case model.TerminalModeInplace:
-		return s.inplaceCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit)
+		return s.inplaceCommands(o)
 	case model.TerminalModeTab:
 		return s.tabMode(o)
 	case model.TerminalModeWindow:
@@ -72,37 +72,51 @@ func (s *Service) SwitchToWorktree(o SwitchOpts) error {
 	}
 }
 
-func (s *Service) echoCommands(worktreePath, sessionInit, afterInit, shellIntegrationFile string) error {
-	line := buildCommandLine(worktreePath, sessionInit, afterInit)
-	if shellIntegrationFile != "" {
-		return os.WriteFile(shellIntegrationFile, []byte(line), 0o644)
+// echoCommands prints the command line for the user to run themselves.
+func (s *Service) echoCommands(worktreePath, sessionInit, afterInit string) error {
+	fmt.Println(buildCommandLine(worktreePath, sessionInit, afterInit))
+	return nil
+}
+
+// handOff gives the command line back to the calling shell, through the shell
+// integration file when one is available and on stdout otherwise. Terminal
+// backends fall back to this when they cannot open a tab or window.
+func handOff(o SwitchOpts) error {
+	line := buildCommandLine(o.WorktreePath, o.SessionInitScript, o.AfterInit)
+	if o.ShellIntegrationFile != "" {
+		return os.WriteFile(o.ShellIntegrationFile, []byte(line), 0o644)
 	}
 	fmt.Println(line)
 	return nil
 }
 
-func (s *Service) inplaceCommands(worktreePath, sessionInit, afterInit string) error {
-	line := buildCommandLine(worktreePath, sessionInit, afterInit)
+func (s *Service) inplaceCommands(o SwitchOpts) error {
+	// Shell integration is the most reliable way to move the current session:
+	// the calling shell evals whatever we write, so no automation is needed.
+	if o.ShellIntegrationFile != "" {
+		return handOff(o)
+	}
+
 	if s.terminal != nil {
+		line := buildCommandLine(o.WorktreePath, o.SessionInitScript, o.AfterInit)
 		if err := s.terminal.RunInActiveSession(line); err == nil {
 			return nil
 		}
-		slog.Warn("Inplace execution failed, falling back to echo")
+		slog.Warn("Inplace execution failed, handing the command back to the shell")
 	}
-	fmt.Println(line)
-	return nil
+	return handOff(o)
 }
 
 func (s *Service) tabMode(o SwitchOpts) error {
 	if s.terminal == nil {
-		slog.Warn("No terminal detected, falling back to echo")
-		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
+		slog.Warn("No terminal detected, handing the command back to the shell")
+		return handOff(o)
 	}
 
 	caps := s.terminal.GetCapabilities()
 	if !caps.CanCreateTabs {
-		slog.Warn("Terminal does not support tabs, falling back to echo")
-		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
+		slog.Warn("Terminal does not support tabs, handing the command back to the shell")
+		return handOff(o)
 	}
 
 	pasteScript := combineScripts(o.SessionInitScript, o.AfterInit)
@@ -130,14 +144,14 @@ func (s *Service) tabMode(o SwitchOpts) error {
 
 func (s *Service) windowMode(o SwitchOpts) error {
 	if s.terminal == nil {
-		slog.Warn("No terminal detected, falling back to echo")
-		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
+		slog.Warn("No terminal detected, handing the command back to the shell")
+		return handOff(o)
 	}
 
 	caps := s.terminal.GetCapabilities()
 	if !caps.CanCreateWindows {
-		slog.Warn("Terminal does not support windows, falling back to echo")
-		return s.echoCommands(o.WorktreePath, o.SessionInitScript, o.AfterInit, o.ShellIntegrationFile)
+		slog.Warn("Terminal does not support windows, handing the command back to the shell")
+		return handOff(o)
 	}
 
 	pasteScript := combineScripts(o.SessionInitScript, o.AfterInit)
@@ -166,7 +180,7 @@ func (s *Service) windowMode(o SwitchOpts) error {
 func (s *Service) editorMode(cliCmd, editorName, worktreePath, sessionInit, afterInit string) error {
 	if _, err := exec.LookPath(cliCmd); err != nil {
 		slog.Warn("Editor CLI not found, falling back to echo", "editor", editorName, "command", cliCmd)
-		return s.echoCommands(worktreePath, sessionInit, afterInit, "")
+		return s.echoCommands(worktreePath, sessionInit, afterInit)
 	}
 
 	combined := combineScripts(sessionInit, afterInit)

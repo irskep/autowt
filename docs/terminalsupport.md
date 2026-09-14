@@ -44,6 +44,15 @@ The shell argument can be omitted if `$SHELL` matches your config file (i.e., yo
 
 Once configured, running `autowt my-branch` will `cd` into the worktree in your current shell instead of opening a new tab or window. No terminal automation (AppleScript, tmux, etc.) is required, so this works in any terminal.
 
+Shell integration does this by making `inplace` the default terminal mode. A mode you set yourself still wins, so you can keep shell integration installed and still get tabs:
+
+```
+[terminal]
+mode = 'tab'
+```
+
+Keeping it installed is useful even then. `tab` and `window` fall back to shell integration when your terminal can't be automated, so you get a `cd` instead of a printed command.
+
 Commands that don't switch worktrees (`ls`, `cleanup`, `config`, etc.) continue to work normally.
 
 To preview what the shell function would do without actually changing directories:
